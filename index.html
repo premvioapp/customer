@@ -362,9 +362,12 @@ else if(!PV_CONFIG.SUPABASE_ANON_KEY||/PASTE/.test(PV_CONFIG.SUPABASE_ANON_KEY))
 /* ============ PREMVIO — shared helpers ============ */
 if (window.pvDead) throw new Error("stopped");
 const CFG = window.PV_CONFIG;
+// Each panel keeps its own login, so logging out of one never logs out the others.
+const PV_PANEL = /admin\.html/i.test(location.pathname) ? "admin" : /agent\.html/i.test(location.pathname) ? "agent" : "customer";
 const sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: "premvio-" + PV_PANEL + "-login" },
 });
+const pvSignOut = () => sb.auth.signOut({ scope: "local" });
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -550,7 +553,7 @@ function staffLogin(container, roleLabel, allowed, onOk) {
       if (error) { cap.reset(); if (/Invalid login/i.test(error.message)) throw new Error("Wrong ID or password."); throw error; }
       const p = await getMyProfile();
       if (!p || !allowed.includes(p.role) || p.blocked) {
-        await sb.auth.signOut();
+        await pvSignOut();
         throw new Error(`This account does not have ${roleLabel.toLowerCase()} access.`);
       }
       onOk(p);
@@ -672,21 +675,13 @@ function renderAuth(mode = "login") {
       if (!/^[+0-9 ()-]{7,20}$/.test(f.phone.value.trim())) { toast("Enter a valid phone number.", "error"); return; }
       if (!cap.ok()) { toast("Wrong captcha answer, try again.", "error"); cap.reset(); return; }
       busy($("button.btn", f), async () => {
-        const { data, error } = await sb.auth.signUp({
-          email: f.email.value.trim(),
-          password: f.password.value,
-          options: {
-            data: { full_name: f.full_name.value.trim(), phone: f.phone.value.trim(), country: f.country.value },
-            emailRedirectTo: location.origin + location.pathname,
-          },
-        });
+        const email = f.email.value.trim(), password = f.password.value;
+        const { error } = await sb.rpc("register_customer", { p_email: email, p_password: password,
+          p_full_name: f.full_name.value.trim(), p_phone: f.phone.value.trim(), p_country: f.country.value });
         if (error) { cap.reset(); throw error; }
-        if (!data.session) {
-          body.innerHTML = `<div class="empty"><div class="big">📩</div>
-            <h3>Check your email</h3><p>We sent a confirmation link to <b>${esc(f.email.value)}</b>. Open it, then log in.</p>
-            <button class="btn block mt" id="toLogin">Go to login</button></div>`;
-          $("#toLogin").onclick = () => renderAuth("login");
-        }
+        const { error: e2 } = await sb.auth.signInWithPassword({ email, password });
+        if (e2) { toast("Account created. Please log in.", "success"); renderAuth("login"); return; }
+        toast("Welcome to Premvio!", "success");
       });
     };
   } else {
@@ -743,7 +738,7 @@ async function startApp() {
     root.innerHTML = `<div class="auth-wrap"><div class="card center"><h2>Account blocked</h2>
       <p class="muted">Please contact ${esc(S.settings.telegram_username || "support")} on Telegram.</p>
       <button class="btn mt" id="lo">Log out</button></div></div>`;
-    $("#lo").onclick = () => sb.auth.signOut();
+    $("#lo").onclick = () => pvSignOut();
     return;
   }
   applyTheme(S.profile.theme);
@@ -1191,7 +1186,7 @@ async function viewSettings(v) {
   $("#logout").onclick = async () => {
     if (!(await confirmBox("Log out?", "You can log in again any time.", "Log out"))) return;
     await disablePush().catch(() => {});
-    await sb.auth.signOut();
+    await pvSignOut();
     location.hash = "";
   };
 }
