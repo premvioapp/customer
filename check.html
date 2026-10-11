@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Premvio — connection check</title>
+<style>
+body{background:#060b1a;color:#eef3ff;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;padding:24px 16px}
+.box{max-width:560px;margin:0 auto}h1{font-size:1.4rem}
+.item{display:flex;gap:12px;padding:14px;border-radius:12px;background:#0f1a33;margin:10px 0;border:1px solid rgba(120,160,255,.14)}
+.ic{font-size:1.2rem}.t{font-weight:700}.d{color:#8d9bbd;font-size:.9rem;margin-top:2px;word-break:break-word}
+</style></head><body><div class="box">
+<h1>Premvio connection check</h1><p style="color:#8d9bbd">Open this page on your site (…/check.html). Every line should be ✅.</p>
+<div id="out"></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script>
+const out = document.getElementById("out");
+function line(ok, title, detail) {
+  out.insertAdjacentHTML("beforeend", `<div class="item"><div class="ic">${ok === null ? "⏳" : ok ? "✅" : "❌"}</div><div><div class="t">${title}</div><div class="d">${detail || ""}</div></div></div>`);
+}
+(async () => {
+  line(location.protocol === "https:", "Website opened over https", location.protocol === "https:" ? location.host : "Open the site from its https:// address, not by double-clicking the file.");
+  const C = window.PV_CONFIG;
+  if (!C) return line(false, "js/config.js found", "The js folder or config.js is missing on the site.");
+  line(true, "js/config.js found", C.SUPABASE_URL);
+  const keyOk = C.SUPABASE_ANON_KEY && !/PASTE/.test(C.SUPABASE_ANON_KEY);
+  line(keyOk, "Supabase anon key added", keyOk ? "Key starts with " + C.SUPABASE_ANON_KEY.slice(0, 12) + "…" : "Paste the anon public key into js/config.js.");
+  if (!window.supabase) return line(false, "Supabase library loaded", "Check internet, then reload.");
+  line(true, "Supabase library loaded");
+  if (!keyOk) return;
+  const sb = supabase.createClient(C.SUPABASE_URL, C.SUPABASE_ANON_KEY);
+  const s = await sb.from("app_settings").select("*");
+  if (s.error) {
+    const m = s.error.message || "";
+    return line(false, "Database reachable", /does not exist|schema cache/i.test(m) ? "Database not set up. Run 1-database.sql in Supabase SQL Editor." : /Invalid API key|JWT/i.test(m) ? "The anon key is wrong. Copy it again from Supabase → Project Settings → API." : m);
+  }
+  line(true, "Database reachable", s.data.length + " settings found");
+  const p = await sb.from("products").select("id, fields, min_qty").limit(1);
+  line(!p.error, "Database is the latest version (v2)", p.error ? "Old database. Run the new 1-database.sql again." : "OK");
+  const r = await sb.rpc("place_order", { p_product: 0, p_quantity: 1, p_form: {} });
+  const fnOk = r.error && /permission denied|log in/i.test(r.error.message);
+  line(fnOk, "Database functions installed", fnOk ? "OK" : r.error ? r.error.message : "Unexpected");
+  line("serviceWorker" in navigator, "App install & notifications supported in this browser", "");
+})();
+</script></body></html>

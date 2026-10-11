@@ -291,3 +291,22 @@ td .btn + .btn { margin-left: 6px; }
   .panel-main { padding: 16px; }
   .grid-2 { grid-template-columns: 1fr; }
 }
+
+/* ---------- v2 additions ---------- */
+.btn.deposit { background: linear-gradient(135deg, #2ee59d, #16b46f); color: #04220f; }
+.btn.withdraw { background: linear-gradient(135deg, #ff6b78, #e23a4b); color: #fff; }
+.money-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.bars { display: flex; align-items: flex-end; gap: 8px; height: 170px; padding: 10px 4px 0; }
+.bars .b { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 6px; min-width: 0; }
+.bars .col { width: 100%; max-width: 38px; border-radius: 8px 8px 3px 3px; background: var(--grad); min-height: 3px; position: relative; }
+.bars .val { font-size: .68rem; color: var(--muted); font-weight: 700; white-space: nowrap; }
+.bars .day { font-size: .7rem; color: var(--muted); }
+.field-row { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-top: 10px; background: var(--bg-2); }
+.field-row .row input, .field-row .row select { padding: 10px 12px; }
+.info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.info-grid div { background: var(--card-2); border-radius: 12px; padding: 10px 12px; }
+.info-grid .k { font-size: .75rem; color: var(--muted); font-weight: 700; }
+.info-grid .v { font-weight: 700; word-break: break-word; }
+.kv { font-size: .82rem; }
+.kv span { color: var(--muted); }
+.back-link { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 12px; }

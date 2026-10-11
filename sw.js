@@ -1,5 +1,5 @@
 /* PREMVIO service worker — offline shell + push notifications */
-const CACHE = "premvio-v1";
+const CACHE = "premvio-v2";
 const SHELL = ["./", "./index.html", "./css/style.css", "./js/config.js", "./js/common.js", "./js/customer.js",
   "./manifest.json", "./img/logo.png", "./img/icon-192.png"];
 

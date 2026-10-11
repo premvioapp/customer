@@ -125,7 +125,7 @@ function newPasswordModal() {
 const TABS = [
   { id: "home", label: "Home", icon: ICONS.home },
   { id: "features", label: "New", icon: ICONS.spark },
-  { id: "wallet", label: "Load", icon: ICONS.wallet },
+  { id: "wallet", label: "Wallet", icon: ICONS.wallet },
   { id: "history", label: "History", icon: ICONS.clock },
   { id: "settings", label: "Settings", icon: ICONS.gear },
 ];
@@ -235,6 +235,10 @@ function balanceCard() {
       <span class="member">Member ID: <b>${esc(S.profile.member_id)}</b></span>
       <button class="btn sm" onclick="copyText('${esc(S.profile.member_id)}')">${ICONS.copy} Copy</button>
     </div>
+  </div>
+  <div class="money-actions mt">
+    <a class="btn deposit" href="#wallet" onclick="setTimeout(()=>document.getElementById('depCard')?.scrollIntoView({behavior:'smooth'}),80)">${ICONS.cash} Deposit</a>
+    <a class="btn withdraw" href="#wallet" onclick="setTimeout(()=>document.getElementById('wdCard')?.scrollIntoView({behavior:'smooth'}),80)">${ICONS.wallet} Withdraw</a>
   </div>`;
 }
 
@@ -270,14 +274,24 @@ function productModal(p) {
   });
 }
 
+function fieldInput(f) {
+  const name = `f_${esc(f.id)}`, req = f.required ? "required" : "", ph = esc(f.placeholder || "");
+  let saved = "";
+  try { saved = localStorage.getItem("pv_field_" + f.label.toLowerCase()) || ""; } catch (e) {}
+  const label = `<label>${esc(f.label)}${f.required ? "" : ' <span class="muted">(optional)</span>'}</label>`;
+  if (f.type === "select") return label + `<select name="${name}" ${req}><option value="">Choose…</option>${(f.options || []).map((o) => `<option ${saved === o ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
+  if (f.type === "textarea") return label + `<textarea name="${name}" ${req} maxlength="500" placeholder="${ph}"></textarea>`;
+  if (f.type === "number") return label + `<input type="number" step="any" name="${name}" ${req} placeholder="${ph}" inputmode="decimal">`;
+  return label + `<input name="${name}" ${req} maxlength="200" placeholder="${ph}" value="${esc(saved)}">`;
+}
 function buyModal(p) {
-  let lastTg = "";
-  try { lastTg = localStorage.getItem("pv_tg") || ""; } catch (e) {}
+  const fields = p.fields || [];
   openModal(`<h2>Buy ${esc(p.name)}</h2>
     <p class="muted small">Price: ${money(p.price)} each · Your balance: <b data-balance>${money(S.profile.balance)}</b></p>
     <form id="bf">
-      <label>Quantity</label><input type="number" name="qty" min="1" max="100000" step="1" value="1" required inputmode="numeric">
-      <label>Your Telegram username</label><input name="tg" required placeholder="@username" value="${esc(lastTg)}" maxlength="64">
+      <label>Quantity <span class="muted">(${p.min_qty}–${p.max_qty})</span></label>
+      <input type="number" name="qty" min="${p.min_qty}" max="${p.max_qty}" step="1" value="${p.min_qty}" required inputmode="numeric">
+      ${fields.map(fieldInput).join("")}
       <div class="card mt row between" style="box-shadow:none"><span class="muted">Total</span><b id="tot" style="font-size:1.2rem;color:var(--gold)"></b></div>
       <p class="small muted mt" id="warn"></p>
       <button class="btn block gold mt">Confirm purchase</button>
@@ -287,23 +301,28 @@ function buyModal(p) {
       const t = Math.max(0, Math.floor(Number(f.qty.value) || 0)) * Number(p.price);
       $("#tot", m).textContent = money(t);
       const low = t > Number(S.profile.balance);
-      $("#warn", m).innerHTML = low ? `⚠️ Not enough balance. <a href="#wallet" data-close>Load money</a>` : "The amount will be deducted from your balance.";
+      $("#warn", m).innerHTML = low ? `⚠️ Not enough balance. <a href="#wallet" data-close>Deposit money</a>` : "The amount will be deducted from your balance.";
       return t;
     };
     f.qty.oninput = calc; calc();
     f.onsubmit = (e) => {
       e.preventDefault();
-      let tg = f.tg.value.trim();
-      if (!tg.startsWith("@")) tg = "@" + tg;
-      if (!/^@[A-Za-z0-9_]{4,32}$/.test(tg)) { toast("Enter a valid Telegram username, e.g. @username", "error"); return; }
+      const qty = Math.floor(Number(f.qty.value));
+      if (qty < p.min_qty || qty > p.max_qty) { toast(`Quantity must be ${p.min_qty}–${p.max_qty}.`, "error"); return; }
+      const form = {};
+      for (const fd of fields) {
+        let v = (f.elements["f_" + fd.id]?.value || "").trim();
+        if (/telegram/i.test(fd.label) && v && !v.startsWith("@") && !/^\+?\d/.test(v)) v = "@" + v;
+        form[fd.id] = v;
+      }
       if (calc() > Number(S.profile.balance)) { toast("Not enough balance.", "error"); return; }
       busy($("button.btn", f), async () => {
-        const { data, error } = await sb.rpc("place_order", { p_product: p.id, p_quantity: Math.floor(Number(f.qty.value)), p_telegram: tg });
+        const { data, error } = await sb.rpc("place_order", { p_product: p.id, p_quantity: qty, p_form: form });
         if (error) throw error;
-        try { localStorage.setItem("pv_tg", tg); } catch (e) {}
+        try { fields.forEach((fd) => { if (form[fd.id] && fd.type !== "textarea") localStorage.setItem("pv_field_" + fd.label.toLowerCase(), form[fd.id]); }); } catch (e) {}
         await loadProfile();
         openModal(`<div class="empty"><div class="big">✅</div><h2>Order #${data} placed</h2>
-          <p>We'll deliver <b>${esc(p.name)}</b> to <b>${esc(tg)}</b> soon. You'll get a notification when it's done.</p>
+          <p>We'll deliver <b>${esc(p.name)}</b> soon. You'll get a notification when it's done.</p>
           <button class="btn block mt" data-close>OK</button></div>`);
         $$("[data-balance]").forEach((el) => (el.textContent = money(S.profile.balance)));
       });
@@ -327,15 +346,15 @@ async function viewFeatures(v) {
 /* ---------------- LOAD / WITHDRAW ---------------- */
 async function viewWallet(v) {
   v.innerHTML = `${balanceCard()}
-  <div class="card mt">
-    <h2>Load money</h2>
-    <p class="muted">To add money to your Premvio balance, message us on Telegram and send your Member ID. An agent will load your balance.</p>
+  <div class="card mt" id="depCard">
+    <h2 style="color:var(--green)">Deposit</h2>
+    <p class="muted">To add money, message us on Telegram with your Member ID. An agent will deposit it to your balance.</p>
     <div class="row wrap mt">
-      <a class="btn grow" href="${esc(tgLink())}" target="_blank" rel="noopener">${ICONS.send} Message ${esc(tgHandle())}</a>
+      <a class="btn deposit grow" href="${esc(tgLink())}" target="_blank" rel="noopener">${ICONS.send} Message ${esc(tgHandle())}</a>
       <button class="btn soft" onclick="copyText('${esc(S.profile.member_id)}')">${ICONS.copy} ${esc(S.profile.member_id)}</button>
     </div>
   </div>
-  <div class="card"><h2>Withdraw</h2><div id="wd"><div class="loader"></div></div></div>`;
+  <div class="card" id="wdCard"><h2 style="color:var(--red)">Withdraw</h2><div id="wd"><div class="loader"></div></div></div>`;
   const { data: active } = await sb.from("withdrawals").select("*").eq("status", "pending").order("created_at", { ascending: false });
   const wd = $("#wd");
   if (!wd) return;
@@ -366,7 +385,7 @@ async function viewWallet(v) {
       <label>Amount (${CFG.CURRENCY})</label><input type="number" name="amount" min="${min}" step="0.01" required inputmode="decimal" placeholder="Minimum ${min}">
       <label>City</label><input name="city" required maxlength="60">
       <label>Street / area</label><input name="street" required maxlength="120">
-      <button class="btn block gold mt">Get withdrawal code</button></form>`;
+      <button class="btn block withdraw mt">Get withdrawal code</button></form>`;
   }
   wd.innerHTML = html;
   $$("[data-cancel]", wd).forEach((b) => (b.onclick = async () => {
@@ -391,7 +410,8 @@ async function viewWallet(v) {
 }
 
 /* ---------------- HISTORY ---------------- */
-const TX_ICON = { load: "💰", withdraw: "🏧", purchase: "🛍️", refund: "↩️", adjust: "⚙️", agent_load: "📤", agent_payout: "📥" };
+const TX_NAME = { load: "Deposit", adjust: "Admin adjustment", withdraw: "Withdrawal", purchase: "Purchase", refund: "Refund", agent_load: "Deposit to customer", agent_payout: "Withdrawal paid" };
+const TX_ICON = { adjust: "💰", load: "💰", withdraw: "🏧", purchase: "🛍️", refund: "↩️", agent_load: "📤", agent_payout: "📥" };
 async function viewHistory(v) {
   v.innerHTML = `<h2>History</h2><p class="muted small">Last 30 days</p>
     <div class="chips">${[["all", "All"], ["orders", "Orders"], ["withdrawals", "Withdrawals"]].map(([k, l]) =>
@@ -404,14 +424,15 @@ async function viewHistory(v) {
   if (S.histTab === "all") {
     const { data } = await sb.from("transactions").select("*").gte("created_at", since).order("created_at", { ascending: false }).limit(500);
     rows = (data || []).map((t) => `<div class="list-item"><div class="ic">${TX_ICON[t.type] || "•"}</div>
-      <div class="grow"><b style="text-transform:capitalize">${esc(t.type.replace("_", " "))}</b>
+      <div class="grow"><b>${esc(t.type === "adjust" ? (t.amount >= 0 ? "Deposit" : "Withdrawal") : TX_NAME[t.type] || t.type)}</b>
       <div class="small muted">${esc(t.description || "")}</div><div class="small muted">${fmtDate(t.created_at)}</div></div>
       <div class="${t.amount >= 0 ? "amt-pos" : "amt-neg"}">${t.amount >= 0 ? "+" : "−"}${money(Math.abs(t.amount)).replace(CFG.CURRENCY + " ", "")}</div></div>`);
   } else if (S.histTab === "orders") {
     const { data } = await sb.from("orders").select("*").gte("created_at", since).order("created_at", { ascending: false });
     rows = (data || []).map((o) => `<div class="list-item"><div class="ic">🛍️</div>
       <div class="grow"><b>#${o.id} ${esc(o.product_name)} × ${o.quantity}</b>
-      <div class="small muted">To ${esc(o.telegram_username)} · ${fmtDate(o.created_at)}</div>
+      <div class="small muted">${esc((o.form_data || []).filter((x) => x.value).map((x) => x.value).join(" · "))}</div>
+      <div class="small muted">${fmtDate(o.created_at)}</div>
       ${o.admin_note ? `<div class="small muted">Note: ${esc(o.admin_note)}</div>` : ""}</div>
       <div style="text-align:right"><div class="amt-neg">${money(o.total)}</div><span class="badge ${o.status}">${o.status}</span></div></div>`);
   } else {

@@ -1,4 +1,5 @@
 /* ============ PREMVIO — shared helpers ============ */
+if (window.pvDead) throw new Error("stopped");
 const CFG = window.PV_CONFIG;
 const sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
@@ -148,6 +149,11 @@ function isIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent); }
 function isStandalone() { return matchMedia("(display-mode: standalone)").matches || navigator.standalone; }
 
 /* ---------- auth for staff panels (admin / agent) ---------- */
+// Agents and admins log in with their ID (AG1002 / AD1001). Internally that is <id>@staff.premvio.app
+function staffEmail(v) {
+  v = String(v || "").trim();
+  return v.includes("@") ? v : v.toLowerCase() + "@staff.premvio.app";
+}
 async function getMyProfile() {
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return null;
@@ -162,7 +168,7 @@ function staffLogin(container, roleLabel, allowed, onOk) {
     <div class="card">
       <h2 class="center">${esc(roleLabel)} login</h2>
       <form id="slForm">
-        <label>Email</label><input type="email" name="email" required autocomplete="email">
+        <label>${esc(roleLabel)} ID</label><input name="email" required autocomplete="username" placeholder="${roleLabel === "Admin" ? "AD1001" : "AG1002"}" style="text-transform:uppercase">
         <label>Password</label><input type="password" name="password" required autocomplete="current-password">
         <label>Security check</label><div id="slCap"></div>
         <button class="btn block mt">Log in</button>
@@ -175,8 +181,8 @@ function staffLogin(container, roleLabel, allowed, onOk) {
     const f = e.target;
     if (!cap.ok()) { toast("Wrong captcha answer.", "error"); cap.reset(); return; }
     busy($("button.btn", f), async () => {
-      const { error } = await sb.auth.signInWithPassword({ email: f.email.value.trim(), password: f.password.value });
-      if (error) throw error;
+      const { error } = await sb.auth.signInWithPassword({ email: staffEmail(f.email.value), password: f.password.value });
+      if (error) { cap.reset(); if (/Invalid login/i.test(error.message)) throw new Error("Wrong ID or password."); throw error; }
       const p = await getMyProfile();
       if (!p || !allowed.includes(p.role) || p.blocked) {
         await sb.auth.signOut();
