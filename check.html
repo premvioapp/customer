@@ -10,7 +10,18 @@ body{background:#060b1a;color:#eef3ff;font-family:system-ui,-apple-system,Segoe 
 <h1>Premvio connection check</h1><p style="color:#8d9bbd">Open this page on your site (…/check.html). Every line should be ✅.</p>
 <div id="out"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/config.js"></script>
+<script>
+// PREMVIO — website settings
+// Paste your Supabase "anon public" key below (Supabase → Project Settings → API).
+window.PV_CONFIG = {
+  SUPABASE_URL: "https://ayectzhcjtlkehhkaqau.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_lq9Uz7mWUzCv8S0a6JnM3w_qY-H_GiV",
+  VAPID_PUBLIC_KEY: "BBsYK2xMWsdI-btNRVtMp9DQPg7YOc46F7JJ0MUxBa8EAUmNviLyRxqbjGuDMggnNgBR6CZZjYnN4pDktBaRjKo",
+  APP_NAME: "Premvio",
+  CURRENCY: "NPR",
+};
+
+</script>
 <script>
 const out = document.getElementById("out");
 function line(ok, title, detail) {
@@ -19,7 +30,7 @@ function line(ok, title, detail) {
 (async () => {
   line(location.protocol === "https:", "Website opened over https", location.protocol === "https:" ? location.host : "Open the site from its https:// address, not by double-clicking the file.");
   const C = window.PV_CONFIG;
-  if (!C) return line(false, "js/config.js found", "The js folder or config.js is missing on the site.");
+  if (!C) return line(false, "js/config.js found", "Settings are missing — re-upload the newest check.html.");
   line(true, "js/config.js found", C.SUPABASE_URL);
   const keyOk = C.SUPABASE_ANON_KEY && !/PASTE/.test(C.SUPABASE_ANON_KEY);
   line(keyOk, "Supabase anon key added", keyOk ? "Key starts with " + C.SUPABASE_ANON_KEY.slice(0, 12) + "…" : "Paste the anon public key into js/config.js.");
