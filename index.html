@@ -309,6 +309,18 @@ td .btn + .btn { margin-left: 6px; }
   .grid-2 { grid-template-columns: 1fr; }
 }
 
+/* ---------- searchable pick list (city / street) ---------- */
+.ac { position: relative; }
+.ac-list {
+  position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 60; max-height: 240px; overflow-y: auto;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); padding: 4px;
+}
+.ac-item { display: block; width: 100%; text-align: left; padding: 10px 12px; border: 0; background: none; color: var(--text);
+  font: inherit; border-radius: 9px; cursor: pointer; }
+.ac-item:hover, .ac-item.on { background: var(--card-2); }
+.ac-item b { color: var(--blue); }
+.ac-empty { padding: 10px 12px; color: var(--muted); font-size: .9rem; }
+
 /* ---------- v2 additions ---------- */
 .btn.deposit { background: linear-gradient(135deg, #2ee59d, #16b46f); color: #04220f; }
 .btn.withdraw { background: linear-gradient(135deg, #ff6b78, #e23a4b); color: #fff; }
@@ -536,8 +548,8 @@ function staffLogin(container, roleLabel, allowed, onOk) {
     <div class="card">
       <h2 class="center">${esc(roleLabel)} login</h2>
       <form id="slForm">
-        <label>${esc(roleLabel)} ID</label><input name="email" required autocomplete="username" placeholder="${roleLabel === "Admin" ? "AD1001" : "AG1002"}" style="text-transform:uppercase">
-        <label>Password</label><input type="password" name="password" required autocomplete="current-password">
+        <label>${esc(roleLabel)} ID</label><input name="email" required autocomplete="off" autocapitalize="characters" spellcheck="false" style="text-transform:uppercase">
+        <label>Password</label><input type="password" name="password" required autocomplete="off">
         <label>Security check</label><div id="slCap"></div>
         <button class="btn block mt">Log in</button>
       </form>
@@ -599,6 +611,74 @@ const COUNTRIES = "Nepal|India|Bangladesh|Bhutan|Pakistan|Sri Lanka|Maldives|Afg
 function countryOptions(selected = "Nepal") {
   return COUNTRIES.map((c) => `<option ${c === selected ? "selected" : ""}>${esc(c)}</option>`).join("");
 }
+/* ---------- searchable pick list: type "p" → every option starting with p ---------- */
+// input: <input>, getOptions(): string[], onPick(value): optional
+function mountPicker(input, getOptions, onPick) {
+  const wrap = document.createElement("div");
+  wrap.className = "ac";
+  input.parentNode.insertBefore(wrap, input);
+  wrap.appendChild(input);
+  input.setAttribute("autocomplete", "off");
+  const list = document.createElement("div");
+  list.className = "ac-list hidden";
+  wrap.appendChild(list);
+  let active = -1, shown = [];
+  const close = () => { list.classList.add("hidden"); active = -1; };
+  const draw = () => {
+    const q = input.value.trim().toLowerCase();
+    const all = getOptions();
+    shown = all.filter((o) => o.toLowerCase().startsWith(q));
+    if (!all.length) { close(); return; }
+    list.innerHTML = shown.length
+      ? shown.map((o, i) => `<button type="button" class="ac-item ${i === active ? "on" : ""}" data-i="${i}"><b>${esc(o.slice(0, q.length))}</b>${esc(o.slice(q.length))}</button>`).join("")
+      : `<div class="ac-empty">No match for “${esc(input.value.trim())}”</div>`;
+    list.classList.remove("hidden");
+  };
+  const pick = (v) => { input.value = v; close(); onPick && onPick(v); };
+  input.addEventListener("focus", () => { active = -1; draw(); });
+  input.addEventListener("input", () => { active = -1; draw(); onPick && onPick(null); });
+  input.addEventListener("keydown", (e) => {
+    if (list.classList.contains("hidden")) return;
+    if (e.key === "ArrowDown") { active = Math.min(active + 1, shown.length - 1); draw(); e.preventDefault(); }
+    else if (e.key === "ArrowUp") { active = Math.max(active - 1, 0); draw(); e.preventDefault(); }
+    else if (e.key === "Enter" && active >= 0) { pick(shown[active]); e.preventDefault(); }
+    else if (e.key === "Escape") close();
+  });
+  list.addEventListener("mousedown", (e) => e.preventDefault()); // keep focus while choosing
+  list.addEventListener("click", (e) => { const b = e.target.closest(".ac-item"); if (b) pick(shown[Number(b.dataset.i)]); });
+  input.addEventListener("blur", () => setTimeout(close, 120));
+  return { refresh: draw };
+}
+
+/* ---------- date range (calendar) for history pages ---------- */
+function ymd(d) { const z = new Date(d.getTime() - d.getTimezoneOffset() * 6e4); return z.toISOString().slice(0, 10); }
+function defaultRange(days = 30) { const to = new Date(); return { from: ymd(new Date(to.getTime() - (days - 1) * 864e5)), to: ymd(to) }; }
+function rangeISO(r) {
+  const a = new Date(r.from + "T00:00:00"), b = new Date(new Date(r.to + "T00:00:00").getTime() + 864e5);
+  return [a.toISOString(), b.toISOString()];
+}
+function rangeBar(r) {
+  return `<div class="toolbar range-bar">
+    <label class="row small" style="margin:0;gap:6px">From <input type="date" data-r="from" value="${r.from}" max="${r.to}" style="width:auto"></label>
+    <label class="row small" style="margin:0;gap:6px">To <input type="date" data-r="to" value="${r.to}" min="${r.from}" max="${ymd(new Date())}" style="width:auto"></label>
+    <button type="button" class="btn sm soft" data-preset="1">Today</button>
+    <button type="button" class="btn sm soft" data-preset="7">7 days</button>
+    <button type="button" class="btn sm soft" data-preset="30">30 days</button>
+    <button type="button" class="btn sm soft" data-preset="90">90 days</button>
+  </div>`;
+}
+// wire a rangeBar inside `root`: calls onChange(newRange) when dates change
+function bindRange(root, r, onChange) {
+  $$("[data-r]", root).forEach((inp) => (inp.onchange = () => {
+    const nr = { ...r, [inp.dataset.r]: inp.value };
+    if (!nr.from || !nr.to) return;
+    if (nr.from > nr.to) return toast("'From' must be before 'To'.", "error");
+    onChange(nr);
+  }));
+  $$("[data-preset]", root).forEach((b) => (b.onclick = () => onChange(defaultRange(Number(b.dataset.preset)))));
+}
+function fmtDay(s) { return new Date(s + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }); }
+
 function copyText(t) {
   navigator.clipboard?.writeText(t).then(() => toast("Copied: " + t, "success"), () => toast(t));
 }
@@ -982,8 +1062,9 @@ async function viewWallet(v) {
     html += `<form id="wf">
       <p class="muted small">You'll get a code valid for ${esc(S.settings.withdraw_hours || 24)} hours. An agent uses it to pay you cash.</p>
       <label>Amount (${CFG.CURRENCY})</label><input type="number" name="amount" min="${min}" step="0.01" required inputmode="decimal" placeholder="Minimum ${min}">
-      <label>City</label><input name="city" required maxlength="60">
-      <label>Street / area</label><input name="street" required maxlength="120">
+      <label>City</label><input name="city" required maxlength="60" placeholder="Type to search, e.g. P">
+      <label>Street / area</label><input name="street" required maxlength="120" placeholder="Choose a city first">
+      <p class="small muted" id="locHint"></p>
       <button class="btn block withdraw mt">Get withdrawal code</button></form>`;
   }
   wd.innerHTML = html;
@@ -994,10 +1075,33 @@ async function viewWallet(v) {
     toast("Cancelled and refunded.", "success"); await loadProfile(); route();
   }));
   const wf = $("#wf");
+  let locs = [];
+  const cities = () => [...new Set(locs.map((l) => l.city))];
+  const sameCity = (a, b) => String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
+  const streets = () => locs.filter((l) => sameCity(l.city, wf.city.value) && l.street).map((l) => l.street);
+  if (wf) {
+    mountPicker(wf.city, cities, (v) => { if (v) { wf.street.value = ""; wf.street.placeholder = "Type to search streets"; wf.street.focus(); } });
+    mountPicker(wf.street, streets);
+    sb.rpc("withdraw_locations").then(({ data }) => {
+      locs = data || [];
+      $("#locHint").textContent = locs.length ? `Choose where to collect your cash — ${cities().length} cities with Premvio agents.` : "";
+    });
+  }
   if (wf) wf.onsubmit = (e) => {
     e.preventDefault();
     const amt = Number(wf.amount.value);
     if (amt > Number(S.profile.balance)) { toast("Not enough balance.", "error"); return; }
+    if (locs.length) {
+      const c = cities().find((x) => sameCity(x, wf.city.value));
+      if (!c) { toast("Please choose a city from the list.", "error"); wf.city.focus(); return; }
+      wf.city.value = c;
+      const st = streets();
+      if (st.length) {
+        const s2 = st.find((x) => sameCity(x, wf.street.value));
+        if (!s2) { toast("Please choose a street from the list.", "error"); wf.street.focus(); return; }
+        wf.street.value = s2;
+      }
+    }
     busy($("button.btn", wf), async () => {
       const { error } = await sb.rpc("request_withdrawal", { p_amount: amt, p_city: wf.city.value, p_street: wf.street.value });
       if (error) throw error;
