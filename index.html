@@ -539,6 +539,31 @@ input[type="file"] { padding: 8px; cursor: pointer; }
 input[type="file"]::file-selector-button { border: 0; padding: 10px 14px; margin-right: 12px; border-radius: 10px; cursor: pointer;
   background: var(--grad); color: #fff; font: inherit; font-weight: 700; }
 
+/* ============ V21: moving message + pinned products ============ */
+.ticker { display: flex; align-items: center; gap: 8px; margin: 4px 0 10px; padding: 8px 10px; border-radius: 12px;
+  background: rgba(255, 200, 61, .10); border: 1px solid rgba(255, 200, 61, .35); overflow: hidden; }
+.ticker .tk-ic { flex: none; font-size: 1rem; }
+.tk-track { flex: 1; overflow: hidden; white-space: nowrap; position: relative; }
+.tk-move { display: inline-block; white-space: nowrap; font-weight: 700; font-size: .9rem; color: var(--text);
+  animation: tk-ltr 15s linear infinite; will-change: transform; }
+.tk-move.rtl { animation-name: tk-rtl; }
+.ticker:hover .tk-move, .ticker:active .tk-move { animation-play-state: paused; }
+@keyframes tk-ltr { from { transform: translateX(-100%); } to { transform: translateX(var(--tw, 100vw)); } }
+@keyframes tk-rtl { from { transform: translateX(var(--tw, 100vw)); } to { transform: translateX(-100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .tk-move { animation: none; white-space: normal; }
+  .tk-track { white-space: normal; }
+}
+.sec-title { margin: 14px 0 8px; font-size: 1rem; }
+.product .ph { position: relative; }
+.product.pinned { border-color: rgba(255, 200, 61, .55); }
+.pin-badge { position: absolute; top: 8px; left: 8px; max-width: calc(100% - 16px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: var(--gold); color: #241600; font-size: .7rem; font-weight: 800; padding: 3px 8px; border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .25); }
+.pin-col { white-space: nowrap; }
+.product { display: flex; flex-direction: column; justify-content: flex-start; }
+.product .ph, .product .info { width: 100%; }
+
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
 <meta name="description" content="Buy Telegram Stars and Telegram Premium with Premvio.">
@@ -1166,6 +1191,7 @@ async function viewHome(v) {
   v.innerHTML = `
     ${showPush ? `<div class="card mt row"><div class="grow"><b>Turn on notifications</b><div class="small muted">Get alerts for orders, loads and withdrawals.</div></div>
       <button class="btn sm" id="pushOn">Allow</button></div>` : ""}
+    <div id="tickerBox"></div>
     <h2 style="margin:6px 0 0">Products</h2>
     <div class="search-box">${ICONS.search}
       <input type="search" id="psearch" placeholder="Search products…" autocomplete="off" value="${esc(S.pq || "")}">
@@ -1173,13 +1199,52 @@ async function viewHome(v) {
     <p class="small muted press-hint">💡 Long-press a product to add it to your cart</p>
     <div id="plist"><div class="loader"></div></div>`;
   if (showPush) $("#pushOn").onclick = async (e) => { if (await enablePush()) { toast("Notifications on.", "success"); e.target.closest(".card").remove(); } };
+  drawTicker();
+  loadSettings().then(drawTicker).catch(() => {});   // pick up a new message from admin
   const { data, error } = await sb.from("products").select("*").eq("active", true).order("sort").order("created_at", { ascending: false });
   if (error) { $("#plist").innerHTML = `<div class="empty">${esc(errMsg(error))}</div>`; return; }
-  S.products = data;
+  S.products = sortPinned(data);
   const inp = $("#psearch"), clr = $("#pclear");
   inp.oninput = () => { S.pq = inp.value; clr.classList.toggle("hidden", !inp.value); drawProducts(v); };
   clr.onclick = () => { inp.value = ""; S.pq = ""; clr.classList.add("hidden"); drawProducts(v); inp.focus(); };
   drawProducts(v);
+}
+
+/* Moving message bar (text, direction and speed are set by admin in Settings) */
+function drawTicker() {
+  const box = $("#tickerBox");
+  if (!box) return;
+  const st = S.settings, text = String(st.ticker_text || "").trim();
+  if (st.ticker_on !== "true" || !text) { box.innerHTML = ""; return; }
+  const key = [text, st.ticker_dir, st.ticker_speed].join("|");
+  if (box.dataset.key === key) return;
+  box.dataset.key = key;
+  box.innerHTML = `<div class="ticker" role="marquee" aria-label="${esc(text)}"><span class="tk-ic">📢</span>
+    <div class="tk-track"><span class="tk-move ${st.ticker_dir === "rtl" ? "rtl" : "ltr"}">${esc(text)}</span></div></div>`;
+  const track = $(".tk-track", box), mv = $(".tk-move", box);
+  const pxPerSec = { slow: 35, normal: 60, fast: 100 }[st.ticker_speed] || 60;
+  const fit = () => {
+    if (!document.body.contains(track)) { removeEventListener("resize", fit); return; }
+    const w = track.clientWidth;
+    mv.style.setProperty("--tw", w + "px");
+    mv.style.animationDuration = Math.max(6, (w + mv.offsetWidth) / pxPerSec) + "s";
+  };
+  fit();
+  addEventListener("resize", fit);
+}
+
+// Pinned products (max 4, chosen by admin) always come first
+function sortPinned(list) {
+  const pin = (list || []).filter((p) => p.pinned), rest = (list || []).filter((p) => !p.pinned);
+  pin.sort((a, b) => (a.sort - b.sort) || (new Date(a.pinned_at || 0) - new Date(b.pinned_at || 0)));
+  return [...pin, ...rest];
+}
+function productCard(p) {
+  return `<button class="product ${p.pinned ? "pinned" : ""}" data-id="${p.id}">
+      <div class="ph">${p.image_url ? `<img src="${esc(p.image_url)}" alt="" loading="lazy">` : `<span style="color:var(--gold);width:44px">${ICONS.star}</span>`}
+        ${p.pinned ? `<span class="pin-badge">${esc(p.pin_badge || "Recommended")}</span>` : ""}</div>
+      <div class="info"><div class="name">${esc(p.name)}</div><div class="price">${money(p.price)}</div></div>
+    </button>`;
 }
 
 // Search matches the product name or description (any word, any order, not case-sensitive)
@@ -1189,11 +1254,11 @@ function drawProducts(v) {
   const data = all.filter((p) => { const t = (p.name + " " + (p.description || "")).toLowerCase(); return words.every((w) => t.includes(w)); });
   if (!all.length) { $("#plist").innerHTML = `<div class="empty"><div class="big">🛍️</div>No products yet. Check back soon!</div>`; return; }
   if (!data.length) { $("#plist").innerHTML = `<div class="empty"><div class="big">🔍</div>No products match “${esc(S.pq.trim())}”</div>`; return; }
-  $("#plist").innerHTML = `${words.length ? `<p class="small muted" style="margin-top:-6px">${data.length} of ${all.length} products</p>` : ""}<div class="products">${data.map((p) => `
-    <button class="product" data-id="${p.id}">
-      <div class="ph">${p.image_url ? `<img src="${esc(p.image_url)}" alt="" loading="lazy">` : `<span style="color:var(--gold);width:44px">${ICONS.star}</span>`}</div>
-      <div class="info"><div class="name">${esc(p.name)}</div><div class="price">${money(p.price)}</div></div>
-    </button>`).join("")}</div>`;
+  const pinned = data.filter((p) => p.pinned), rest = data.filter((p) => !p.pinned);
+  $("#plist").innerHTML = words.length || !pinned.length
+    ? `${words.length ? `<p class="small muted" style="margin-top:-6px">${data.length} of ${all.length} products</p>` : ""}<div class="products">${data.map(productCard).join("")}</div>`
+    : `<h3 class="sec-title">⭐ Recommended</h3><div class="products">${pinned.map(productCard).join("")}</div>
+       ${rest.length ? `<h3 class="sec-title">All products</h3><div class="products">${rest.map(productCard).join("")}</div>` : ""}`;
   $$(".product", v).forEach((b) => {
     const prod = () => S.products.find((p) => p.id == b.dataset.id);
     bindPress(b, () => productModal(prod()), () => cartModal(prod()));
