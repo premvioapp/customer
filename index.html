@@ -309,6 +309,19 @@ td .btn + .btn { margin-left: 6px; }
   .grid-2 { grid-template-columns: 1fr; }
 }
 
+/* ---------- refunds ---------- */
+.badge.refunded { background: rgba(31, 162, 255, .15); color: var(--blue); }
+.badge.requested { background: rgba(255, 159, 67, .15); color: var(--orange); }
+.refund-box { margin-top: 6px; padding: 8px 10px; border-radius: 10px; background: var(--card-2); font-size: .82rem; }
+
+/* ---------- product search ---------- */
+.search-box { position: relative; margin: 10px 0 14px; }
+.search-box svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--muted); pointer-events: none; }
+.search-box input { padding-left: 40px; padding-right: 40px; }
+.search-box .clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border: 0;
+  border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; display: grid; place-items: center; }
+.search-box .clear svg { position: static; transform: none; }
+
 /* ---------- searchable pick list (city / street) ---------- */
 .ac { position: relative; }
 .ac-list {
@@ -603,6 +616,7 @@ const ICONS = {
   cash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 10v4M18 10v4"/></svg>',
   list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
   star: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z"/></svg>',
 };
 
@@ -927,18 +941,33 @@ async function viewHome(v) {
   v.innerHTML = `${balanceCard()}
     ${showPush ? `<div class="card mt row"><div class="grow"><b>Turn on notifications</b><div class="small muted">Get alerts for orders, loads and withdrawals.</div></div>
       <button class="btn sm" id="pushOn">Allow</button></div>` : ""}
-    <h2 class="mt">Products</h2>
+    <h2 class="mt" style="margin-bottom:0">Products</h2>
+    <div class="search-box">${ICONS.search}
+      <input type="search" id="psearch" placeholder="Search products…" autocomplete="off" value="${esc(S.pq || "")}">
+      <button type="button" class="clear ${S.pq ? "" : "hidden"}" id="pclear" aria-label="Clear search">${ICONS.x}</button></div>
     <div id="plist"><div class="loader"></div></div>`;
   if (showPush) $("#pushOn").onclick = async (e) => { if (await enablePush()) { toast("Notifications on.", "success"); e.target.closest(".card").remove(); } };
   const { data, error } = await sb.from("products").select("*").eq("active", true).order("sort").order("created_at", { ascending: false });
   if (error) { $("#plist").innerHTML = `<div class="empty">${esc(errMsg(error))}</div>`; return; }
   S.products = data;
-  $("#plist").innerHTML = data.length ? `<div class="products">${data.map((p) => `
+  const inp = $("#psearch"), clr = $("#pclear");
+  inp.oninput = () => { S.pq = inp.value; clr.classList.toggle("hidden", !inp.value); drawProducts(v); };
+  clr.onclick = () => { inp.value = ""; S.pq = ""; clr.classList.add("hidden"); drawProducts(v); inp.focus(); };
+  drawProducts(v);
+}
+
+// Search matches the product name or description (any word, any order, not case-sensitive)
+function drawProducts(v) {
+  const all = S.products || [];
+  const words = String(S.pq || "").toLowerCase().split(/\s+/).filter(Boolean);
+  const data = all.filter((p) => { const t = (p.name + " " + (p.description || "")).toLowerCase(); return words.every((w) => t.includes(w)); });
+  if (!all.length) { $("#plist").innerHTML = `<div class="empty"><div class="big">🛍️</div>No products yet. Check back soon!</div>`; return; }
+  if (!data.length) { $("#plist").innerHTML = `<div class="empty"><div class="big">🔍</div>No products match “${esc(S.pq.trim())}”</div>`; return; }
+  $("#plist").innerHTML = `${words.length ? `<p class="small muted" style="margin-top:-6px">${data.length} of ${all.length} products</p>` : ""}<div class="products">${data.map((p) => `
     <button class="product" data-id="${p.id}">
       <div class="ph">${p.image_url ? `<img src="${esc(p.image_url)}" alt="" loading="lazy">` : `<span style="color:var(--gold);width:44px">${ICONS.star}</span>`}</div>
       <div class="info"><div class="name">${esc(p.name)}</div><div class="price">${money(p.price)}</div></div>
-    </button>`).join("")}</div>`
-    : `<div class="empty"><div class="big">🛍️</div>No products yet. Check back soon!</div>`;
+    </button>`).join("")}</div>`;
   $$(".product", v).forEach((b) => (b.onclick = () => productModal(S.products.find((p) => p.id == b.dataset.id))));
 }
 
@@ -1132,12 +1161,18 @@ async function viewHistory(v) {
       <div class="${t.amount >= 0 ? "amt-pos" : "amt-neg"}">${t.amount >= 0 ? "+" : "−"}${money(Math.abs(t.amount)).replace(CFG.CURRENCY + " ", "")}</div></div>`);
   } else if (S.histTab === "orders") {
     const { data } = await sb.from("orders").select("*").gte("created_at", since).order("created_at", { ascending: false });
-    rows = (data || []).map((o) => `<div class="list-item"><div class="ic">🛍️</div>
+    S.orders = data || [];
+    const days = Number(S.settings.refund_days || 7);
+    const canRefund = (o) => ["pending", "completed"].includes(o.status) && !o.refund_status &&
+      (o.status === "pending" || Date.now() - new Date(o.created_at) < days * 864e5);
+    rows = S.orders.map((o) => `<div class="list-item" style="align-items:flex-start"><div class="ic">🛍️</div>
       <div class="grow"><b>#${o.id} ${esc(o.product_name)} × ${o.quantity}</b>
       <div class="small muted">${esc((o.form_data || []).filter((x) => x.value).map((x) => x.value).join(" · "))}</div>
       <div class="small muted">${fmtDate(o.created_at)}</div>
-      ${o.admin_note ? `<div class="small muted">Note: ${esc(o.admin_note)}</div>` : ""}</div>
-      <div style="text-align:right"><div class="amt-neg">${money(o.total)}</div><span class="badge ${o.status}">${o.status}</span></div></div>`);
+      ${o.admin_note ? `<div class="small muted">Note: ${esc(o.admin_note)}</div>` : ""}
+      ${refundInfo(o)}
+      ${canRefund(o) ? `<button class="btn sm ghost mt" data-refund="${o.id}">↩️ Request refund</button>` : ""}</div>
+      <div style="text-align:right"><div class="${o.status === "refunded" ? "amt-pos" : "amt-neg"}">${money(o.total)}</div><span class="badge ${o.status}">${o.status}</span></div></div>`);
   } else {
     const { data } = await sb.from("withdrawals").select("*").gte("created_at", since).order("created_at", { ascending: false });
     rows = (data || []).map((w) => `<div class="list-item"><div class="ic">🏧</div>
@@ -1145,6 +1180,36 @@ async function viewHistory(v) {
       <div style="text-align:right"><div><b>${money(w.amount)}</b></div><span class="badge ${w.status}">${w.status}</span></div></div>`);
   }
   hl.innerHTML = rows.length ? rows.join("") : `<div class="empty"><div class="big">🗂️</div>Nothing here yet</div>`;
+  $$("[data-refund]", hl).forEach((b) => (b.onclick = () => refundModal(S.orders.find((o) => o.id == b.dataset.refund), v)));
+}
+
+function refundInfo(o) {
+  if (o.refund_status === "requested") return `<div class="refund-box"><span class="badge requested">refund requested</span> We'll review it soon.<div class="muted">Your reason: ${esc(o.refund_reason || "")}</div></div>`;
+  if (o.refund_status === "approved") return `<div class="refund-box"><span class="badge refunded">refunded</span> ${money(o.total)} returned to your balance.${o.refund_note ? `<div class="muted">${esc(o.refund_note)}</div>` : ""}</div>`;
+  if (o.refund_status === "rejected") return `<div class="refund-box"><span class="badge rejected">refund rejected</span><div class="muted">${esc(o.refund_note || "")}</div></div>`;
+  return "";
+}
+const REFUND_REASONS = ["Product not as described", "Not delivered / too slow", "Ordered by mistake", "Wrong quantity or details", "Other"];
+function refundModal(o, view) {
+  openModal(`<h2>Request a refund</h2>
+    <p class="muted small">Order #${o.id} · ${esc(o.product_name)} × ${o.quantity} · <b>${money(o.total)}</b></p>
+    <form id="rf">
+      <label>Reason</label><select name="why" required><option value="">Choose…</option>${REFUND_REASONS.map((r) => `<option>${r}</option>`).join("")}</select>
+      <label>Details <span class="muted">(optional)</span></label><textarea name="more" maxlength="300" placeholder="Tell us what went wrong"></textarea>
+      <p class="small muted mt">If approved, ${money(o.total)} goes back to your Premvio balance. You'll get a notification.</p>
+      <button class="btn block withdraw mt">Send refund request</button></form>`, (m) => {
+    $("#rf", m).onsubmit = (e) => {
+      e.preventDefault();
+      const f = e.target;
+      if (!f.why.value) return toast("Please choose a reason.", "error");
+      const reason = f.why.value + (f.more.value.trim() ? " — " + f.more.value.trim() : "");
+      busy($("button", f), async () => {
+        const { error } = await sb.rpc("request_refund", { p_order: o.id, p_reason: reason });
+        if (error) throw error;
+        closeModal(); toast("Refund request sent.", "success"); viewHistory(view);
+      });
+    };
+  });
 }
 
 /* ---------------- SETTINGS ---------------- */
