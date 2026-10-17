@@ -467,6 +467,29 @@ td .btn + .btn { margin-left: 6px; }
   background: linear-gradient(var(--card-2), var(--card-2)) padding-box, var(--grad) border-box; border: 3px solid transparent;
   box-shadow: 0 0 30px rgba(20, 217, 164, .25); }
 
+/* ---------- customer: balance pill (top right) + wallet buttons + ID ---------- */
+.bal-pill { display: inline-flex; align-items: center; gap: 8px; padding: 5px 5px 5px 12px; border-radius: 999px; text-decoration: none;
+  background: var(--card); border: 1px solid var(--line); color: var(--gold); font-weight: 800; font-size: .85rem; white-space: nowrap;
+  transition: border-color .15s, transform .1s; }
+.bal-pill:hover { border-color: var(--gold); } .bal-pill:active { transform: scale(.97); }
+.bal-pill i { font-style: normal; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 1.15rem;
+  background: linear-gradient(135deg, #2ee59d, #16b46f); color: #04220f; font-weight: 900; box-shadow: 0 4px 12px rgba(34, 201, 131, .35); }
+.wallet-btns { display: grid; gap: 10px; }
+.wbtn { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 14px; text-decoration: none; color: var(--text);
+  border: 1px solid; transition: transform .1s, filter .15s; }
+.wbtn:active { transform: scale(.99); } .wbtn:hover { filter: brightness(1.1); }
+.wbtn .wi { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; flex: 0 0 auto; }
+.wbtn .wi svg { width: 22px; height: 22px; }
+.wbtn b { display: block; font-size: 1.02rem; } .wbtn small { color: var(--muted); }
+.wbtn em { margin-left: auto; font-style: normal; font-size: 1.6rem; opacity: .6; }
+.wbtn.dep { background: rgba(34, 201, 131, .08); border-color: rgba(34, 201, 131, .3); }
+.wbtn.dep .wi { background: var(--green); color: #03200f; }
+.wbtn.wd { background: rgba(255, 93, 108, .08); border-color: rgba(255, 93, 108, .3); }
+.wbtn.wd .wi { background: var(--red); color: #fff; }
+.id-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--card-2); }
+.id-big { font-size: 1.25rem; font-weight: 800; letter-spacing: .06em; }
+@media (max-width: 360px) { .topbar .small.muted#hello { display: none; } .bal-pill { font-size: .78rem; } }
+
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
 <meta name="description" content="Buy Telegram Stars and Telegram Premium with Premvio.">
@@ -974,6 +997,7 @@ async function startApp() {
     <header class="topbar">
       <img src="${PV_LOGO}" alt="">
       <div class="grow"><div class="title">Premvio</div><div class="small muted" id="hello"></div></div>
+      <a class="bal-pill" href="#deposit" title="Add money"><span data-balance>${money(S.profile.balance)}</span><i>+</i></a>
       <button class="icon-btn" id="bell" aria-label="Notifications">${ICONS.bell}<span class="dot hidden" id="bellDot"></span></button>
     </header>
     <main id="view"></main>
@@ -1063,6 +1087,13 @@ async function showNotifications() {
   refreshUnread();
 }
 
+// Deposit / Withdraw buttons (used in Wallet tab and Settings)
+function walletButtons() {
+  return `<div class="wallet-btns">
+    <a class="wbtn dep" href="#deposit"><span class="wi">${ICONS.cash}</span><span><b>Deposit</b><small>Add money via an agent</small></span><em>›</em></a>
+    <a class="wbtn wd" href="#withdraw"><span class="wi">${ICONS.wallet}</span><span><b>Withdraw</b><small>Get a cash code</small></span><em>›</em></a>
+  </div>`;
+}
 function balanceCard() {
   return `<div class="balance-card">
     <div class="label">Your balance</div>
@@ -1081,10 +1112,10 @@ function balanceCard() {
 /* ---------------- HOME ---------------- */
 async function viewHome(v) {
   const showPush = pushSupported() && Notification.permission === "default" && S.profile.notify;
-  v.innerHTML = `${balanceCard()}
+  v.innerHTML = `
     ${showPush ? `<div class="card mt row"><div class="grow"><b>Turn on notifications</b><div class="small muted">Get alerts for orders, loads and withdrawals.</div></div>
       <button class="btn sm" id="pushOn">Allow</button></div>` : ""}
-    <h2 class="mt" style="margin-bottom:0">Products</h2>
+    <h2 style="margin:6px 0 0">Products</h2>
     <div class="search-box">${ICONS.search}
       <input type="search" id="psearch" placeholder="Search products…" autocomplete="off" value="${esc(S.pq || "")}">
       <button type="button" class="clear ${S.pq ? "" : "hidden"}" id="pclear" aria-label="Clear search">${ICONS.x}</button></div>
@@ -1199,9 +1230,7 @@ function goBack() { if (history.length > 1) history.back(); else location.hash =
 async function viewWallet(v, mode) {
   if (!mode) {
     // Wallet tab: balance + the two buttons; each opens its own screen
-    v.innerHTML = `${balanceCard()}
-      <div class="card mt"><p class="muted small" style="margin:0">Tap <b style="color:var(--green)">Deposit</b> to add money or
-        <b style="color:var(--red)">Withdraw</b> to get a cash code.</p></div>`;
+    v.innerHTML = `<h2>Wallet</h2>${walletButtons()}`;
     return;
   }
   const head = (t, c) => `<div class="screen-head"><button class="back-btn" id="back" aria-label="Back">←</button>
@@ -1380,7 +1409,14 @@ async function viewSettings(v) {
   <div class="card">
     <div class="row"><img src="${PV_LOGO}" style="width:52px"><div class="grow">
       <b>${esc(p.full_name)}</b><div class="small muted">${esc(p.email)}</div>
-      <div class="small muted">ID ${esc(p.member_id)} · ${esc(p.phone || "")} · ${esc(p.country || "")}</div></div></div>
+      <div class="small muted">${esc(p.phone || "")} · ${esc(p.country || "")}</div></div></div>
+    <div class="id-row mt"><div><div class="small muted">Member ID</div><div class="mono id-big">${esc(p.member_id)}</div></div>
+      <button class="btn sm soft" onclick="copyText('${esc(p.member_id)}')">${ICONS.copy} Copy</button></div>
+  </div>
+
+  <div class="card">
+    <div class="row between"><h3 style="margin:0">Wallet</h3><span class="small muted">Balance <b data-balance>${money(p.balance)}</b></span></div>
+    <div class="mt">${walletButtons()}</div>
   </div>
 
   <div class="card">
