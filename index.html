@@ -1088,6 +1088,7 @@ function route() {
     window.scrollTo(0, 0);
     return;
   }
+  S.pmOpen = null;
   const t = TABS.find((x) => x.id === tab) ? tab : "home";
   $$(".nav-item").forEach((b) => b.classList.toggle("on", b.dataset.tab === t));
   clearInterval(S.timer);
@@ -1449,11 +1450,13 @@ async function viewWallet(v, mode) {
   v.innerHTML = `<div class="screen-head"><button class="back-btn" id="back" aria-label="Back">←</button>
     <h2 style="margin:0;color:${color}">${kind === "deposit" ? "Deposit" : "Withdraw"}</h2><span class="grow"></span>
     <span class="small muted">Balance <b data-balance>${money(S.profile.balance)}</b></span></div>
-    <p class="small muted" style="margin:-6px 0 8px">Choose a method</p>
+    <p class="small muted" id="pmHint" style="margin:-6px 0 8px">Choose a method</p>
     <div id="pmGrid" class="pm-grid"><div class="loader"></div></div>
-    <div id="pmBody" class="mt"></div>
+    <div id="pmBody"></div>
     <div id="pmRecent"></div>`;
-  $("#back").onclick = goBack;
+  let sel = null;
+  // back: from a method → the method buttons; from the buttons → previous screen
+  $("#back").onclick = () => { if (sel) { sel = null; clearInterval(S.timer); showGrid(); } else goBack(); };
   const { data } = await sb.from("payment_methods").select("*").eq("kind", kind).eq("active", true).order("sort").order("id");
   const methods = data || [];
   if (!$("#pmGrid")) return;
@@ -1461,25 +1464,38 @@ async function viewWallet(v, mode) {
     $("#pmGrid").outerHTML = `<div class="empty"><div class="big">💳</div>No ${kind} methods available yet. Please contact <a href="${esc(tgLink())}" target="_blank" rel="noopener">${esc(tgHandle())}</a>.</div>`;
     return;
   }
-  S.pmSel = S.pmSel || {};
-  let sel = methods.find((m) => m.id === S.pmSel[kind]) || methods[0];
   const drawGrid = () => {
-    $("#pmGrid").innerHTML = methods.map((m) => `<button class="pm-tile ${m.id === sel.id ? "on" : ""}" data-pm="${m.id}">
+    $("#pmGrid").innerHTML = methods.map((m) => `<button class="pm-tile" data-pm="${m.id}">
       <span class="pm-logo">${m.logo_url ? `<img src="${esc(m.logo_url)}" alt="">` : `<b>${esc(m.name.slice(0, 2).toUpperCase())}</b>`}</span>
       <span class="pm-name">${esc(m.name)}</span></button>`).join("");
     $$("[data-pm]", v).forEach((b) => (b.onclick = () => {
-      sel = methods.find((m) => m.id == b.dataset.pm); S.pmSel[kind] = sel.id;
-      clearInterval(S.timer); drawGrid(); drawBody();
+      sel = methods.find((m) => m.id == b.dataset.pm);
+      clearInterval(S.timer); showMethod();
     }));
   };
-  const drawBody = () => {
+  // Step 1: only the method buttons (+ my recent requests)
+  const showGrid = () => {
+    S.pmOpen = null;
+    $("#pmGrid").classList.remove("hidden"); $("#pmHint").classList.remove("hidden");
+    $("#pmBody").innerHTML = "";
+    drawRecent(kind);
+  };
+  // Step 2: only the chosen method's details + form
+  const showMethod = () => {
+    S.pmOpen = { kind, id: sel.id };
+    $("#pmGrid").classList.add("hidden"); $("#pmHint").classList.add("hidden");
+    $("#pmRecent").innerHTML = "";
     const body = $("#pmBody");
+    body.className = "slide-in";
     if (kind === "deposit") depositPanel(body, sel);
     else if (sel.code === "premviocash") renderPremvioCash(body);
     else payoutPanel(body, sel);
-    drawRecent(kind);
+    window.scrollTo(0, 0);
   };
-  drawGrid(); drawBody();
+  drawGrid();
+  // stay on the open method when the screen refreshes (e.g. after creating a PremvioCash code)
+  const keep = S.pmOpen && S.pmOpen.kind === kind && methods.find((m) => m.id === S.pmOpen.id);
+  if (keep) { sel = keep; showMethod(); } else showGrid();
 }
 
 function methodHead(m, sub) {
@@ -1534,7 +1550,7 @@ function depositPanel(body, m) {
       openModal(`<div class="empty"><div class="big">🧾</div><h2>Deposit #${data} sent</h2>
         <p>We're checking your payment of <b>${money(amt)}</b> via <b>${esc(m.name)}</b>. You'll get a notification when it's added to your balance.</p>
         <button class="btn block mt" data-close>OK</button></div>`);
-      depositPanel(body, m); drawRecent("deposit");
+      depositPanel(body, m);
     });
   };
 }
@@ -1569,7 +1585,7 @@ function payoutPanel(body, m) {
       openModal(`<div class="empty"><div class="big">✅</div><h2>Withdrawal #${data} requested</h2>
         <p><b>${money(amt)}</b> via <b>${esc(m.name)}</b>. You'll get a notification when it's sent.</p>
         <button class="btn block mt" data-close>OK</button></div>`);
-      payoutPanel(body, m); drawRecent("withdraw");
+      payoutPanel(body, m);
     });
   };
 }
