@@ -1004,6 +1004,16 @@ function tgLink() { return "https://t.me/" + tgHandle().replace(/^@/, ""); }
 
 function route() {
   const tab = (location.hash || "#home").slice(1);
+  // Deposit and Withdraw open as their own screens (part of the Wallet tab)
+  if (tab === "deposit" || tab === "withdraw") {
+    $$(".nav-item").forEach((b) => b.classList.toggle("on", b.dataset.tab === "wallet"));
+    clearInterval(S.timer);
+    const view = $("#view");
+    view.className = "view slide-in";
+    viewWallet(view, tab);
+    window.scrollTo(0, 0);
+    return;
+  }
   const t = TABS.find((x) => x.id === tab) ? tab : "home";
   $$(".nav-item").forEach((b) => b.classList.toggle("on", b.dataset.tab === t));
   clearInterval(S.timer);
@@ -1027,7 +1037,7 @@ function startLive() {
       toast(p.new.title + (p.new.body ? " — " + p.new.body : ""), "success");
       refreshUnread();
       const tab = (location.hash || "#home").slice(1);
-      if (["wallet", "history", "settings"].includes(tab)) route();
+      if (["wallet", "deposit", "withdraw", "history", "settings"].includes(tab)) route();
     })
     .subscribe();
 }
@@ -1063,8 +1073,8 @@ function balanceCard() {
     </div>
   </div>
   <div class="money-actions mt">
-    <a class="btn deposit" href="#wallet" onclick="setTimeout(()=>document.getElementById('depCard')?.scrollIntoView({behavior:'smooth'}),80)">${ICONS.cash} Deposit</a>
-    <a class="btn withdraw" href="#wallet" onclick="setTimeout(()=>document.getElementById('wdCard')?.scrollIntoView({behavior:'smooth'}),80)">${ICONS.wallet} Withdraw</a>
+    <a class="btn deposit" href="#deposit">${ICONS.cash} Deposit</a>
+    <a class="btn withdraw" href="#withdraw">${ICONS.wallet} Withdraw</a>
   </div>`;
 }
 
@@ -1142,7 +1152,7 @@ function buyModal(p) {
       const t = Math.max(0, Math.floor(Number(f.qty.value) || 0)) * Number(p.price);
       $("#tot", m).textContent = money(t);
       const low = t > Number(S.profile.balance);
-      $("#warn", m).innerHTML = low ? `⚠️ Not enough balance. <a href="#wallet" data-close>Deposit money</a>` : "The amount will be deducted from your balance.";
+      $("#warn", m).innerHTML = low ? `⚠️ Not enough balance. <a href="#deposit" data-close>Deposit money</a>` : "The amount will be deducted from your balance.";
       return t;
     };
     f.qty.oninput = calc; calc();
@@ -1185,17 +1195,33 @@ async function viewFeatures(v) {
 }
 
 /* ---------------- LOAD / WITHDRAW ---------------- */
-async function viewWallet(v) {
-  v.innerHTML = `${balanceCard()}
-  <div class="card mt" id="depCard">
-    <h2 style="color:var(--green)">Deposit</h2>
-    <p class="muted">To add money, message us on Telegram with your Member ID. An agent will deposit it to your balance.</p>
+function goBack() { if (history.length > 1) history.back(); else location.hash = "#home"; }
+async function viewWallet(v, mode) {
+  if (!mode) {
+    // Wallet tab: balance + the two buttons; each opens its own screen
+    v.innerHTML = `${balanceCard()}
+      <div class="card mt"><p class="muted small" style="margin:0">Tap <b style="color:var(--green)">Deposit</b> to add money or
+        <b style="color:var(--red)">Withdraw</b> to get a cash code.</p></div>`;
+    return;
+  }
+  const head = (t, c) => `<div class="screen-head"><button class="back-btn" id="back" aria-label="Back">←</button>
+    <h2 style="margin:0;color:${c}">${t}</h2><span class="grow"></span>
+    <span class="small muted">Balance <b data-balance>${money(S.profile.balance)}</b></span></div>`;
+  if (mode === "deposit") {
+    v.innerHTML = `${head("Deposit", "var(--green)")}
+    <div class="card" id="depCard">
+      <p class="muted">To add money, message us on Telegram with your Member ID. An agent will deposit it to your balance.</p>
     <div class="row wrap mt">
       <a class="btn deposit grow" href="${esc(tgLink())}" target="_blank" rel="noopener">${ICONS.send} Message ${esc(tgHandle())}</a>
       <button class="btn soft" onclick="copyText('${esc(S.profile.member_id)}')">${ICONS.copy} ${esc(S.profile.member_id)}</button>
     </div>
-  </div>
-  <div class="card" id="wdCard"><h2 style="color:var(--red)">Withdraw</h2><div id="wd"><div class="loader"></div></div></div>`;
+  </div>`;
+    $("#back").onclick = goBack;
+    return;
+  }
+  v.innerHTML = `${head("Withdraw", "var(--red)")}
+  <div class="card" id="wdCard"><div id="wd"><div class="loader"></div></div></div>`;
+  $("#back").onclick = goBack;
   const { data: active } = await sb.from("withdrawals").select("*").eq("status", "pending").order("created_at", { ascending: false });
   const wd = $("#wd");
   if (!wd) return;
