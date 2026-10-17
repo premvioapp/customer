@@ -309,6 +309,14 @@ td .btn + .btn { margin-left: 6px; }
   .grid-2 { grid-template-columns: 1fr; }
 }
 
+/* ---------- two-step login + KYC photo ---------- */
+.qr-box { background: #fff; border-radius: 14px; padding: 12px; width: 220px; height: 220px; margin: 10px auto; display: grid; place-items: center; }
+.qr-box img { width: 196px; height: 196px; }
+.otp { font-family: ui-monospace, Menlo, monospace; font-size: 1.6rem; letter-spacing: .5em; text-align: center; }
+.steps { padding-left: 20px; margin: 8px 0; } .steps li { margin: 6px 0; }
+.doc-preview { margin-top: 10px; border-radius: 12px; max-height: 220px; object-fit: contain; background: var(--bg-2); width: 100%; }
+.photo-ask { border: 1px dashed var(--orange); background: rgba(255, 159, 67, .07); border-radius: 12px; padding: 12px; margin-top: 12px; }
+
 /* ---------- refunds ---------- */
 .badge.refunded { background: rgba(31, 162, 255, .15); color: var(--blue); }
 .badge.requested { background: rgba(255, 159, 67, .15); color: var(--orange); }
@@ -352,6 +360,83 @@ td .btn + .btn { margin-left: 6px; }
 .kv { font-size: .82rem; }
 .kv span { color: var(--muted); }
 .back-link { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+
+/* =====================================================================
+   AGENT PANEL — its own look ("cashier desk"): graphite + emerald,
+   Space Grotesk text, JetBrains Mono numbers. Scoped to body.agent-ui
+   ===================================================================== */
+.agent-ui {
+  --bg: #0a0e13; --bg-2: #0f151c; --card: #121a22; --card-2: #19232d;
+  --line: rgba(110, 231, 190, .13); --text: #e8f1ee; --muted: #84968f;
+  --blue: #14d9a4; --blue-2: #0ea5a4; --grad: linear-gradient(135deg, #19e3ad 0%, #0ea5a4 100%);
+  --radius: 12px; --shadow: 0 8px 22px rgba(0, 0, 0, .4);
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  background:
+    radial-gradient(1200px 500px at 100% -10%, rgba(20, 217, 164, .08), transparent 60%),
+    repeating-linear-gradient(0deg, transparent 0 31px, rgba(255, 255, 255, .018) 31px 32px),
+    var(--bg);
+  background-attachment: fixed;
+}
+.agent-ui .mono, .agent-ui .num, .agent-ui .amt-pos, .agent-ui .amt-neg { font-family: var(--mono); letter-spacing: 0; }
+.agent-ui .card { border-radius: 12px; box-shadow: none; }
+.agent-ui .btn { border-radius: 10px; letter-spacing: .01em; }
+.agent-ui input, .agent-ui select { border-radius: 10px; }
+.agent-ui .auth-logo { filter: drop-shadow(0 10px 30px rgba(20, 217, 164, .3)); }
+.agent-ui .tabs { background: transparent; border-bottom: 1px solid var(--line); border-radius: 0; padding: 0; gap: 4px; }
+.agent-ui .tabs button { border-radius: 0; padding: 12px 4px; white-space: nowrap; border-bottom: 2px solid transparent; font-weight: 600; }
+.agent-ui .tabs button.on { background: transparent; box-shadow: none; color: var(--blue); border-bottom-color: var(--blue); }
+
+/* header */
+.desk-head { display: flex; align-items: center; gap: 12px; padding: 14px 0 12px; position: sticky; top: 0; z-index: 20;
+  background: linear-gradient(var(--bg) 75%, transparent); }
+.desk-head img { width: 38px; height: 38px; }
+.desk-tag { font-family: var(--mono); font-size: .66rem; font-weight: 800; letter-spacing: .16em; color: #04140f;
+  background: var(--grad); padding: 3px 8px; border-radius: 6px; }
+.desk-name { font-weight: 700; font-size: 1.05rem; line-height: 1.2; }
+.desk-sub { font-size: .78rem; color: var(--muted); font-family: var(--mono); }
+.desk-head .icon-btn { border-radius: 10px; }
+
+/* balance "register" display */
+.register { position: relative; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin-bottom: 14px;
+  background: linear-gradient(180deg, #0f1a17 0%, #0d1419 100%); }
+.register::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--grad); }
+.register .top { padding: 16px 18px 12px 22px; }
+.register .lbl { font-size: .7rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.register .big { font-family: var(--mono); font-weight: 800; font-size: 2.1rem; color: #b8ffe8; margin-top: 2px;
+  text-shadow: 0 0 22px rgba(20, 217, 164, .35); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.register .big small { font-size: .9rem; color: var(--muted); margin-right: 6px; text-shadow: none; }
+.register .hint { font-size: .78rem; color: var(--muted); margin-top: 4px; }
+.register .strip { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px dashed var(--line); }
+.register .strip > div { padding: 10px 18px 12px 22px; }
+.register .strip > div + div { border-left: 1px dashed var(--line); padding-left: 18px; }
+.register .strip .k { font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.register .strip .v { font-family: var(--mono); font-weight: 700; font-size: 1rem; margin-top: 2px; }
+.register .strip .v.in { color: var(--green); } .register .strip .v.out { color: var(--red); }
+.register .strip .c { font-family: var(--mono); font-size: .72rem; color: var(--muted); }
+
+/* big action tiles */
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.tile { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 16px; border-radius: 14px; cursor: pointer;
+  border: 1px solid; font: inherit; text-align: left; transition: transform .1s, filter .15s; }
+.tile:active { transform: scale(.98); }
+.tile:hover { filter: brightness(1.1); }
+.tile .ti { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; }
+.tile .ti svg { width: 22px; height: 22px; }
+.tile b { font-size: 1.05rem; }
+.tile span { font-size: .78rem; opacity: .8; }
+.tile.deposit { background: rgba(34, 201, 131, .1); border-color: rgba(34, 201, 131, .35); color: #b6f5d8; }
+.tile.deposit .ti { background: var(--green); color: #03200f; }
+.tile.withdraw { background: rgba(255, 93, 108, .1); border-color: rgba(255, 93, 108, .35); color: #ffd0d5; }
+.tile.withdraw .ti { background: var(--red); color: #fff; }
+.tile.on { outline: 2px solid currentColor; outline-offset: 2px; }
+
+/* bigger mono inputs for codes and amounts */
+.agent-ui input[name="code"], .agent-ui input[name="amount"] { font-family: var(--mono); font-size: 1.15rem; letter-spacing: .08em; }
+.agent-ui .code-box { border-color: var(--blue); background: rgba(20, 217, 164, .06); }
+.agent-ui .code-box .code { color: #b8ffe8; font-family: var(--mono); }
+.agent-ui .setting-row b { font-weight: 600; }
+.agent-ui .list-item .ic { border-radius: 10px; }
 
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
@@ -625,6 +710,25 @@ const COUNTRIES = "Nepal|India|Bangladesh|Bhutan|Pakistan|Sri Lanka|Maldives|Afg
 function countryOptions(selected = "Nepal") {
   return COUNTRIES.map((c) => `<option ${c === selected ? "selected" : ""}>${esc(c)}</option>`).join("");
 }
+/* ---------- shrink a phone photo before upload (max 1600px JPEG) ---------- */
+function compressImage(file, maxDim = 1600, quality = 0.85) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob((b) => resolve(b || file), "image/jpeg", quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    setTimeout(() => resolve(file), 8000); // safety: never hang on unusual formats
+    img.src = url;
+  });
+}
+
 /* ---------- searchable pick list: type "p" → every option starting with p ---------- */
 // input: <input>, getOptions(): string[], onPick(value): optional
 function mountPicker(input, getOptions, onPick) {
@@ -1266,14 +1370,33 @@ async function viewSettings(v) {
         <label>Document number</label><input name="doc_number" required value="${esc(kyc?.doc_number || "")}">
         <div class="grid-2"><div><label>Region / Province</label><input name="region" required value="${esc(kyc?.region || "")}"></div>
         <div><label>City</label><input name="city" required value="${esc(kyc?.city || "")}"></div></div>
+        ${kyc?.photo_required ? `<div class="photo-ask">
+          <b>📷 Photo of your document required</b>
+          <div class="small muted">Take a clear photo of the front of your ${esc(kyc?.doc_type || "document")}. All text must be readable. Only Premvio admins can see it.</div>
+          <input type="file" name="photo" accept="image/*" capture="environment" class="mt" required>
+          <img id="docPrev" class="doc-preview hidden" alt=""></div>` : ""}
         <button class="btn block mt">Submit KYC</button>
       </form>`;
+    if ($("#kf").photo) $("#kf").photo.onchange = (e) => {
+      const fl = e.target.files[0], im = $("#docPrev");
+      if (fl && im) { im.src = URL.createObjectURL(fl); im.classList.remove("hidden"); }
+    };
     $("#kf").onsubmit = (e) => {
       e.preventDefault();
       const f = e.target;
-      busy($("button", f), async () => {
+      const file = f.photo?.files?.[0];
+      if (kyc?.photo_required && !file) return toast("Please add a photo of your document.", "error");
+      busy($("button.btn", f), async () => {
+        let path = null;
+        if (file) {
+          const blob = await compressImage(file);
+          if (blob.size > 6 * 1024 * 1024) throw new Error("Photo is too large. Please take it again.");
+          path = `${p.id}/doc-${Date.now()}.jpg`;
+          const { error: upErr } = await sb.storage.from("kyc").upload(path, blob, { contentType: blob.type || "image/jpeg", upsert: false });
+          if (upErr) throw upErr;
+        }
         const { error } = await sb.rpc("submit_kyc", { p_full_name: f.full_name.value, p_doc_type: f.doc_type.value,
-          p_doc_number: f.doc_number.value, p_region: f.region.value, p_city: f.city.value });
+          p_doc_number: f.doc_number.value, p_region: f.region.value, p_city: f.city.value, p_photo_path: path });
         if (error) throw error;
         toast("KYC submitted for review.", "success");
         await loadProfile(); route();
