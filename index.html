@@ -490,6 +490,30 @@ td .btn + .btn { margin-left: 6px; }
 .id-big { font-size: 1.25rem; font-weight: 800; letter-spacing: .06em; }
 @media (max-width: 360px) { .topbar .small.muted#hello { display: none; } .bal-pill { font-size: .78rem; } }
 
+/* ---------- cart ---------- */
+.nav-item { position: relative; }
+.nav-badge { position: absolute; top: 6px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: var(--gold); color: #241600; font-style: normal; font-size: 11px; font-weight: 800; display: grid; place-items: center; }
+.product { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; touch-action: manipulation; transition: transform .15s, border-color .15s; }
+.product.pressing { transform: scale(.95); border-color: var(--gold); }
+.press-hint { margin: -6px 0 10px; }
+.buy-row { display: grid; grid-template-columns: 1fr 1.3fr; gap: 10px; }
+.qty-row { display: grid; grid-template-columns: 48px 1fr 48px; gap: 8px; }
+.qty-row input { text-align: center; font-weight: 800; font-size: 1.1rem; }
+.qbtn { border-radius: 12px; border: 1px solid var(--line); background: var(--card-2); color: var(--text); font-size: 1.4rem; font-weight: 700; cursor: pointer; }
+.cart-list { padding: 4px 14px; }
+.cart-item { display: flex; gap: 12px; align-items: flex-start; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.cart-item:last-child { border-bottom: 0; }
+.cart-item.bad { opacity: .8; }
+.cart-ph { width: 56px; height: 56px; border-radius: 12px; overflow: hidden; background: var(--card-2); display: grid; place-items: center; flex: 0 0 auto; }
+.cart-ph img { width: 100%; height: 100%; object-fit: cover; }
+.cart-sub { font-weight: 800; color: var(--gold); white-space: nowrap; }
+.add-more { display: block; text-align: center; padding: 12px; margin: 10px 0; border: 1px dashed var(--line); border-radius: 14px; font-weight: 700; }
+.cart-sum .row { padding: 6px 0; }
+.cart-sum .total-row { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 12px; font-size: 1.15rem; }
+.cart-sum .total-row b { color: var(--gold); font-size: 1.3rem; }
+.cart-item .btn { white-space: nowrap; } .cart-item .grow { min-width: 0; }
+
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
 <meta name="description" content="Buy Telegram Stars and Telegram Premium with Premvio.">
@@ -974,7 +998,7 @@ function newPasswordModal() {
 const TABS = [
   { id: "home", label: "Home", icon: ICONS.home },
   { id: "features", label: "New", icon: ICONS.spark },
-  { id: "wallet", label: "Wallet", icon: ICONS.wallet },
+  { id: "cart", label: "Cart", icon: ICONS.bag },
   { id: "history", label: "History", icon: ICONS.clock },
   { id: "settings", label: "Settings", icon: ICONS.gear },
 ];
@@ -1003,9 +1027,10 @@ async function startApp() {
     <main id="view"></main>
   </div>
   <nav class="bottom-nav"><div class="inner">${TABS.map((t) =>
-    `<button class="nav-item" data-tab="${t.id}">${t.icon}<span>${t.label}</span></button>`).join("")}</div></nav>`;
+    `<button class="nav-item" data-tab="${t.id}">${t.icon}<span>${t.label}</span>${t.id === "cart" ? `<i class="nav-badge hidden" id="cartBadge"></i>` : ""}</button>`).join("")}</div></nav>`;
   $("#hello").textContent = "Hi, " + (S.profile.full_name || "there").split(" ")[0];
   $$(".nav-item").forEach((b) => (b.onclick = () => (location.hash = b.dataset.tab)));
+  updateCartBadge();
   $("#bell").onclick = showNotifications;
   window.onhashchange = route;
   route();
@@ -1030,7 +1055,7 @@ function route() {
   const tab = (location.hash || "#home").slice(1);
   // Deposit and Withdraw open as their own screens (part of the Wallet tab)
   if (tab === "deposit" || tab === "withdraw") {
-    $$(".nav-item").forEach((b) => b.classList.toggle("on", b.dataset.tab === "wallet"));
+    $$(".nav-item").forEach((b) => b.classList.toggle("on", b.dataset.tab === "settings"));
     clearInterval(S.timer);
     const view = $("#view");
     view.className = "view slide-in";
@@ -1045,7 +1070,7 @@ function route() {
   view.className = "view";
   void view.offsetWidth;
   view.className = "view";
-  ({ home: viewHome, features: viewFeatures, wallet: viewWallet, history: viewHistory, settings: viewSettings })[t](view);
+  ({ home: viewHome, features: viewFeatures, cart: viewCart, history: viewHistory, settings: viewSettings })[t](view);
   window.scrollTo(0, 0);
 }
 
@@ -1119,6 +1144,7 @@ async function viewHome(v) {
     <div class="search-box">${ICONS.search}
       <input type="search" id="psearch" placeholder="Search products…" autocomplete="off" value="${esc(S.pq || "")}">
       <button type="button" class="clear ${S.pq ? "" : "hidden"}" id="pclear" aria-label="Clear search">${ICONS.x}</button></div>
+    <p class="small muted press-hint">💡 Long-press a product to add it to your cart</p>
     <div id="plist"><div class="loader"></div></div>`;
   if (showPush) $("#pushOn").onclick = async (e) => { if (await enablePush()) { toast("Notifications on.", "success"); e.target.closest(".card").remove(); } };
   const { data, error } = await sb.from("products").select("*").eq("active", true).order("sort").order("created_at", { ascending: false });
@@ -1142,7 +1168,10 @@ function drawProducts(v) {
       <div class="ph">${p.image_url ? `<img src="${esc(p.image_url)}" alt="" loading="lazy">` : `<span style="color:var(--gold);width:44px">${ICONS.star}</span>`}</div>
       <div class="info"><div class="name">${esc(p.name)}</div><div class="price">${money(p.price)}</div></div>
     </button>`).join("")}</div>`;
-  $$(".product", v).forEach((b) => (b.onclick = () => productModal(S.products.find((p) => p.id == b.dataset.id))));
+  $$(".product", v).forEach((b) => {
+    const prod = () => S.products.find((p) => p.id == b.dataset.id);
+    bindPress(b, () => productModal(prod()), () => cartModal(prod()));
+  });
 }
 
 function productModal(p) {
@@ -1151,19 +1180,22 @@ function productModal(p) {
     <h2>${esc(p.name)}</h2>
     <div class="price" style="color:var(--gold);font-weight:800;font-size:1.3rem">${money(p.price)}</div>
     <p class="muted mt" style="white-space:pre-wrap">${esc(p.description || "No description.")}</p>
-    <button class="btn block gold mt" id="buyBtn">${ICONS.bag} Buy now</button>`, (m) => {
+    <div class="buy-row mt"><button class="btn soft" id="cartBtn">🛒 Add to cart</button>
+      <button class="btn gold" id="buyBtn">${ICONS.bag} Buy now</button></div>`, (m) => {
     $("#buyBtn", m).onclick = () => buyModal(p);
+    $("#cartBtn", m).onclick = () => cartModal(p);
   });
 }
 
-function fieldInput(f) {
+function fieldInput(f, value) {
   const name = `f_${esc(f.id)}`, req = f.required ? "required" : "", ph = esc(f.placeholder || "");
   let saved = "";
   try { saved = localStorage.getItem("pv_field_" + f.label.toLowerCase()) || ""; } catch (e) {}
+  if (value !== undefined && value !== null) saved = String(value);
   const label = `<label>${esc(f.label)}${f.required ? "" : ' <span class="muted">(optional)</span>'}</label>`;
   if (f.type === "select") return label + `<select name="${name}" ${req}><option value="">Choose…</option>${(f.options || []).map((o) => `<option ${saved === o ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
-  if (f.type === "textarea") return label + `<textarea name="${name}" ${req} maxlength="500" placeholder="${ph}"></textarea>`;
-  if (f.type === "number") return label + `<input type="number" step="any" name="${name}" ${req} placeholder="${ph}" inputmode="decimal">`;
+  if (f.type === "textarea") return label + `<textarea name="${name}" ${req} maxlength="500" placeholder="${ph}">${value != null ? esc(value) : ""}</textarea>`;
+  if (f.type === "number") return label + `<input type="number" step="any" name="${name}" ${req} placeholder="${ph}" inputmode="decimal" value="${value != null ? esc(value) : ""}">`;
   return label + `<input name="${name}" ${req} maxlength="200" placeholder="${ph}" value="${esc(saved)}">`;
 }
 function buyModal(p) {
@@ -1191,12 +1223,7 @@ function buyModal(p) {
       e.preventDefault();
       const qty = Math.floor(Number(f.qty.value));
       if (qty < p.min_qty || qty > p.max_qty) { toast(`Quantity must be ${p.min_qty}–${p.max_qty}.`, "error"); return; }
-      const form = {};
-      for (const fd of fields) {
-        let v = (f.elements["f_" + fd.id]?.value || "").trim();
-        if (/telegram/i.test(fd.label) && v && !v.startsWith("@") && !/^\+?\d/.test(v)) v = "@" + v;
-        form[fd.id] = v;
-      }
+      const form = readForm(f, fields);
       if (calc() > Number(S.profile.balance)) { toast("Not enough balance.", "error"); return; }
       busy($("button.btn", f), async () => {
         const { data, error } = await sb.rpc("place_order", { p_product: p.id, p_quantity: qty, p_form: form });
@@ -1210,6 +1237,166 @@ function buyModal(p) {
       });
     };
   });
+}
+
+function readForm(f, fields) {
+  const form = {};
+  for (const fd of fields) {
+    let v = (f.elements["f_" + fd.id]?.value || "").trim();
+    if (/telegram/i.test(fd.label) && v && !v.startsWith("@") && !/^\+?\d/.test(v)) v = "@" + v;
+    form[fd.id] = v;
+  }
+  return form;
+}
+function rememberFields(fields, form) {
+  try { fields.forEach((fd) => { if (form[fd.id] && fd.type !== "textarea") localStorage.setItem("pv_field_" + fd.label.toLowerCase(), form[fd.id]); }); } catch (e) {}
+}
+
+/* ---------------- tap vs long-press ---------------- */
+function bindPress(el, onTap, onLong, ms = 450) {
+  let timer = null, long = false, sx = 0, sy = 0;
+  const cancel = () => { clearTimeout(timer); el.classList.remove("pressing"); };
+  el.addEventListener("pointerdown", (e) => {
+    long = false; sx = e.clientX || 0; sy = e.clientY || 0;
+    el.classList.add("pressing");
+    timer = setTimeout(() => { long = true; el.classList.remove("pressing"); try { navigator.vibrate?.(25); } catch (x) {} onLong(); }, ms);
+  });
+  ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => el.addEventListener(ev, cancel));
+  el.addEventListener("pointermove", (e) => { if (Math.hypot((e.clientX || 0) - sx, (e.clientY || 0) - sy) > 12) cancel(); });
+  el.addEventListener("contextmenu", (e) => e.preventDefault());
+  el.addEventListener("click", (e) => { if (long) { e.preventDefault(); long = false; return; } onTap(); });
+}
+
+/* ---------------- CART (saved on this phone) ---------------- */
+function cartKey() { return "pv_cart_" + (S.user?.id || ""); }
+function getCart() {
+  try { return JSON.parse(localStorage.getItem(cartKey()) || "[]"); } catch (e) { return S._cart || []; }
+}
+function setCart(items) {
+  S._cart = items;
+  try { localStorage.setItem(cartKey(), JSON.stringify(items)); } catch (e) {}
+  updateCartBadge();
+}
+function updateCartBadge() {
+  const b = $("#cartBadge");
+  if (!b) return;
+  const n = getCart().reduce((a, it) => a + 1, 0);
+  b.textContent = n > 9 ? "9+" : n;
+  b.classList.toggle("hidden", !n);
+}
+// Add a product to the cart (or edit an existing cart item)
+function cartModal(p, item) {
+  if (!p) return toast("This product is no longer available.", "error");
+  const fields = p.fields || [];
+  const qty0 = item ? item.quantity : p.min_qty;
+  openModal(`<h2>${item ? "Edit" : "Add to cart"}: ${esc(p.name)}</h2>
+    <p class="muted small">Price: ${money(p.price)} each</p>
+    <form id="cf">
+      <label>Quantity <span class="muted">(${p.min_qty}–${p.max_qty})</span></label>
+      <div class="qty-row"><button type="button" class="qbtn" data-q="-1">−</button>
+        <input type="number" name="qty" min="${p.min_qty}" max="${p.max_qty}" step="1" value="${qty0}" required inputmode="numeric">
+        <button type="button" class="qbtn" data-q="1">+</button></div>
+      ${fields.map((fd) => fieldInput(fd, item ? item.form?.[fd.id] : undefined)).join("")}
+      <div class="card mt row between" style="box-shadow:none"><span class="muted">Subtotal</span><b id="sub" style="font-size:1.15rem;color:var(--gold)"></b></div>
+      <button class="btn block mt">${item ? "Save changes" : "🛒 Add to cart"}</button>
+    </form>`, (m) => {
+    const f = $("#cf", m);
+    const calc = () => { $("#sub", m).textContent = money(Math.max(0, Math.floor(Number(f.qty.value) || 0)) * Number(p.price)); };
+    f.qty.oninput = calc; calc();
+    $$("[data-q]", m).forEach((b) => (b.onclick = () => {
+      const n = Math.min(p.max_qty, Math.max(p.min_qty, Math.floor(Number(f.qty.value) || 0) + Number(b.dataset.q)));
+      f.qty.value = n; calc();
+    }));
+    f.onsubmit = (e) => {
+      e.preventDefault();
+      const qty = Math.floor(Number(f.qty.value));
+      if (!(qty >= p.min_qty && qty <= p.max_qty)) return toast(`Quantity must be ${p.min_qty}–${p.max_qty}.`, "error");
+      const form = readForm(f, fields);
+      rememberFields(fields, form);
+      const cart = getCart();
+      if (item) {
+        const i = cart.findIndex((x) => x.uid === item.uid);
+        if (i >= 0) cart[i] = { ...cart[i], quantity: qty, form };
+        setCart(cart); closeModal(); toast("Cart updated.", "success");
+        if ((location.hash || "").slice(1) === "cart") route();
+      } else {
+        cart.push({ uid: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), product: p.id, quantity: qty, form });
+        setCart(cart); closeModal();
+        toast(`Added to cart (${cart.length} item${cart.length === 1 ? "" : "s"}).`, "success");
+      }
+    };
+  });
+}
+
+async function viewCart(v) {
+  v.innerHTML = `<h2>Cart</h2><div id="cartBox"><div class="loader"></div></div>`;
+  if (!S.products || !S.products.length) {
+    const { data } = await sb.from("products").select("*").eq("active", true).order("sort");
+    S.products = data || [];
+  }
+  const box = $("#cartBox");
+  if (!box) return;
+  const cart = getCart();
+  if (!cart.length) {
+    box.innerHTML = `<div class="empty"><div class="big">🛒</div><b>Your cart is empty</b>
+      <p class="small muted">Long-press any product on Home to add it here, then pay for everything at once.</p>
+      <a class="btn mt" href="#home">Browse products</a></div>`;
+    return;
+  }
+  let total = 0, bad = 0;
+  const rows = cart.map((it) => {
+    const p = S.products.find((x) => x.id == it.product);
+    if (!p) { bad++; return `<div class="cart-item bad"><div class="grow"><b>Product removed</b>
+      <div class="small" style="color:var(--red)">No longer available — please delete it.</div></div>
+      <button class="icon-btn" data-del="${it.uid}" title="Delete">🗑</button></div>`; }
+    const sub = Number(p.price) * it.quantity; total += sub;
+    const info = (p.fields || []).map((fd) => it.form?.[fd.id]).filter(Boolean).join(" · ");
+    return `<div class="cart-item">
+      <div class="cart-ph">${p.image_url ? `<img src="${esc(p.image_url)}" alt="">` : `<span style="color:var(--gold);width:26px">${ICONS.star}</span>`}</div>
+      <div class="grow"><b>${esc(p.name)}</b>
+        <div class="small muted">${it.quantity} × ${money(p.price)}</div>
+        ${info ? `<div class="small muted">${esc(info)}</div>` : ""}
+        <div class="row mt" style="gap:6px"><button class="btn sm soft" data-edit="${it.uid}">✏️ Edit</button>
+          <button class="btn sm ghost" data-del="${it.uid}">🗑 Delete</button></div></div>
+      <div class="cart-sub">${money(sub)}</div></div>`;
+  });
+  const bal = Number(S.profile.balance), after = bal - total, low = after < 0;
+  box.innerHTML = `<div class="card cart-list">${rows.join("")}</div>
+    <a class="add-more" href="#home">＋ Add more products</a>
+    <div class="card cart-sum">
+      <div class="row between"><span class="muted">Items</span><b>${cart.length}</b></div>
+      <div class="row between"><span class="muted">Your balance</span><b data-balance>${money(bal)}</b></div>
+      <div class="row between total-row"><span>Total</span><b>${money(total)}</b></div>
+      <div class="row between"><span class="muted">Balance after paying</span><b style="color:${low ? "var(--red)" : "var(--green)"}">${money(after)}</b></div>
+      ${low ? `<p class="small mt" style="color:var(--red)">⚠️ Not enough balance. <a href="#deposit">Deposit money</a></p>` : ""}
+      ${bad ? `<p class="small mt" style="color:var(--red)">Remove the unavailable item to continue.</p>` : ""}
+      <button class="btn block gold mt" id="payAll" ${low || bad ? "disabled" : ""}>Pay ${money(total)} for all</button>
+      <button class="link-btn small mt" id="clearCart" style="display:block;margin:10px auto 0">Empty cart</button>
+    </div>`;
+  $$("[data-del]", box).forEach((b) => (b.onclick = () => { setCart(getCart().filter((x) => x.uid !== b.dataset.del)); viewCart(v); }));
+  $$("[data-edit]", box).forEach((b) => (b.onclick = () => {
+    const it = getCart().find((x) => x.uid === b.dataset.edit);
+    cartModal(S.products.find((x) => x.id == it.product), it);
+  }));
+  $("#clearCart").onclick = async () => {
+    if (!(await confirmBox("Empty cart?", "All items will be removed from your cart.", "Empty cart", true))) return;
+    setCart([]); viewCart(v);
+  };
+  $("#payAll").onclick = async () => {
+    if (!(await confirmBox("Pay for everything?", `<b>${money(total)}</b> will be deducted from your balance for <b>${cart.length}</b> item${cart.length === 1 ? "" : "s"}.`, "Pay now"))) return;
+    busy($("#payAll"), async () => {
+      const { data, error } = await sb.rpc("place_cart", { p_items: cart.map((it) => ({ product: it.product, quantity: it.quantity, form: it.form || {} })) });
+      if (error) throw error;
+      setCart([]);
+      await loadProfile();
+      $$("[data-balance]").forEach((el) => (el.textContent = money(S.profile.balance)));
+      const ids = (data?.orders || []).map((x) => "#" + x).join(", ");
+      openModal(`<div class="empty"><div class="big">✅</div><h2>Paid ${money(data?.total ?? total)}</h2>
+        <p>${(data?.orders || []).length} orders placed: <b>${esc(ids)}</b>. You'll get a notification when each one is delivered.</p>
+        <a class="btn block mt" href="#history" data-close>See my orders</a></div>`);
+      viewCart(v);
+    });
+  };
 }
 
 /* ---------------- NEW FEATURES ---------------- */
