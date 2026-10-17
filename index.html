@@ -514,6 +514,31 @@ td .btn + .btn { margin-left: 6px; }
 .cart-sum .total-row b { color: var(--gold); font-size: 1.3rem; }
 .cart-item .btn { white-space: nowrap; } .cart-item .grow { min-width: 0; }
 
+/* ---------- payment methods ---------- */
+.pm-card { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.pm-card:last-child { border-bottom: 0; } .pm-card.off { opacity: .55; }
+.pm-logo { width: 52px; height: 52px; border-radius: 12px; background: #fff; display: grid; place-items: center; overflow: hidden; flex: 0 0 auto;
+  border: 1px solid var(--line); color: #0c1530; font-weight: 800; font-size: .8rem; }
+.pm-logo img { width: 100%; height: 100%; object-fit: contain; }
+.pm-logo.big { width: 72px; height: 72px; }
+.pm-details { white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pm-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* ---------- customer: payment method logos (3 per row) ---------- */
+.pm-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.pm-tile { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 6px; border-radius: 14px; cursor: pointer;
+  background: var(--card); border: 2px solid var(--line); color: var(--text); font: inherit; transition: border-color .15s, transform .1s; }
+.pm-tile:active { transform: scale(.97); }
+.pm-tile.on { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(31, 162, 255, .15); }
+.pm-tile .pm-logo { width: 54px; height: 54px; }
+.pm-name { font-size: .82rem; font-weight: 700; text-align: center; line-height: 1.2; word-break: break-word; }
+.pm-panel .pm-logo { width: 46px; height: 46px; }
+.pm-info { white-space: pre-wrap; padding: 12px; border-radius: 12px; background: var(--card-2); font-weight: 600; border-left: 3px solid var(--blue); }
+/* nicer file pickers (screenshots, KYC photo, logos) */
+input[type="file"] { padding: 8px; cursor: pointer; }
+input[type="file"]::file-selector-button { border: 0; padding: 10px 14px; margin-right: 12px; border-radius: 10px; cursor: pointer;
+  background: var(--grad); color: #fff; font: inherit; font-weight: 700; }
+
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
 <meta name="description" content="Buy Telegram Stars and Telegram Premium with Premvio.">
@@ -1416,28 +1441,162 @@ async function viewFeatures(v) {
 function goBack() { if (history.length > 1) history.back(); else location.hash = "#home"; }
 async function viewWallet(v, mode) {
   if (!mode) {
-    // Wallet tab: balance + the two buttons; each opens its own screen
     v.innerHTML = `<h2>Wallet</h2>${walletButtons()}`;
     return;
   }
-  const head = (t, c) => `<div class="screen-head"><button class="back-btn" id="back" aria-label="Back">←</button>
-    <h2 style="margin:0;color:${c}">${t}</h2><span class="grow"></span>
-    <span class="small muted">Balance <b data-balance>${money(S.profile.balance)}</b></span></div>`;
-  if (mode === "deposit") {
-    v.innerHTML = `${head("Deposit", "var(--green)")}
-    <div class="card" id="depCard">
-      <p class="muted">To add money, message us on Telegram with your Member ID. An agent will deposit it to your balance.</p>
-    <div class="row wrap mt">
-      <a class="btn deposit grow" href="${esc(tgLink())}" target="_blank" rel="noopener">${ICONS.send} Message ${esc(tgHandle())}</a>
-      <button class="btn soft" onclick="copyText('${esc(S.profile.member_id)}')">${ICONS.copy} ${esc(S.profile.member_id)}</button>
-    </div>
-  </div>`;
-    $("#back").onclick = goBack;
+  const kind = mode === "deposit" ? "deposit" : "withdraw";
+  const color = kind === "deposit" ? "var(--green)" : "var(--red)";
+  v.innerHTML = `<div class="screen-head"><button class="back-btn" id="back" aria-label="Back">←</button>
+    <h2 style="margin:0;color:${color}">${kind === "deposit" ? "Deposit" : "Withdraw"}</h2><span class="grow"></span>
+    <span class="small muted">Balance <b data-balance>${money(S.profile.balance)}</b></span></div>
+    <p class="small muted" style="margin:-6px 0 8px">Choose a method</p>
+    <div id="pmGrid" class="pm-grid"><div class="loader"></div></div>
+    <div id="pmBody" class="mt"></div>
+    <div id="pmRecent"></div>`;
+  $("#back").onclick = goBack;
+  const { data } = await sb.from("payment_methods").select("*").eq("kind", kind).eq("active", true).order("sort").order("id");
+  const methods = data || [];
+  if (!$("#pmGrid")) return;
+  if (!methods.length) {
+    $("#pmGrid").outerHTML = `<div class="empty"><div class="big">💳</div>No ${kind} methods available yet. Please contact <a href="${esc(tgLink())}" target="_blank" rel="noopener">${esc(tgHandle())}</a>.</div>`;
     return;
   }
-  v.innerHTML = `${head("Withdraw", "var(--red)")}
-  <div class="card" id="wdCard"><div id="wd"><div class="loader"></div></div></div>`;
-  $("#back").onclick = goBack;
+  S.pmSel = S.pmSel || {};
+  let sel = methods.find((m) => m.id === S.pmSel[kind]) || methods[0];
+  const drawGrid = () => {
+    $("#pmGrid").innerHTML = methods.map((m) => `<button class="pm-tile ${m.id === sel.id ? "on" : ""}" data-pm="${m.id}">
+      <span class="pm-logo">${m.logo_url ? `<img src="${esc(m.logo_url)}" alt="">` : `<b>${esc(m.name.slice(0, 2).toUpperCase())}</b>`}</span>
+      <span class="pm-name">${esc(m.name)}</span></button>`).join("");
+    $$("[data-pm]", v).forEach((b) => (b.onclick = () => {
+      sel = methods.find((m) => m.id == b.dataset.pm); S.pmSel[kind] = sel.id;
+      clearInterval(S.timer); drawGrid(); drawBody();
+    }));
+  };
+  const drawBody = () => {
+    const body = $("#pmBody");
+    if (kind === "deposit") depositPanel(body, sel);
+    else if (sel.code === "premviocash") renderPremvioCash(body);
+    else payoutPanel(body, sel);
+    drawRecent(kind);
+  };
+  drawGrid(); drawBody();
+}
+
+function methodHead(m, sub) {
+  return `<div class="row"><span class="pm-logo">${m.logo_url ? `<img src="${esc(m.logo_url)}" alt="">` : `<b>${esc(m.name.slice(0, 2).toUpperCase())}</b>`}</span>
+    <div class="grow"><b style="font-size:1.05rem">${esc(m.name)}</b><div class="small muted">${sub}</div></div></div>
+    ${m.details ? `<div class="pm-info mt">${esc(m.details)}</div>` : ""}`;
+}
+function limitsText(m, fallbackMin, fallbackMax) {
+  const mn = m.min_amount ?? fallbackMin, mx = m.max_amount ?? fallbackMax;
+  return [mn != null && mn !== "" ? "Min " + money(mn) : "", mx != null && mx !== "" ? "Max " + money(mx) : ""].filter(Boolean).join(" · ");
+}
+
+// Deposit: show account details, customer pays outside, then sends amount + screenshot
+function depositPanel(body, m) {
+  const fields = m.fields || [];
+  body.innerHTML = `<div class="card pm-panel">
+    ${methodHead(m, "Pay here, then upload the screenshot")}
+    <div class="row wrap mt" style="gap:8px">
+      ${m.details ? `<button class="btn sm soft" id="cpDet">${ICONS.copy} Copy details</button>` : ""}
+      ${m.link ? `<a class="btn sm deposit" href="${esc(m.link)}" target="_blank" rel="noopener">${ICONS.send} Open ${esc(m.name)}</a>` : ""}
+      <button class="btn sm soft" onclick="copyText('${esc(S.profile.member_id)}')">${ICONS.copy} My ID ${esc(S.profile.member_id)}</button>
+    </div>
+    <form id="depf" class="mt">
+      <label>Amount you paid (${CFG.CURRENCY}) <span class="muted">${esc(limitsText(m))}</span></label>
+      <input type="number" name="amount" min="${m.min_amount ?? 1}" ${m.max_amount != null ? `max="${m.max_amount}"` : ""} step="0.01" required inputmode="decimal">
+      ${fields.map((fd) => fieldInput(fd)).join("")}
+      <label>Payment screenshot <span style="color:var(--red)">*</span></label>
+      <input type="file" name="proof" accept="image/*" required>
+      <img id="proofPrev" class="doc-preview hidden" alt="">
+      <button class="btn block deposit mt">Send for approval</button>
+      <p class="small muted mt">We add the money to your balance after checking your payment. You'll get a notification.</p>
+    </form></div>`;
+  if ($("#cpDet")) $("#cpDet").onclick = () => copyText(m.details);
+  const f = $("#depf");
+  f.proof.onchange = () => { const fl = f.proof.files[0]; if (fl) { $("#proofPrev").src = URL.createObjectURL(fl); $("#proofPrev").classList.remove("hidden"); } };
+  f.onsubmit = (e) => {
+    e.preventDefault();
+    const amt = Number(f.amount.value);
+    if (!(amt > 0)) return toast("Enter the amount you paid.", "error");
+    const file = f.proof.files?.[0];
+    if (!file) return toast("Please add a screenshot of your payment.", "error");
+    const form = readForm(f, fields);
+    busy($("button.btn", f), async () => {
+      const blob = await compressImage(file);
+      if (blob.size > 6 * 1024 * 1024) throw new Error("Screenshot is too large.");
+      const path = `${S.user.id}/dep-${Date.now()}.jpg`;
+      const { error: upErr } = await sb.storage.from("proofs").upload(path, blob, { contentType: blob.type || "image/jpeg", upsert: false });
+      if (upErr) throw upErr;
+      const { data, error } = await sb.rpc("request_deposit", { p_method: m.id, p_amount: amt, p_form: form, p_proof: path });
+      if (error) throw error;
+      rememberFields(fields, form);
+      openModal(`<div class="empty"><div class="big">🧾</div><h2>Deposit #${data} sent</h2>
+        <p>We're checking your payment of <b>${money(amt)}</b> via <b>${esc(m.name)}</b>. You'll get a notification when it's added to your balance.</p>
+        <button class="btn block mt" data-close>OK</button></div>`);
+      depositPanel(body, m); drawRecent("deposit");
+    });
+  };
+}
+
+// Withdraw via an admin-made method: amount + account details; money is held until admin pays
+function payoutPanel(body, m) {
+  const kyc = S.profile.kyc_status;
+  if (kyc !== "approved") { body.innerHTML = `<div class="card">${kycGate()}</div>`; return; }
+  const fields = m.fields || [];
+  body.innerHTML = `<div class="card pm-panel">
+    ${methodHead(m, "We send the money to your account")}
+    <form id="payf" class="mt">
+      <label>Amount (${CFG.CURRENCY}) <span class="muted">${esc(limitsText(m, S.settings.min_withdraw, S.settings.max_withdraw))}</span></label>
+      <input type="number" name="amount" step="0.01" min="${m.min_amount ?? S.settings.min_withdraw ?? 1}" required inputmode="decimal">
+      ${fields.map((fd) => fieldInput(fd)).join("")}
+      <button class="btn block withdraw mt">Request withdrawal</button>
+      <p class="small muted mt">The amount is taken from your balance now and sent to you after review. If we can't pay, it comes back to your balance.</p>
+    </form></div>`;
+  const f = $("#payf");
+  f.onsubmit = (e) => {
+    e.preventDefault();
+    const amt = Number(f.amount.value);
+    if (!(amt > 0)) return toast("Enter a valid amount.", "error");
+    if (amt > Number(S.profile.balance)) return toast("Not enough balance.", "error");
+    const form = readForm(f, fields);
+    busy($("button.btn", f), async () => {
+      const { data, error } = await sb.rpc("request_payout", { p_method: m.id, p_amount: amt, p_form: form });
+      if (error) throw error;
+      rememberFields(fields, form);
+      await loadProfile();
+      $$("[data-balance]").forEach((el) => (el.textContent = money(S.profile.balance)));
+      openModal(`<div class="empty"><div class="big">✅</div><h2>Withdrawal #${data} requested</h2>
+        <p><b>${money(amt)}</b> via <b>${esc(m.name)}</b>. You'll get a notification when it's sent.</p>
+        <button class="btn block mt" data-close>OK</button></div>`);
+      payoutPanel(body, m); drawRecent("withdraw");
+    });
+  };
+}
+function kycGate() {
+  const kyc = S.profile.kyc_status;
+  return `<div class="empty" style="padding:14px"><div class="big">🪪</div>
+    <b>${kyc === "pending" ? "Your KYC is being reviewed" : "KYC verification required"}</b>
+    <p class="muted small">${kyc === "pending" ? "You can withdraw once it is approved. We'll notify you." : "Complete KYC in Settings before you can withdraw."}</p>
+    ${kyc === "pending" ? "" : `<a class="btn mt" href="#settings">Complete KYC</a>`}</div>`;
+}
+async function drawRecent(kind) {
+  const box = $("#pmRecent");
+  if (!box) return;
+  const tbl = kind === "deposit" ? "deposit_requests" : "payout_requests";
+  const { data } = await sb.from(tbl).select("*").order("created_at", { ascending: false }).limit(10);
+  if (!$("#pmRecent")) return;
+  const label = { pending: kind === "deposit" ? "checking" : "waiting", approved: "added", paid: "sent", rejected: "rejected" };
+  const cls = { pending: "pending", approved: "completed", paid: "completed", rejected: "rejected" };
+  box.innerHTML = data && data.length ? `<h3 class="mt">My ${kind === "deposit" ? "deposits" : "withdrawal requests"}</h3><div class="card" style="padding:4px 14px">
+    ${data.map((r) => `<div class="list-item"><div class="grow"><b>#${r.id} · ${esc(r.method_name)}</b>
+      <div class="small muted">${fmtDate(r.created_at)}</div>${r.admin_note ? `<div class="small muted">${esc(r.admin_note)}</div>` : ""}</div>
+      <div style="text-align:right"><b>${money(r.amount)}</b><br><span class="badge ${cls[r.status]}">${label[r.status] || r.status}</span></div></div>`).join("")}</div>` : "";
+}
+
+// PremvioCash: city + street + 24-hour code paid by an agent
+async function renderPremvioCash(body) {
+  body.innerHTML = `<div class="card" id="wdCard"><div id="wd"><div class="loader"></div></div></div>`;
   const { data: active } = await sb.from("withdrawals").select("*").eq("status", "pending").order("created_at", { ascending: false });
   const wd = $("#wd");
   if (!wd) return;
@@ -1457,10 +1616,7 @@ async function viewWallet(v, mode) {
   });
   const kyc = S.profile.kyc_status;
   if (kyc !== "approved") {
-    html += `<div class="empty" style="padding:14px"><div class="big">🪪</div>
-      <b>${kyc === "pending" ? "Your KYC is being reviewed" : "KYC verification required"}</b>
-      <p class="muted small">${kyc === "pending" ? "You can withdraw once it is approved. We'll notify you." : "Complete KYC in Settings before you can withdraw."}</p>
-      ${kyc === "pending" ? "" : `<a class="btn mt" href="#settings">Complete KYC</a>`}</div>`;
+    html += kycGate();
   } else if (!active?.length) {
     const min = Number(S.settings.min_withdraw || 0);
     html += `<form id="wf">
@@ -1517,8 +1673,8 @@ async function viewWallet(v, mode) {
 }
 
 /* ---------------- HISTORY ---------------- */
-const TX_NAME = { load: "Deposit", adjust: "Admin adjustment", withdraw: "Withdrawal", purchase: "Purchase", refund: "Refund", agent_load: "Deposit to customer", agent_payout: "Withdrawal paid" };
-const TX_ICON = { adjust: "💰", load: "💰", withdraw: "🏧", purchase: "🛍️", refund: "↩️", agent_load: "📤", agent_payout: "📥" };
+const TX_NAME = { deposit: "Deposit", load: "Deposit", adjust: "Admin adjustment", withdraw: "Withdrawal", purchase: "Purchase", refund: "Refund", agent_load: "Deposit to customer", agent_payout: "Withdrawal paid" };
+const TX_ICON = { deposit: "💰", adjust: "💰", load: "💰", withdraw: "🏧", purchase: "🛍️", refund: "↩️", agent_load: "📤", agent_payout: "📥" };
 async function viewHistory(v) {
   v.innerHTML = `<h2>History</h2><p class="muted small">Last 30 days</p>
     <div class="chips">${[["all", "All"], ["orders", "Orders"], ["withdrawals", "Withdrawals"]].map(([k, l]) =>
