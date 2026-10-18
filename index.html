@@ -564,6 +564,64 @@ input[type="file"]::file-selector-button { border: 0; padding: 10px 14px; margin
 .product { display: flex; flex-direction: column; justify-content: flex-start; }
 .product .ph, .product .info { width: 100%; }
 
+/* ============ V22: Marketing manager panel ============ */
+.mk-ui { --grad: linear-gradient(135deg, #ff5fa2 0%, #8b5cff 100%); --blue: #b07cff; }
+.mk-tag { background: var(--grad); color: #fff; font-size: .7rem; font-weight: 800; letter-spacing: .08em; padding: 4px 10px; border-radius: 999px; }
+.badge.marketing { background: rgba(176, 124, 255, .16); color: #c9a6ff; }
+.stat .up { color: var(--green); font-weight: 800; } .stat .down { color: var(--red); font-weight: 800; }
+.stat .small { margin-top: 4px; }
+.mk-bars { gap: 3px; }
+.mk-bars .col { max-width: 30px; }
+.mk-two { align-items: start; }
+.mk-two > .card { margin: 0; }
+.hbar { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.hbar:last-child { border-bottom: 0; }
+.hbar .track { height: 8px; border-radius: 99px; background: var(--card-2); margin: 6px 0 4px; overflow: hidden; }
+.hbar .track i { display: block; height: 100%; border-radius: 99px; background: var(--grad); }
+.mk-products { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-top: 12px; }
+.mk-prod { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.mk-prod.pinned { border-color: rgba(255, 200, 61, .55); }
+.mk-prod .ph { aspect-ratio: 4 / 3; background: var(--card-2); display: grid; place-items: center; position: relative; overflow: hidden; }
+.mk-prod .ph img { width: 100%; height: 100%; object-fit: cover; }
+.mk-prod .info { padding: 10px 12px 12px; }
+.mk-prod .name { font-weight: 700; font-size: .92rem; }
+.mk-prod .price { color: var(--gold); font-weight: 800; margin-top: 2px; }
+.push-prev { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border-radius: 14px; background: var(--card-2); border: 1px solid var(--line); }
+.push-prev img { width: 36px; height: 36px; border-radius: 9px; }
+.push-prev .pt { font-weight: 700; margin-top: 2px; word-break: break-word; }
+.push-prev .pb { color: var(--muted); word-break: break-word; white-space: pre-wrap; }
+@media (max-width: 860px) { .mk-two { grid-template-columns: 1fr; } }
+.side-link svg { width: 20px; height: 20px; flex: none; }
+.mk-ui .stats { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+@media (max-width: 480px) { .mk-ui .stat .v { font-size: 1.2rem; } .mk-ui .stat { padding: 12px; } .mk-bars .val { display: none; } }
+
+/* ============ V23: Agent Deposit Portal ============ */
+.dp-app { padding-bottom: 40px; }
+.dp-id { border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin: 4px 0 18px;
+  background: linear-gradient(135deg, rgba(25, 227, 173, .14), rgba(14, 165, 164, .05)), var(--card); }
+.dp-id .k { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.dp-id .v { font-size: 1.7rem; font-weight: 800; color: var(--blue); margin-top: 2px; }
+.dp-id .dp-bal { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.dp-id .dp-bal b { font-family: var(--mono); }
+.dp-h { margin: 0 0 10px; font-size: 1rem; }
+.dp-app .pm-grid { margin-bottom: 22px; }
+.dp-done { text-align: center; padding: 28px 18px; }
+.dp-done h2 { margin: 14px 0 6px; }
+.dp-check { width: 76px; height: 76px; margin: 0 auto; border-radius: 50%; display: grid; place-items: center; font-size: 2.4rem; font-weight: 800;
+  color: #04140f; background: var(--grad); box-shadow: 0 0 0 10px rgba(20, 217, 164, .12); animation: dp-pop .45s ease-out; }
+@keyframes dp-pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .dp-check { animation: none; } }
+/* agent desk: button to the deposit portal */
+.tile-wide { display: flex; align-items: center; gap: 12px; padding: 14px 16px; margin: -6px 0 18px; border-radius: 14px; text-decoration: none;
+  background: rgba(20, 217, 164, .08); border: 1px dashed rgba(20, 217, 164, .45); color: var(--text); }
+.tile-wide .ti { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: var(--grad); color: #04140f; flex: none; }
+.tile-wide .ti svg { width: 22px; height: 22px; }
+.tile-wide span { font-size: .78rem; color: var(--muted); }
+.tile-wide em { font-style: normal; font-size: 1.3rem; color: var(--blue); }
+.tile-wide:active { transform: scale(.98); }
+.dp-back { display: inline-block; margin: 0 0 10px; color: var(--muted); font-size: .85rem; text-decoration: none; }
+.dp-back:hover { color: var(--blue); }
+
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
 <meta name="description" content="Buy Telegram Stars and Telegram Premium with Premvio.">
@@ -599,7 +657,9 @@ else if(!PV_CONFIG.SUPABASE_ANON_KEY||/PASTE/.test(PV_CONFIG.SUPABASE_ANON_KEY))
 if (window.pvDead) throw new Error("stopped");
 const CFG = window.PV_CONFIG;
 // Each panel keeps its own login, so logging out of one never logs out the others.
-const PV_PANEL = /admin\.html/i.test(location.pathname) ? "admin" : /agent\.html/i.test(location.pathname) ? "agent" : "customer";
+// agent.html and agent-deposit.html share the agent login (log in once, use both).
+const PV_PANEL = /admin\.html/i.test(location.pathname) ? "admin" : /agent(-deposit)?\.html/i.test(location.pathname) ? "agent"
+  : /marketing\.html/i.test(location.pathname) ? "marketing" : "customer";
 const sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: "premvio-" + PV_PANEL + "-login" },
 });
@@ -1523,7 +1583,7 @@ async function viewWallet(v, mode) {
   // back: from a method → the method buttons; from the buttons → previous screen
   $("#back").onclick = () => { if (sel) { sel = null; clearInterval(S.timer); showGrid(); } else goBack(); };
   const { data } = await sb.from("payment_methods").select("*").eq("kind", kind).eq("active", true).order("sort").order("id");
-  const methods = data || [];
+  const methods = (data || []).filter((m) => kind !== "deposit" || m.audience !== "agents");
   if (!$("#pmGrid")) return;
   if (!methods.length) {
     $("#pmGrid").outerHTML = `<div class="empty"><div class="big">💳</div>No ${kind} methods available yet. Please contact <a href="${esc(tgLink())}" target="_blank" rel="noopener">${esc(tgHandle())}</a>.</div>`;
