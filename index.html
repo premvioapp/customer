@@ -621,6 +621,26 @@ input[type="file"]::file-selector-button { border: 0; padding: 10px 14px; margin
 .tile-wide:active { transform: scale(.98); }
 .dp-back { display: inline-block; margin: 0 0 10px; color: var(--muted); font-size: .85rem; text-decoration: none; }
 .dp-back:hover { color: var(--blue); }
+/* admin: choose agents for an agent payment method */
+.seg { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.seg label { display: flex; align-items: center; gap: 8px; margin: 0; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); cursor: pointer; }
+.seg input { width: auto; margin: 0; }
+.ag-list { max-height: 240px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; margin-top: 8px; }
+.ag-row { display: flex; align-items: center; gap: 10px; margin: 0; padding: 9px 12px; border-bottom: 1px solid var(--line); color: var(--text); cursor: pointer; }
+.ag-row:last-child { border-bottom: 0; }
+.ag-row input { width: auto; margin: 0; }
+.ag-row:hover { background: var(--card-2); }
+
+/* ============ V26: promo codes + gift a friend ============ */
+.promo-box { display: flex; gap: 8px; }
+.promo-box input { flex: 1; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+.promo-box input[readonly] { border-color: var(--green); color: var(--green); }
+.promo-box .btn { flex: none; }
+.promo-msg { min-height: 1.2em; margin-top: 6px; }
+.gift-box { margin-top: 14px; border: 1px dashed rgba(255, 200, 61, .45); border-radius: 12px; padding: 10px 12px; background: rgba(255, 200, 61, .05); }
+.gift-toggle { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--text); font-weight: 700; cursor: pointer; }
+.gift-toggle input { width: 20px; height: 20px; margin: 0; accent-color: var(--gold); }
+.gift-tag { color: var(--gold); font-weight: 600; }
 
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
@@ -1349,6 +1369,47 @@ function fieldInput(f, value) {
   if (f.type === "number") return label + `<input type="number" step="any" name="${name}" ${req} placeholder="${ph}" inputmode="decimal" value="${value != null ? esc(value) : ""}">`;
   return label + `<input name="${name}" ${req} maxlength="200" placeholder="${ph}" value="${esc(saved)}">`;
 }
+/* ---------------- GIFT A FRIEND + PROMO CODE (shared by Buy now and Cart) ---------------- */
+function giftBlock(g) {
+  return `<div class="gift-box">
+    <label class="gift-toggle"><input type="checkbox" name="isGift" ${g ? "checked" : ""}><span>🎁 Send as a gift to a friend</span></label>
+    <div class="gift-fields ${g ? "" : "hidden"}">
+      <p class="small muted" style="margin:6px 0 0">Fill in the order details above with <b>your friend's</b> Telegram username.</p>
+      <label>Friend's name</label><input name="g_name" maxlength="60" value="${esc(g?.to_name || "")}" placeholder="e.g. Sita">
+      <label>Friend's Premvio Member ID <span class="muted">(optional — they get a notification)</span></label>
+      <input name="g_member" maxlength="12" value="${esc(g?.to_member || "")}" placeholder="PV123456" autocapitalize="characters" style="text-transform:uppercase">
+      <label>Gift message <span class="muted">(optional)</span></label>
+      <textarea name="g_msg" maxlength="200" placeholder="e.g. Happy birthday! 🎉">${esc(g?.message || "")}</textarea>
+    </div></div>`;
+}
+// turning the gift on clears your own saved Telegram username so you type your friend's
+function bindGift(f, fields, m) {
+  f.isGift.onchange = () => {
+    $(".gift-fields", m).classList.toggle("hidden", !f.isGift.checked);
+    if (f.isGift.checked) {
+      fields.filter((fd) => /telegram|username/i.test(fd.label)).forEach((fd) => { const el = f.elements["f_" + fd.id]; if (el) el.value = ""; });
+      f.g_name.focus();
+    }
+  };
+}
+function readGift(f) {
+  if (!f.isGift?.checked) return null;
+  const to_name = f.g_name.value.trim();
+  if (!to_name) { toast("Write your friend's name.", "error"); f.g_name.focus(); return false; }
+  const to_member = f.g_member.value.trim().toUpperCase();
+  if (to_member && to_member === String(S.profile.member_id).toUpperCase()) { toast("That's your own Member ID.", "error"); return false; }
+  return { to_name, to_member: to_member || null, message: f.g_msg.value.trim() || null };
+}
+function promoBox(code) {
+  return `<div class="promo-box"><input name="promo" placeholder="Promo code" maxlength="30" autocomplete="off" autocapitalize="characters" value="${esc(code || "")}">
+    <button type="button" class="btn soft" data-promo>${code ? "Remove" : "Apply"}</button></div><div class="promo-msg small"></div>`;
+}
+async function checkPromo(code, items) {
+  const { data, error } = await sb.rpc("check_promo", { p_code: code, p_items: items });
+  if (error) throw error;
+  return data;
+}
+
 function buyModal(p) {
   const fields = p.fields || [];
   openModal(`<h2>Buy ${esc(p.name)}</h2>
@@ -1357,32 +1418,70 @@ function buyModal(p) {
       <label>Quantity <span class="muted">(${p.min_qty}–${p.max_qty})</span></label>
       <input type="number" name="qty" min="${p.min_qty}" max="${p.max_qty}" step="1" value="${p.min_qty}" required inputmode="numeric">
       ${fields.map(fieldInput).join("")}
-      <div class="card mt row between" style="box-shadow:none"><span class="muted">Total</span><b id="tot" style="font-size:1.2rem;color:var(--gold)"></b></div>
+      ${giftBlock(null)}
+      <label>Promo code <span class="muted">(optional)</span></label>${promoBox("")}
+      <div class="card mt" style="box-shadow:none">
+        <div class="row between hidden" id="discRow"><span class="muted">Promo discount</span><b style="color:var(--green)" id="disc"></b></div>
+        <div class="row between"><span class="muted">Total</span><b id="tot" style="font-size:1.2rem;color:var(--gold)"></b></div></div>
       <p class="small muted mt" id="warn"></p>
       <button class="btn block gold mt">Confirm purchase</button>
     </form>`, (m) => {
     const f = $("#bf", m);
+    let promo = null;   // {code, discount} after the server says the code works
     const calc = () => {
-      const t = Math.max(0, Math.floor(Number(f.qty.value) || 0)) * Number(p.price);
+      const gross = Math.max(0, Math.floor(Number(f.qty.value) || 0)) * Number(p.price);
+      const d = promo ? Math.min(promo.discount, gross) : 0, t = gross - d;
+      $("#discRow", m).classList.toggle("hidden", !d);
+      $("#disc", m).textContent = "−" + money(d);
       $("#tot", m).textContent = money(t);
       const low = t > Number(S.profile.balance);
       $("#warn", m).innerHTML = low ? `⚠️ Not enough balance. <a href="#deposit" data-close>Deposit money</a>` : "The amount will be deducted from your balance.";
       return t;
     };
-    f.qty.oninput = calc; calc();
+    const pBtn = $("[data-promo]", m), pMsg = $(".promo-msg", m);
+    const applyPromo = async (silent) => {
+      const code = f.promo.value.trim().toUpperCase();
+      if (!code) return;
+      try {
+        const r = await checkPromo(code, [{ product: p.id, quantity: Math.floor(Number(f.qty.value) || 0) }]);
+        promo = { code: r.code, discount: Number(r.discount) };
+        f.promo.value = r.code; f.promo.readOnly = true; pBtn.textContent = "Remove";
+        pMsg.innerHTML = `<span style="color:var(--green)">✅ ${esc(r.code)} applied — you save ${money(r.discount)}</span>`;
+      } catch (e) {
+        promo = null; f.promo.readOnly = false; pBtn.textContent = "Apply";
+        pMsg.innerHTML = `<span style="color:var(--red)">${esc(errMsg(e))}</span>`;
+        if (!silent) f.promo.focus();
+      }
+      calc();
+    };
+    pBtn.onclick = () => {
+      if (promo) { promo = null; f.promo.value = ""; f.promo.readOnly = false; pBtn.textContent = "Apply"; pMsg.innerHTML = ""; calc(); return; }
+      pBtn.disabled = true; pBtn.textContent = "…"; applyPromo(false).finally(() => (pBtn.disabled = false));
+    };
+    f.promo.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); pBtn.click(); } };
+    bindGift(f, fields, m);
+    let qt;
+    f.qty.oninput = () => { calc(); if (promo) { clearTimeout(qt); qt = setTimeout(() => applyPromo(true), 400); } };
+    calc();
     f.onsubmit = (e) => {
       e.preventDefault();
       const qty = Math.floor(Number(f.qty.value));
       if (qty < p.min_qty || qty > p.max_qty) { toast(`Quantity must be ${p.min_qty}–${p.max_qty}.`, "error"); return; }
       const form = readForm(f, fields);
+      const gift = readGift(f);
+      if (gift === false) return;
       if (calc() > Number(S.profile.balance)) { toast("Not enough balance.", "error"); return; }
-      busy($("button.btn", f), async () => {
-        const { data, error } = await sb.rpc("place_order", { p_product: p.id, p_quantity: qty, p_form: form });
+      busy($('button.btn:not([type="button"])', f), async () => {
+        const args = { p_product: p.id, p_quantity: qty, p_form: form };
+        if (promo) args.p_promo = promo.code;
+        if (gift) args.p_gift = gift;
+        const { data, error } = await sb.rpc("place_order", args);
         if (error) throw error;
-        try { fields.forEach((fd) => { if (form[fd.id] && fd.type !== "textarea") localStorage.setItem("pv_field_" + fd.label.toLowerCase(), form[fd.id]); }); } catch (e) {}
+        if (!gift) try { fields.forEach((fd) => { if (form[fd.id] && fd.type !== "textarea") localStorage.setItem("pv_field_" + fd.label.toLowerCase(), form[fd.id]); }); } catch (e) {}
         await loadProfile();
-        openModal(`<div class="empty"><div class="big">✅</div><h2>Order #${data} placed</h2>
-          <p>We'll deliver <b>${esc(p.name)}</b> soon. You'll get a notification when it's done.</p>
+        openModal(`<div class="empty"><div class="big">${gift ? "🎁" : "✅"}</div><h2>${gift ? "Gift" : "Order"} #${data} placed</h2>
+          <p>${gift ? `We'll deliver <b>${esc(p.name)}</b> to <b>${esc(gift.to_name)}</b> soon.${gift.to_member ? " They'll get a notification." : ""}` : `We'll deliver <b>${esc(p.name)}</b> soon.`} You'll get a notification when it's done.</p>
+          ${promo ? `<p class="small" style="color:var(--green)">You saved ${money(promo.discount)} with ${esc(promo.code)}.</p>` : ""}
           <button class="btn block mt" data-close>OK</button></div>`);
         $$("[data-balance]").forEach((el) => (el.textContent = money(S.profile.balance)));
       });
@@ -1448,12 +1547,14 @@ function cartModal(p, item) {
         <input type="number" name="qty" min="${p.min_qty}" max="${p.max_qty}" step="1" value="${qty0}" required inputmode="numeric">
         <button type="button" class="qbtn" data-q="1">+</button></div>
       ${fields.map((fd) => fieldInput(fd, item ? item.form?.[fd.id] : undefined)).join("")}
+      ${giftBlock(item?.gift || null)}
       <div class="card mt row between" style="box-shadow:none"><span class="muted">Subtotal</span><b id="sub" style="font-size:1.15rem;color:var(--gold)"></b></div>
       <button class="btn block mt">${item ? "Save changes" : "🛒 Add to cart"}</button>
     </form>`, (m) => {
     const f = $("#cf", m);
     const calc = () => { $("#sub", m).textContent = money(Math.max(0, Math.floor(Number(f.qty.value) || 0)) * Number(p.price)); };
     f.qty.oninput = calc; calc();
+    bindGift(f, fields, m);
     $$("[data-q]", m).forEach((b) => (b.onclick = () => {
       const n = Math.min(p.max_qty, Math.max(p.min_qty, Math.floor(Number(f.qty.value) || 0) + Number(b.dataset.q)));
       f.qty.value = n; calc();
@@ -1463,15 +1564,17 @@ function cartModal(p, item) {
       const qty = Math.floor(Number(f.qty.value));
       if (!(qty >= p.min_qty && qty <= p.max_qty)) return toast(`Quantity must be ${p.min_qty}–${p.max_qty}.`, "error");
       const form = readForm(f, fields);
-      rememberFields(fields, form);
+      const gift = readGift(f);
+      if (gift === false) return;
+      if (!gift) rememberFields(fields, form);
       const cart = getCart();
       if (item) {
         const i = cart.findIndex((x) => x.uid === item.uid);
-        if (i >= 0) cart[i] = { ...cart[i], quantity: qty, form };
+        if (i >= 0) cart[i] = { ...cart[i], quantity: qty, form, gift };
         setCart(cart); closeModal(); toast("Cart updated.", "success");
         if ((location.hash || "").slice(1) === "cart") route();
       } else {
-        cart.push({ uid: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), product: p.id, quantity: qty, form });
+        cart.push({ uid: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), product: p.id, quantity: qty, form, gift });
         setCart(cart); closeModal();
         toast(`Added to cart (${cart.length} item${cart.length === 1 ? "" : "s"}).`, "success");
       }
@@ -1507,23 +1610,59 @@ async function viewCart(v) {
       <div class="grow"><b>${esc(p.name)}</b>
         <div class="small muted">${it.quantity} × ${money(p.price)}</div>
         ${info ? `<div class="small muted">${esc(info)}</div>` : ""}
+        ${it.gift ? `<div class="small gift-tag">🎁 Gift to ${esc(it.gift.to_name)}${it.gift.to_member ? " (" + esc(it.gift.to_member) + ")" : ""}</div>` : ""}
         <div class="row mt" style="gap:6px"><button class="btn sm soft" data-edit="${it.uid}">✏️ Edit</button>
           <button class="btn sm ghost" data-del="${it.uid}">🗑 Delete</button></div></div>
       <div class="cart-sub">${money(sub)}</div></div>`;
   });
-  const bal = Number(S.profile.balance), after = bal - total, low = after < 0;
+  const bal = Number(S.profile.balance);
   box.innerHTML = `<div class="card cart-list">${rows.join("")}</div>
     <a class="add-more" href="#home">＋ Add more products</a>
     <div class="card cart-sum">
-      <div class="row between"><span class="muted">Items</span><b>${cart.length}</b></div>
+      <form id="pcf" onsubmit="return false"><label style="margin-top:0">Promo code</label>${promoBox(S.cartPromo?.code || "")}</form>
+      <div class="row between mt"><span class="muted">Items</span><b>${cart.length}</b></div>
       <div class="row between"><span class="muted">Your balance</span><b data-balance>${money(bal)}</b></div>
-      <div class="row between total-row"><span>Total</span><b>${money(total)}</b></div>
-      <div class="row between"><span class="muted">Balance after paying</span><b style="color:${low ? "var(--red)" : "var(--green)"}">${money(after)}</b></div>
-      ${low ? `<p class="small mt" style="color:var(--red)">⚠️ Not enough balance. <a href="#deposit">Deposit money</a></p>` : ""}
+      <div class="row between hidden" id="cDiscRow"><span class="muted">Promo discount</span><b style="color:var(--green)" id="cDisc"></b></div>
+      <div class="row between total-row"><span>Total</span><b id="cTot"></b></div>
+      <div class="row between"><span class="muted">Balance after paying</span><b id="cAfter"></b></div>
+      <p class="small mt hidden" id="cLow" style="color:var(--red)">⚠️ Not enough balance. <a href="#deposit">Deposit money</a></p>
       ${bad ? `<p class="small mt" style="color:var(--red)">Remove the unavailable item to continue.</p>` : ""}
-      <button class="btn block gold mt" id="payAll" ${low || bad ? "disabled" : ""}>Pay ${money(total)} for all</button>
+      <button class="btn block gold mt" id="payAll"></button>
       <button class="link-btn small mt" id="clearCart" style="display:block;margin:10px auto 0">Empty cart</button>
     </div>`;
+  let disc = 0;
+  const pay = () => total - disc;
+  const paint = () => {
+    const t = pay(), after = bal - t, low = after < 0;
+    $("#cDiscRow").classList.toggle("hidden", !disc); $("#cDisc").textContent = "−" + money(disc);
+    $("#cTot").textContent = money(t);
+    $("#cAfter").textContent = money(after); $("#cAfter").style.color = low ? "var(--red)" : "var(--green)";
+    $("#cLow").classList.toggle("hidden", !low);
+    $("#payAll").textContent = `Pay ${money(t)} for all`; $("#payAll").disabled = low || !!bad;
+  };
+  const pf = $("#pcf"), pBtn = $("[data-promo]", pf), pMsg = $(".promo-msg", box);
+  const items = () => getCart().map((it) => ({ product: it.product, quantity: it.quantity }));
+  const applyPromo = async (code, silent) => {
+    try {
+      const r = await checkPromo(code, items());
+      S.cartPromo = { code: r.code }; disc = Number(r.discount);
+      pf.promo.value = r.code; pf.promo.readOnly = true; pBtn.textContent = "Remove";
+      pMsg.innerHTML = `<span style="color:var(--green)">✅ ${esc(r.code)} applied — you save ${money(r.discount)}</span>`;
+    } catch (e) {
+      S.cartPromo = null; disc = 0; pf.promo.readOnly = false; pBtn.textContent = "Apply";
+      pMsg.innerHTML = `<span style="color:var(--red)">${esc(silent ? (code + ": " + errMsg(e)) : errMsg(e))}</span>`;
+    }
+    paint();
+  };
+  pBtn.onclick = () => {
+    if (S.cartPromo) { S.cartPromo = null; disc = 0; pf.promo.value = ""; pf.promo.readOnly = false; pBtn.textContent = "Apply"; pMsg.innerHTML = ""; paint(); return; }
+    const code = pf.promo.value.trim().toUpperCase();
+    if (!code) return toast("Type a promo code.", "error");
+    pBtn.disabled = true; pBtn.textContent = "…"; applyPromo(code, false).finally(() => (pBtn.disabled = false));
+  };
+  pf.promo.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); pBtn.click(); } };
+  paint();
+  if (S.cartPromo && !bad) applyPromo(S.cartPromo.code, true);   // cart changed → check the code again
   $$("[data-del]", box).forEach((b) => (b.onclick = () => { setCart(getCart().filter((x) => x.uid !== b.dataset.del)); viewCart(v); }));
   $$("[data-edit]", box).forEach((b) => (b.onclick = () => {
     const it = getCart().find((x) => x.uid === b.dataset.edit);
@@ -1534,15 +1673,18 @@ async function viewCart(v) {
     setCart([]); viewCart(v);
   };
   $("#payAll").onclick = async () => {
-    if (!(await confirmBox("Pay for everything?", `<b>${money(total)}</b> will be deducted from your balance for <b>${cart.length}</b> item${cart.length === 1 ? "" : "s"}.`, "Pay now"))) return;
+    if (!(await confirmBox("Pay for everything?", `<b>${money(pay())}</b> will be deducted from your balance for <b>${cart.length}</b> item${cart.length === 1 ? "" : "s"}.${disc ? ` You save <b>${money(disc)}</b> with ${esc(S.cartPromo.code)}.` : ""}`, "Pay now"))) return;
     busy($("#payAll"), async () => {
-      const { data, error } = await sb.rpc("place_cart", { p_items: cart.map((it) => ({ product: it.product, quantity: it.quantity, form: it.form || {} })) });
+      const args = { p_items: cart.map((it) => ({ product: it.product, quantity: it.quantity, form: it.form || {}, ...(it.gift ? { gift: it.gift } : {}) })) };
+      if (S.cartPromo) args.p_promo = S.cartPromo.code;
+      const { data, error } = await sb.rpc("place_cart", args);
       if (error) throw error;
-      setCart([]);
+      setCart([]); S.cartPromo = null;
       await loadProfile();
       $$("[data-balance]").forEach((el) => (el.textContent = money(S.profile.balance)));
       const ids = (data?.orders || []).map((x) => "#" + x).join(", ");
-      openModal(`<div class="empty"><div class="big">✅</div><h2>Paid ${money(data?.total ?? total)}</h2>
+      openModal(`<div class="empty"><div class="big">✅</div><h2>Paid ${money(data?.total ?? pay())}</h2>
+        ${Number(data?.discount) > 0 ? `<p class="small" style="color:var(--green)">You saved ${money(data.discount)} with ${esc(data.code)}.</p>` : ""}
         <p>${(data?.orders || []).length} orders placed: <b>${esc(ids)}</b>. You'll get a notification when each one is delivered.</p>
         <a class="btn block mt" href="#history" data-close>See my orders</a></div>`);
       viewCart(v);
@@ -1838,6 +1980,8 @@ async function viewHistory(v) {
     const canRefund = (o) => o.status === "pending" && !o.refund_status;
     rows = S.orders.map((o) => `<div class="list-item" style="align-items:flex-start"><div class="ic">🛍️</div>
       <div class="grow"><b>#${o.id} ${esc(o.product_name)} × ${o.quantity}</b>
+      ${o.is_gift ? `<div class="small gift-tag">🎁 Gift to ${esc(o.gift?.to_name || "a friend")}${o.gift?.message ? ` — “${esc(o.gift.message)}”` : ""}</div>` : ""}
+      ${Number(o.discount) > 0 ? `<div class="small" style="color:var(--green)">🏷️ ${esc(o.promo_code || "Promo")} −${money(o.discount)}</div>` : ""}
       <div class="small muted">${esc((o.form_data || []).filter((x) => x.value).map((x) => x.value).join(" · "))}</div>
       <div class="small muted">${fmtDate(o.created_at)}</div>
       ${o.admin_note ? `<div class="small muted">Note: ${esc(o.admin_note)}</div>` : ""}
