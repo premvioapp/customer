@@ -642,6 +642,29 @@ input[type="file"]::file-selector-button { border: 0; padding: 10px 14px; margin
 .gift-toggle input { width: 20px; height: 20px; margin: 0; accent-color: var(--gold); }
 .gift-tag { color: var(--gold); font-weight: 600; }
 
+/* ============ V27: flash sale, stock, points, invites ============ */
+.product .prices { margin-top: 4px; line-height: 1.3; }
+.product .prices .price { color: var(--gold); font-weight: 800; }
+.old-price { color: var(--muted); font-size: .8rem; }
+.sale-pct { background: var(--red); color: #fff; font-size: .68rem; font-weight: 800; padding: 1px 6px; border-radius: 6px; vertical-align: middle; }
+.sale-cd { font-size: .72rem; font-weight: 800; color: var(--red); margin-top: 3px; font-variant-numeric: tabular-nums; }
+.sale-cd.big { font-size: .95rem; margin-top: 6px; }
+.big-price .price { color: var(--gold); font-weight: 800; font-size: 1.3rem; }
+.sale-badge { position: absolute; top: 8px; right: 8px; background: var(--red); color: #fff; font-size: .68rem; font-weight: 800; padding: 3px 8px; border-radius: 999px; }
+.product.onsale { border-color: rgba(255, 93, 108, .5); }
+.stock-tag { display: inline-block; margin-top: 4px; font-size: .7rem; font-weight: 800; color: var(--orange); }
+.stock-tag.out { color: var(--red); }
+.product.soldout .ph { filter: grayscale(1); opacity: .55; }
+.pts-toggle { display: flex; align-items: flex-start; gap: 10px; margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; background: rgba(255, 200, 61, .07); border: 1px solid rgba(255, 200, 61, .3); color: var(--text); cursor: pointer; }
+.pts-toggle input { width: 20px; height: 20px; margin: 0; accent-color: var(--gold); flex: none; }
+.pts-toggle small { display: block; font-weight: 500; }
+.ref-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+.ref-stats div { background: var(--card-2); border-radius: 12px; padding: 10px 4px; }
+.ref-stats b { display: block; font-size: 1.05rem; }
+.ref-stats span { font-size: .72rem; color: var(--muted); }
+.pts-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 14px; border-top: 1px solid var(--line); }
+.rewards-card .pts-row:first-child { border-top: 0; padding-top: 0; }
+
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
 <meta name="description" content="Buy Telegram Stars and Telegram Premium with Premvio.">
@@ -1016,6 +1039,8 @@ let installEvt = null;
 window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvt = e; });
 
 /* ---------------- start ---------------- */
+// Invite link: premvio.app/?ref=PV123456 → remembered until the new customer registers
+try { const r = new URLSearchParams(location.search).get("ref"); if (r && /^PV\d{6}$/i.test(r)) localStorage.setItem("pv_ref", r.toUpperCase()); } catch (e) {}
 sb.auth.onAuthStateChange((event, session) => {
   if (event === "PASSWORD_RECOVERY") { setTimeout(newPasswordModal, 300); return; }
   if (event === "SIGNED_OUT") { S.user = null; stopLive(); renderAuth(); return; }
@@ -1068,6 +1093,8 @@ function renderAuth(mode = "login") {
       <label>Country</label><select name="country" required>${countryOptions("Nepal")}</select>
       <label>Password</label><input type="password" name="password" required minlength="6" autocomplete="new-password" placeholder="At least 6 characters">
       <label>Confirm password</label><input type="password" name="password2" required minlength="6" autocomplete="new-password">
+      <label>Invite code <span class="muted">(optional — a friend's Member ID)</span></label>
+      <input name="ref" maxlength="8" placeholder="PV123456" autocapitalize="characters" style="text-transform:uppercase" value="${esc((() => { try { return localStorage.getItem("pv_ref") || ""; } catch (e) { return ""; } })())}">
       <label>Security check</label><div id="cap"></div>
       <button class="btn block mt">Create account</button>
     </form>`;
@@ -1078,6 +1105,9 @@ function renderAuth(mode = "login") {
       if (f.password.value !== f.password2.value) { toast("Passwords don't match.", "error"); return; }
       if (!/^[+0-9 ()-]{7,20}$/.test(f.phone.value.trim())) { toast("Enter a valid phone number.", "error"); return; }
       if (!cap.ok()) { toast("Wrong captcha answer, try again.", "error"); cap.reset(); return; }
+      const ref = f.ref.value.trim().toUpperCase();
+      if (ref && !/^PV\d{6}$/.test(ref)) { toast("Invite code looks like PV123456.", "error"); return; }
+      try { if (ref) localStorage.setItem("pv_ref", ref); else localStorage.removeItem("pv_ref"); } catch (e) {}
       busy($("button.btn", f), async () => {
         const email = f.email.value.trim(), password = f.password.value;
         const { error } = await sb.rpc("register_customer", { p_email: email, p_password: password,
@@ -1167,6 +1197,15 @@ async function startApp() {
   startLive();
   refreshUnread();
   if (S.profile.notify && pushSupported() && Notification.permission === "granted") enablePush(true);
+  applySavedInvite();
+}
+async function applySavedInvite() {
+  let ref = null;
+  try { ref = localStorage.getItem("pv_ref"); } catch (e) {}
+  if (!ref || S.profile.referred_by || ref === S.profile.member_id) { try { localStorage.removeItem("pv_ref"); } catch (e) {} return; }
+  const { data, error } = await sb.rpc("set_referrer", { p_code: ref });
+  try { localStorage.removeItem("pv_ref"); } catch (e) {}
+  if (!error) { S.profile.referred_by = true; toast(`Invite code ${ref} added — you and ${data} get a bonus after your first order 🎉`, "success"); }
 }
 
 async function loadProfile() {
@@ -1281,13 +1320,54 @@ async function viewHome(v) {
   if (showPush) $("#pushOn").onclick = async (e) => { if (await enablePush()) { toast("Notifications on.", "success"); e.target.closest(".card").remove(); } };
   drawTicker();
   loadSettings().then(drawTicker).catch(() => {});   // pick up a new message from admin
-  const { data, error } = await sb.from("products").select("*").eq("active", true).order("sort").order("created_at", { ascending: false });
+  const [{ data, error }, { data: today }] = await Promise.all([
+    sb.from("products").select("*").eq("active", true).order("sort").order("created_at", { ascending: false }),
+    sb.rpc("products_today")]);
   if (error) { $("#plist").innerHTML = `<div class="empty">${esc(errMsg(error))}</div>`; return; }
+  S.today = Object.fromEntries((today || []).map((r) => [r.id, Number(r.sold_today)]));
   S.products = sortPinned(data);
   const inp = $("#psearch"), clr = $("#pclear");
   inp.oninput = () => { S.pq = inp.value; clr.classList.toggle("hidden", !inp.value); drawProducts(v); };
   clr.onclick = () => { inp.value = ""; S.pq = ""; clr.classList.add("hidden"); drawProducts(v); inp.focus(); };
   drawProducts(v);
+}
+
+/* ---------------- flash sale + stock ---------------- */
+function saleOn(p) {
+  if (p.sale_price == null || p.sale_price === "") return false;
+  const now = Date.now();
+  return (!p.sale_starts_at || now >= new Date(p.sale_starts_at)) && (!p.sale_ends_at || now < new Date(p.sale_ends_at));
+}
+function priceNow(p) { return Number(saleOn(p) ? p.sale_price : p.price); }
+function leftToday(p) {
+  if (p.daily_limit == null) return null;
+  return Math.max(0, Number(p.daily_limit) - Number((S.today || {})[p.id] || 0));
+}
+function soldOut(p) { return p.out_of_stock || leftToday(p) === 0; }
+function cdText(end) {
+  let t = Math.max(0, Math.floor((new Date(end) - Date.now()) / 1000));
+  const d = Math.floor(t / 86400); t %= 86400;
+  const h = String(Math.floor(t / 3600)).padStart(2, "0"), m = String(Math.floor((t % 3600) / 60)).padStart(2, "0"), sec = String(t % 60).padStart(2, "0");
+  return (d ? d + "d " : "") + `${h}:${m}:${sec}`;
+}
+// one ticking clock for every countdown on screen
+setInterval(() => $$("[data-cd]").forEach((el) => {
+  const left = new Date(el.dataset.cd) - Date.now();
+  el.textContent = left > 0 ? "⏱ " + cdText(el.dataset.cd) : "Sale ended";
+  if (left <= 0 && !el.dataset.done) { el.dataset.done = "1"; if ((location.hash || "#home") === "#home") setTimeout(route, 800); }
+}), 1000);
+function priceHtml(p, big) {
+  if (!saleOn(p)) return `<span class="price">${money(p.price)}</span>`;
+  const pct = Math.round((1 - Number(p.sale_price) / Number(p.price)) * 100);
+  return `<span class="price">${money(p.sale_price)}</span> <s class="old-price">${money(p.price)}</s>${pct > 0 ? ` <span class="sale-pct">−${pct}%</span>` : ""}
+    ${p.sale_ends_at ? `<div class="sale-cd ${big ? "big" : ""}" data-cd="${esc(p.sale_ends_at)}">⏱ ${cdText(p.sale_ends_at)}</div>` : ""}`;
+}
+function stockHtml(p) {
+  if (p.out_of_stock) return `<div class="stock-tag out">Out of stock</div>`;
+  const l = leftToday(p);
+  if (l === 0) return `<div class="stock-tag out">Sold out today</div>`;
+  if (l != null && l <= 20) return `<div class="stock-tag">Only ${l} left today</div>`;
+  return "";
 }
 
 /* Moving message bar (text, direction and speed are set by admin in Settings) */
@@ -1320,10 +1400,11 @@ function sortPinned(list) {
   return [...pin, ...rest];
 }
 function productCard(p) {
-  return `<button class="product ${p.pinned ? "pinned" : ""}" data-id="${p.id}">
+  return `<button class="product ${p.pinned ? "pinned" : ""} ${soldOut(p) ? "soldout" : ""} ${saleOn(p) ? "onsale" : ""}" data-id="${p.id}">
       <div class="ph">${p.image_url ? `<img src="${esc(p.image_url)}" alt="" loading="lazy">` : `<span style="color:var(--gold);width:44px">${ICONS.star}</span>`}
-        ${p.pinned ? `<span class="pin-badge">${esc(p.pin_badge || "Recommended")}</span>` : ""}</div>
-      <div class="info"><div class="name">${esc(p.name)}</div><div class="price">${money(p.price)}</div></div>
+        ${p.pinned ? `<span class="pin-badge">${esc(p.pin_badge || "Recommended")}</span>` : ""}
+        ${saleOn(p) ? `<span class="sale-badge">⚡ SALE</span>` : ""}</div>
+      <div class="info"><div class="name">${esc(p.name)}</div><div class="prices">${priceHtml(p)}</div>${stockHtml(p)}</div>
     </button>`;
 }
 
@@ -1349,10 +1430,10 @@ function productModal(p) {
   openModal(`
     ${p.image_url ? `<img class="hero" src="${esc(p.image_url)}" alt="">` : ""}
     <h2>${esc(p.name)}</h2>
-    <div class="price" style="color:var(--gold);font-weight:800;font-size:1.3rem">${money(p.price)}</div>
+    <div class="prices big-price">${priceHtml(p, true)}</div>${stockHtml(p)}
     <p class="muted mt" style="white-space:pre-wrap">${esc(p.description || "No description.")}</p>
-    <div class="buy-row mt"><button class="btn soft" id="cartBtn">🛒 Add to cart</button>
-      <button class="btn gold" id="buyBtn">${ICONS.bag} Buy now</button></div>`, (m) => {
+    <div class="buy-row mt"><button class="btn soft" id="cartBtn" ${soldOut(p) ? "disabled" : ""}>🛒 Add to cart</button>
+      <button class="btn gold" id="buyBtn" ${soldOut(p) ? "disabled" : ""}>${ICONS.bag} ${soldOut(p) ? "Not available" : "Buy now"}</button></div>`, (m) => {
     $("#buyBtn", m).onclick = () => buyModal(p);
     $("#cartBtn", m).onclick = () => cartModal(p);
   });
@@ -1404,6 +1485,22 @@ function promoBox(code) {
   return `<div class="promo-box"><input name="promo" placeholder="Promo code" maxlength="30" autocomplete="off" autocapitalize="characters" value="${esc(code || "")}">
     <button type="button" class="btn soft" data-promo>${code ? "Remove" : "Apply"}</button></div><div class="promo-msg small"></div>`;
 }
+// ⭐ points: 1 point = NPR 1, up to points_max_percent of the amount to pay
+function pointsToggle() {
+  const have = Number(S.profile.points || 0);
+  if (!(have > 0)) return "";
+  return `<label class="pts-toggle"><input type="checkbox" name="usePts"><span>⭐ Use my points <b>${have.toLocaleString("en-IN")}</b> available
+    <small class="muted">(pay up to ${Number(S.settings.points_max_percent || 50)}% with points)</small></span></label>`;
+}
+function pointsFor(f, toPay) {
+  if (!f.usePts?.checked) return 0;
+  const maxPct = Number(S.settings.points_max_percent || 50);
+  return Math.max(0, Math.min(Number(S.profile.points || 0), Math.round(toPay * maxPct) / 100));
+}
+function cashbackFor(paid) {
+  if (S.settings.cashback_on !== "true") return 0;
+  return Math.round(paid * Number(S.settings.cashback_percent || 0)) / 100;
+}
 async function checkPromo(code, items) {
   const { data, error } = await sb.rpc("check_promo", { p_code: code, p_items: items });
   if (error) throw error;
@@ -1413,15 +1510,17 @@ async function checkPromo(code, items) {
 function buyModal(p) {
   const fields = p.fields || [];
   openModal(`<h2>Buy ${esc(p.name)}</h2>
-    <p class="muted small">Price: ${money(p.price)} each · Your balance: <b data-balance>${money(S.profile.balance)}</b></p>
+    <p class="muted small">Price: ${money(priceNow(p))} each${saleOn(p) ? ` <span class="sale-pct">sale</span>` : ""} · Your balance: <b data-balance>${money(S.profile.balance)}</b></p>
     <form id="bf">
       <label>Quantity <span class="muted">(${p.min_qty}–${p.max_qty})</span></label>
       <input type="number" name="qty" min="${p.min_qty}" max="${p.max_qty}" step="1" value="${p.min_qty}" required inputmode="numeric">
       ${fields.map(fieldInput).join("")}
       ${giftBlock(null)}
       <label>Promo code <span class="muted">(optional)</span></label>${promoBox("")}
+      ${pointsToggle()}
       <div class="card mt" style="box-shadow:none">
         <div class="row between hidden" id="discRow"><span class="muted">Promo discount</span><b style="color:var(--green)" id="disc"></b></div>
+        <div class="row between hidden" id="ptsRow"><span class="muted">Points used</span><b style="color:var(--green)" id="ptsUsed"></b></div>
         <div class="row between"><span class="muted">Total</span><b id="tot" style="font-size:1.2rem;color:var(--gold)"></b></div></div>
       <p class="small muted mt" id="warn"></p>
       <button class="btn block gold mt">Confirm purchase</button>
@@ -1429,15 +1528,21 @@ function buyModal(p) {
     const f = $("#bf", m);
     let promo = null;   // {code, discount} after the server says the code works
     const calc = () => {
-      const gross = Math.max(0, Math.floor(Number(f.qty.value) || 0)) * Number(p.price);
-      const d = promo ? Math.min(promo.discount, gross) : 0, t = gross - d;
+      const gross = Math.max(0, Math.floor(Number(f.qty.value) || 0)) * priceNow(p);
+      const d = promo ? Math.min(promo.discount, gross) : 0;
+      const pts = pointsFor(f, gross - d), t = gross - d - pts;
       $("#discRow", m).classList.toggle("hidden", !d);
       $("#disc", m).textContent = "−" + money(d);
+      $("#ptsRow", m).classList.toggle("hidden", !pts);
+      $("#ptsUsed", m).textContent = "−" + money(pts);
       $("#tot", m).textContent = money(t);
+      const earn = cashbackFor(t);
+      $("#warn", m).dataset.earn = earn ? ` You'll earn ⭐ ${earn} points.` : "";
       const low = t > Number(S.profile.balance);
-      $("#warn", m).innerHTML = low ? `⚠️ Not enough balance. <a href="#deposit" data-close>Deposit money</a>` : "The amount will be deducted from your balance.";
+      $("#warn", m).innerHTML = low ? `⚠️ Not enough balance. <a href="#deposit" data-close>Deposit money</a>` : "The amount will be deducted from your balance." + ($("#warn", m).dataset.earn || "");
       return t;
     };
+    if (f.usePts) f.usePts.onchange = calc;
     const pBtn = $("[data-promo]", m), pMsg = $(".promo-msg", m);
     const applyPromo = async (silent) => {
       const code = f.promo.value.trim().toUpperCase();
@@ -1475,6 +1580,7 @@ function buyModal(p) {
         const args = { p_product: p.id, p_quantity: qty, p_form: form };
         if (promo) args.p_promo = promo.code;
         if (gift) args.p_gift = gift;
+        if (f.usePts?.checked) args.p_points = true;
         const { data, error } = await sb.rpc("place_order", args);
         if (error) throw error;
         if (!gift) try { fields.forEach((fd) => { if (form[fd.id] && fd.type !== "textarea") localStorage.setItem("pv_field_" + fd.label.toLowerCase(), form[fd.id]); }); } catch (e) {}
@@ -1526,6 +1632,13 @@ function setCart(items) {
   S._cart = items;
   try { localStorage.setItem(cartKey(), JSON.stringify(items)); } catch (e) {}
   updateCartBadge();
+  // keep a copy on the server so we can remind the customer about a forgotten cart
+  clearTimeout(S.cartSync);
+  S.cartSync = setTimeout(() => {
+    if (!S.user) return;
+    sb.from("carts").upsert({ user_id: S.user.id, items: items.map((it) => ({ product: it.product, quantity: it.quantity })), updated_at: new Date().toISOString(), reminded_at: null })
+      .then(() => {}, () => {});
+  }, 1500);
 }
 function updateCartBadge() {
   const b = $("#cartBadge");
@@ -1537,10 +1650,11 @@ function updateCartBadge() {
 // Add a product to the cart (or edit an existing cart item)
 function cartModal(p, item) {
   if (!p) return toast("This product is no longer available.", "error");
+  if (!item && soldOut(p)) return toast(`${p.name} is ${p.out_of_stock ? "out of stock" : "sold out for today"}.`, "error");
   const fields = p.fields || [];
   const qty0 = item ? item.quantity : p.min_qty;
   openModal(`<h2>${item ? "Edit" : "Add to cart"}: ${esc(p.name)}</h2>
-    <p class="muted small">Price: ${money(p.price)} each</p>
+    <p class="muted small">Price: ${money(priceNow(p))} each${saleOn(p) ? ` <span class="sale-pct">sale</span>` : ""}</p>
     <form id="cf">
       <label>Quantity <span class="muted">(${p.min_qty}–${p.max_qty})</span></label>
       <div class="qty-row"><button type="button" class="qbtn" data-q="-1">−</button>
@@ -1552,7 +1666,7 @@ function cartModal(p, item) {
       <button class="btn block mt">${item ? "Save changes" : "🛒 Add to cart"}</button>
     </form>`, (m) => {
     const f = $("#cf", m);
-    const calc = () => { $("#sub", m).textContent = money(Math.max(0, Math.floor(Number(f.qty.value) || 0)) * Number(p.price)); };
+    const calc = () => { $("#sub", m).textContent = money(Math.max(0, Math.floor(Number(f.qty.value) || 0)) * priceNow(p)); };
     f.qty.oninput = calc; calc();
     bindGift(f, fields, m);
     $$("[data-q]", m).forEach((b) => (b.onclick = () => {
@@ -1584,9 +1698,10 @@ function cartModal(p, item) {
 
 async function viewCart(v) {
   v.innerHTML = `<h2>Cart</h2><div id="cartBox"><div class="loader"></div></div>`;
-  if (!S.products || !S.products.length) {
-    const { data } = await sb.from("products").select("*").eq("active", true).order("sort");
-    S.products = data || [];
+  {
+    const [{ data }, { data: today }] = await Promise.all([sb.from("products").select("*").eq("active", true).order("sort"), sb.rpc("products_today")]);
+    S.products = data || S.products || [];
+    S.today = Object.fromEntries((today || []).map((r) => [r.id, Number(r.sold_today)]));
   }
   const box = $("#cartBox");
   if (!box) return;
@@ -1598,17 +1713,20 @@ async function viewCart(v) {
     return;
   }
   let total = 0, bad = 0;
+  await loadProfile().catch(() => {});
   const rows = cart.map((it) => {
     const p = S.products.find((x) => x.id == it.product);
+    if (p && soldOut(p)) bad++;
     if (!p) { bad++; return `<div class="cart-item bad"><div class="grow"><b>Product removed</b>
       <div class="small" style="color:var(--red)">No longer available — please delete it.</div></div>
       <button class="icon-btn" data-del="${it.uid}" title="Delete">🗑</button></div>`; }
-    const sub = Number(p.price) * it.quantity; total += sub;
+    const sub = priceNow(p) * it.quantity; total += sub;
     const info = (p.fields || []).map((fd) => it.form?.[fd.id]).filter(Boolean).join(" · ");
     return `<div class="cart-item">
       <div class="cart-ph">${p.image_url ? `<img src="${esc(p.image_url)}" alt="">` : `<span style="color:var(--gold);width:26px">${ICONS.star}</span>`}</div>
       <div class="grow"><b>${esc(p.name)}</b>
-        <div class="small muted">${it.quantity} × ${money(p.price)}</div>
+        <div class="small muted">${it.quantity} × ${money(priceNow(p))}${saleOn(p) ? ` <span class="sale-pct">sale</span>` : ""}</div>
+        ${soldOut(p) ? `<div class="small" style="color:var(--red)">${p.out_of_stock ? "Out of stock" : "Sold out today"} — please remove it.</div>` : ""}
         ${info ? `<div class="small muted">${esc(info)}</div>` : ""}
         ${it.gift ? `<div class="small gift-tag">🎁 Gift to ${esc(it.gift.to_name)}${it.gift.to_member ? " (" + esc(it.gift.to_member) + ")" : ""}</div>` : ""}
         <div class="row mt" style="gap:6px"><button class="btn sm soft" data-edit="${it.uid}">✏️ Edit</button>
@@ -1619,21 +1737,25 @@ async function viewCart(v) {
   box.innerHTML = `<div class="card cart-list">${rows.join("")}</div>
     <a class="add-more" href="#home">＋ Add more products</a>
     <div class="card cart-sum">
-      <form id="pcf" onsubmit="return false"><label style="margin-top:0">Promo code</label>${promoBox(S.cartPromo?.code || "")}</form>
+      <form id="pcf" onsubmit="return false"><label style="margin-top:0">Promo code</label>${promoBox(S.cartPromo?.code || "")}${pointsToggle()}</form>
       <div class="row between mt"><span class="muted">Items</span><b>${cart.length}</b></div>
       <div class="row between"><span class="muted">Your balance</span><b data-balance>${money(bal)}</b></div>
       <div class="row between hidden" id="cDiscRow"><span class="muted">Promo discount</span><b style="color:var(--green)" id="cDisc"></b></div>
+      <div class="row between hidden" id="cPtsRow"><span class="muted">Points used</span><b style="color:var(--green)" id="cPts"></b></div>
       <div class="row between total-row"><span>Total</span><b id="cTot"></b></div>
+      <p class="small muted hidden" id="cEarn"></p>
       <div class="row between"><span class="muted">Balance after paying</span><b id="cAfter"></b></div>
       <p class="small mt hidden" id="cLow" style="color:var(--red)">⚠️ Not enough balance. <a href="#deposit">Deposit money</a></p>
-      ${bad ? `<p class="small mt" style="color:var(--red)">Remove the unavailable item to continue.</p>` : ""}
+      ${bad ? `<p class="small mt" style="color:var(--red)">Remove the unavailable or sold-out item to continue.</p>` : ""}
       <button class="btn block gold mt" id="payAll"></button>
       <button class="link-btn small mt" id="clearCart" style="display:block;margin:10px auto 0">Empty cart</button>
     </div>`;
   let disc = 0;
-  const pay = () => total - disc;
+  const pay = () => total - disc - pointsFor($("#pcf"), total - disc);
   const paint = () => {
-    const t = pay(), after = bal - t, low = after < 0;
+    const t = pay(), after = bal - t, low = after < 0, pts = total - disc - t, earn = cashbackFor(t);
+    $("#cPtsRow").classList.toggle("hidden", !pts); $("#cPts").textContent = "−" + money(pts);
+    $("#cEarn").classList.toggle("hidden", !earn); $("#cEarn").textContent = `You'll earn ⭐ ${earn} points when your orders are delivered.`;
     $("#cDiscRow").classList.toggle("hidden", !disc); $("#cDisc").textContent = "−" + money(disc);
     $("#cTot").textContent = money(t);
     $("#cAfter").textContent = money(after); $("#cAfter").style.color = low ? "var(--red)" : "var(--green)";
@@ -1661,6 +1783,7 @@ async function viewCart(v) {
     pBtn.disabled = true; pBtn.textContent = "…"; applyPromo(code, false).finally(() => (pBtn.disabled = false));
   };
   pf.promo.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); pBtn.click(); } };
+  if (pf.usePts) pf.usePts.onchange = paint;
   paint();
   if (S.cartPromo && !bad) applyPromo(S.cartPromo.code, true);   // cart changed → check the code again
   $$("[data-del]", box).forEach((b) => (b.onclick = () => { setCart(getCart().filter((x) => x.uid !== b.dataset.del)); viewCart(v); }));
@@ -1677,6 +1800,7 @@ async function viewCart(v) {
     busy($("#payAll"), async () => {
       const args = { p_items: cart.map((it) => ({ product: it.product, quantity: it.quantity, form: it.form || {}, ...(it.gift ? { gift: it.gift } : {}) })) };
       if (S.cartPromo) args.p_promo = S.cartPromo.code;
+      if (pf.usePts?.checked) args.p_points = true;
       const { data, error } = await sb.rpc("place_cart", args);
       if (error) throw error;
       setCart([]); S.cartPromo = null;
@@ -1685,6 +1809,7 @@ async function viewCart(v) {
       const ids = (data?.orders || []).map((x) => "#" + x).join(", ");
       openModal(`<div class="empty"><div class="big">✅</div><h2>Paid ${money(data?.total ?? pay())}</h2>
         ${Number(data?.discount) > 0 ? `<p class="small" style="color:var(--green)">You saved ${money(data.discount)} with ${esc(data.code)}.</p>` : ""}
+        ${Number(data?.points) > 0 ? `<p class="small" style="color:var(--green)">⭐ ${data.points} points used.</p>` : ""}
         <p>${(data?.orders || []).length} orders placed: <b>${esc(ids)}</b>. You'll get a notification when each one is delivered.</p>
         <a class="btn block mt" href="#history" data-close>See my orders</a></div>`);
       viewCart(v);
@@ -1956,8 +2081,8 @@ async function renderPremvioCash(body) {
 }
 
 /* ---------------- HISTORY ---------------- */
-const TX_NAME = { deposit: "Deposit", load: "Deposit", adjust: "Admin adjustment", withdraw: "Withdrawal", purchase: "Purchase", refund: "Refund", agent_load: "Deposit to customer", agent_payout: "Withdrawal paid" };
-const TX_ICON = { deposit: "💰", adjust: "💰", load: "💰", withdraw: "🏧", purchase: "🛍️", refund: "↩️", agent_load: "📤", agent_payout: "📥" };
+const TX_NAME = { deposit: "Deposit", load: "Deposit", adjust: "Admin adjustment", withdraw: "Withdrawal", purchase: "Purchase", refund: "Refund", agent_load: "Deposit to customer", agent_payout: "Withdrawal paid", bonus: "Bonus 🎉" };
+const TX_ICON = { deposit: "💰", adjust: "💰", load: "💰", withdraw: "🏧", purchase: "🛍️", refund: "↩️", agent_load: "📤", agent_payout: "📥", bonus: "🎁" };
 async function viewHistory(v) {
   v.innerHTML = `<h2>History</h2><p class="muted small">Last 30 days</p>
     <div class="chips">${[["all", "All"], ["orders", "Orders"], ["withdrawals", "Withdrawals"]].map(([k, l]) =>
@@ -2028,6 +2153,56 @@ function refundModal(o, view) {
 }
 
 /* ---------------- SETTINGS ---------------- */
+/* ---------------- 🎁 invite friends + ⭐ points (Settings) ---------------- */
+async function drawRewards() {
+  const box = $("#rewardsCard");
+  const { data: r, error } = await sb.rpc("my_rewards");
+  if (!box || !document.body.contains(box)) return;
+  if (error) { box.remove(); return; }
+  const st = S.settings, refOn = st.ref_on !== "false", br = Number(st.ref_bonus_referrer || 0), bf = Number(st.ref_bonus_friend || 0);
+  const showPts = st.cashback_on === "true" || Number(r.points) > 0;
+  if (!refOn && !showPts) { box.remove(); return; }
+  const link = location.origin + location.pathname.replace(/index\.html$/, "") + "?ref=" + r.code;
+  box.innerHTML = `
+    ${refOn ? `<h3 style="margin-top:0">🎁 Invite friends</h3>
+      <p class="small muted">Share your link. When a friend registers with your code and their first order is delivered,
+        ${br ? `<b>you get ${money(br)}</b>` : ""}${br && bf ? " and " : ""}${bf ? `<b>they get ${money(bf)}</b>` : ""}.</p>
+      <div class="id-row"><div><div class="small muted">Your invite code</div><div class="mono id-big">${esc(r.code)}</div></div>
+        <button class="btn sm gold" id="shareRef">${ICONS.send} Share</button></div>
+      <div class="ref-stats mt"><div><b>${r.invited}</b><span>joined</span></div><div><b>${r.joined_and_bought}</b><span>bought</span></div>
+        <div><b>${money(r.earned)}</b><span>earned</span></div></div>
+      ${r.can_enter_code ? `<form id="refForm" class="mt"><label>Got an invite code from a friend?</label>
+        <div class="promo-box"><input name="code" placeholder="PV123456" maxlength="8" autocapitalize="characters"><button class="btn soft">Use code</button></div></form>`
+        : r.referred_by ? `<p class="small muted mt">You were invited by <b class="mono">${esc(r.referred_by)}</b>.</p>` : ""}` : ""}
+    ${showPts ? `<div class="pts-row ${refOn ? "mt" : ""}"><div><div class="small muted">⭐ My points</div><div class="id-big">${Number(r.points).toLocaleString("en-IN")}</div>
+        <div class="small muted">${st.cashback_on === "true" ? `Earn ${Number(st.cashback_percent || 0)}% back on every delivered order. ` : ""}1 point = ${money(1)} off at checkout.</div></div>
+        <button class="btn sm soft" id="ptsHist">History</button></div><div id="ptsList"></div>` : ""}`;
+  if ($("#shareRef")) $("#shareRef").onclick = async () => {
+    const text = `Join me on Premvio for Telegram Stars & Premium! Use my invite code ${r.code}${bf ? ` and get ${money(bf)} after your first order` : ""}.`;
+    if (navigator.share) { try { await navigator.share({ title: "Premvio", text, url: link }); return; } catch (e) { if (e.name === "AbortError") return; } }
+    copyText(text + " " + link);
+  };
+  if ($("#refForm")) $("#refForm").onsubmit = (e) => {
+    e.preventDefault();
+    const code = e.target.code.value.trim().toUpperCase();
+    if (!/^PV\d{6}$/.test(code)) return toast("Invite code looks like PV123456.", "error");
+    busy($("button", e.target), async () => {
+      const { data, error: er } = await sb.rpc("set_referrer", { p_code: code });
+      if (er) throw er;
+      toast(`Done! You and ${data} get a bonus after your first order is delivered 🎉`, "success");
+      drawRewards();
+    });
+  };
+  if ($("#ptsHist")) $("#ptsHist").onclick = async () => {
+    const l = $("#ptsList");
+    if (l.innerHTML) { l.innerHTML = ""; return; }
+    const { data } = await sb.from("points_log").select("*").order("created_at", { ascending: false }).limit(30);
+    l.innerHTML = (data || []).length ? data.map((x) => `<div class="list-item"><div class="ic">⭐</div><div class="grow">${esc(x.reason)}
+      <div class="small muted">${fmtDate(x.created_at)}</div></div><b class="${x.change >= 0 ? "amt-pos" : "amt-neg"}">${x.change >= 0 ? "+" : ""}${Number(x.change)}</b></div>`).join("")
+      : `<p class="small muted">No points yet.</p>`;
+  };
+}
+
 async function viewSettings(v) {
   const p = S.profile;
   const { data: kyc } = await sb.from("kyc").select("*").eq("user_id", p.id).maybeSingle();
@@ -2041,6 +2216,8 @@ async function viewSettings(v) {
     <div class="id-row mt"><div><div class="small muted">Member ID</div><div class="mono id-big">${esc(p.member_id)}</div></div>
       <button class="btn sm soft" onclick="copyText('${esc(p.member_id)}')">${ICONS.copy} Copy</button></div>
   </div>
+
+  <div class="card rewards-card" id="rewardsCard"><div class="loader"></div></div>
 
   <div class="card">
     <div class="row between"><h3 style="margin:0">Wallet</h3><span class="small muted">Balance <b data-balance>${money(p.balance)}</b></span></div>
@@ -2071,6 +2248,7 @@ async function viewSettings(v) {
   <p class="center small muted mt">Need help? <a href="${esc(tgLink())}" target="_blank" rel="noopener">${esc(tgHandle())}</a></p>`;
 
   // KYC
+  drawRewards();
   const kb = $("#kycBox");
   if (p.kyc_status === "approved" || p.kyc_status === "pending") {
     kb.innerHTML = kyc ? `<div class="small">
