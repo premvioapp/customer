@@ -700,6 +700,41 @@ input[type="file"]::file-selector-button { border: 0; padding: 10px 14px; margin
 @media (prefers-reduced-motion: reduce) { .pin-dots.shake { animation: none; } }
 .empty h2 { color: var(--text); }
 
+/* ============ V29: help chat ============ */
+.help-link { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text); }
+.help-link .hl-ic { font-size: 1.6rem; } .help-link em { font-style: normal; font-size: 1.4rem; color: var(--muted); }
+.help-row { text-decoration: none; color: var(--text); } .help-row em { font-style: normal; color: var(--muted); }
+.chat { display: flex; flex-direction: column; gap: 8px; padding: 6px 0 12px; }
+.bubble { max-width: 82%; padding: 9px 12px; border-radius: 16px; white-space: pre-wrap; word-break: break-word; line-height: 1.4; }
+.bubble.me { align-self: flex-end; background: var(--grad); color: #fff; border-bottom-right-radius: 4px; }
+.bubble.them { align-self: flex-start; background: var(--card); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+.bubble .who { font-size: .72rem; font-weight: 800; color: var(--gold); margin-bottom: 2px; }
+.bubble .t { font-size: .68rem; opacity: .7; margin-top: 3px; text-align: right; }
+.chat-input { position: sticky; bottom: calc(var(--nav-h) + 8px); display: flex; gap: 8px; align-items: flex-end; padding: 8px; border-radius: 16px;
+  background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.chat-input textarea { flex: 1; min-height: 42px; max-height: 140px; resize: none; margin: 0; }
+.chat-input .btn { flex: none; width: 46px; height: 42px; padding: 0; }
+/* language switch */
+.lang-seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; flex: none; }
+.lang-seg button { border: 0; background: none; color: var(--muted); font: inherit; font-weight: 700; padding: 7px 12px; cursor: pointer; }
+.lang-seg button.on { background: var(--grad); color: #fff; }
+.auth-wrap { position: relative; }
+.auth-lang { position: absolute; top: 12px; right: 12px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-weight: 700;
+  padding: 6px 12px; border-radius: 999px; cursor: pointer; }
+/* agent commission */
+.comm-card { margin: -6px 0 16px; padding: 14px 16px; border-radius: 14px; background: rgba(255, 200, 61, .07); border: 1px solid rgba(255, 200, 61, .3); }
+.comm-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0 6px; }
+.comm-row span { display: block; font-size: .72rem; color: var(--muted); }
+.comm-row b { color: var(--gold); }
+/* admin: help chat + reports */
+.admin-chat { max-height: 55vh; overflow-y: auto; padding: 10px 2px; }
+.report-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; margin-top: 12px; }
+.report-btn { display: flex; align-items: center; gap: 12px; text-align: left; padding: 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; cursor: pointer; }
+.report-btn:hover { border-color: var(--blue); }
+.report-btn .ri { font-size: 1.6rem; }
+.report-btn .dl { flex: none; font-weight: 800; color: var(--green); font-size: .85rem; }
+.report-btn:disabled { opacity: .6; cursor: wait; }
+
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
 <meta name="description" content="Buy Telegram Stars and Telegram Premium with Premvio.">
@@ -1067,6 +1102,175 @@ function copyText(t) {
 
 </script>
 <script>
+/* ============ PREMVIO — Nepali language (customer app) ============
+   The app is written in English. When the customer chooses नेपाली, every English
+   text on screen that is in this list is swapped for Nepali (also new text that
+   appears later: pop-ups, messages, lists). Product names typed by the admin stay as they are.
+   To add or fix a translation: "English text exactly as shown": "नेपाली", */
+const PV_NE = {
+  // tabs & main screens
+  "Home": "होम", "New": "नयाँ", "Cart": "कार्ट", "History": "इतिहास", "Settings": "सेटिङ",
+  "Products": "प्रोडक्टहरू", "Wallet": "वालेट", "Notifications": "सूचनाहरू", "Premvio": "Premvio",
+  "⭐ Recommended": "⭐ सिफारिस गरिएका", "All products": "सबै प्रोडक्ट", "Search products…": "प्रोडक्ट खोज्नुहोस्…",
+  "Clear search": "खोज हटाउनुहोस्", "💡 Long-press a product to add it to your cart": "💡 कार्टमा थप्न प्रोडक्टलाई केही बेर थिचिराख्नुहोस्",
+  "No products yet. Check back soon!": "अहिले कुनै प्रोडक्ट छैन। छिट्टै फेरि हेर्नुहोस्!",
+  "Turn on notifications": "सूचनाहरू खोल्नुहोस्", "Get alerts for orders, loads and withdrawals.": "अर्डर, डिपोजिट र निकासीको सूचना पाउनुहोस्।",
+  "Allow": "अनुमति दिनुहोस्", "What's coming next": "छिट्टै आउँदैछ", "New features we're working on.": "हामीले बनाउँदै गरेका नयाँ सुविधाहरू।",
+  "Nothing announced yet.": "अहिलेसम्म केही घोषणा भएको छैन।", "Nothing here yet": "अहिले यहाँ केही छैन",
+  // auth
+  "Log in": "लग इन", "Register": "दर्ता", "Email (Gmail)": "इमेल (Gmail)", "Email": "इमेल", "Password": "पासवर्ड",
+  "Security check": "सुरक्षा जाँच", "Forgot password?": "पासवर्ड बिर्सनुभयो?", "Full name": "पूरा नाम",
+  "Phone number": "फोन नम्बर", "Country": "देश", "Confirm password": "पासवर्ड फेरि लेख्नुहोस्", "Create account": "खाता बनाउनुहोस्",
+  "At least 6 characters": "कम्तीमा ६ अक्षर", "Invite code": "निमन्त्रणा कोड", "(optional — a friend's Member ID)": "(ऐच्छिक — साथीको Member ID)",
+  "Reset password": "पासवर्ड रिसेट", "Enter your email and we'll send a reset link.": "इमेल लेख्नुहोस्, हामी रिसेट लिंक पठाउँछौं।",
+  "Send reset link": "रिसेट लिंक पठाउनुहोस्", "Back to login": "लग इनमा फर्कनुहोस्", "Welcome to Premvio!": "Premvio मा स्वागत छ!",
+  "Account created. Please log in.": "खाता बनियो। कृपया लग इन गर्नुहोस्।", "Wrong captcha answer, try again.": "सुरक्षा जाँचको उत्तर मिलेन, फेरि प्रयास गर्नुहोस्।",
+  "Wrong captcha answer.": "सुरक्षा जाँचको उत्तर मिलेन।", "Passwords don't match.": "पासवर्ड मिलेन।", "Enter a valid phone number.": "सही फोन नम्बर लेख्नुहोस्।",
+  "Reset link sent. Check your email.": "रिसेट लिंक पठाइयो। इमेल हेर्नुहोस्।", "Set a new password": "नयाँ पासवर्ड राख्नुहोस्",
+  "New password": "नयाँ पासवर्ड", "Confirm new password": "नयाँ पासवर्ड फेरि लेख्नुहोस्", "Save password": "पासवर्ड सेभ गर्नुहोस्",
+  "Password updated.": "पासवर्ड बदलियो।", "Account blocked": "खाता बन्द गरिएको छ",
+  // product / buy / cart
+  "🛒 Add to cart": "🛒 कार्टमा थप्नुहोस्", "Buy now": "अहिले किन्नुहोस्", "Not available": "उपलब्ध छैन", "Quantity": "संख्या",
+  "Total": "जम्मा", "Subtotal": "उप-जम्मा", "Confirm purchase": "खरिद पक्का गर्नुहोस्", "Promo code": "प्रोमो कोड",
+  "(optional)": "(ऐच्छिक)", "Apply": "लागू गर्नुहोस्", "Remove": "हटाउनुहोस्", "Promo discount": "प्रोमो छुट", "Points used": "प्रयोग भएका पोइन्ट",
+  "Out of stock": "स्टक सकियो", "Sold out today": "आजको लागि सकियो", "Sale ended": "सेल सकियो", "⚡ SALE": "⚡ सेल", "sale": "सेल",
+  "Reviews": "समीक्षाहरू", "⭐ Use my points": "⭐ मेरो पोइन्ट प्रयोग गर्नुहोस्", "available": "उपलब्ध",
+  "🎁 Send as a gift to a friend": "🎁 साथीलाई उपहारको रूपमा पठाउनुहोस्", "Friend's name": "साथीको नाम",
+  "Friend's Premvio Member ID": "साथीको Premvio Member ID", "(optional — they get a notification)": "(ऐच्छिक — उहाँलाई सूचना जान्छ)",
+  "Gift message": "उपहार सन्देश", "Fill in the order details above with": "माथिको अर्डर विवरणमा", "your friend's": "साथीको",
+  "Telegram username.": "Telegram युजरनेम लेख्नुहोस्।", "Write your friend's name.": "साथीको नाम लेख्नुहोस्।",
+  "That's your own Member ID.": "यो तपाईंको आफ्नै Member ID हो।", "Not enough balance.": "ब्यालेन्स पुगेन।",
+  "⚠️ Not enough balance.": "⚠️ ब्यालेन्स पुगेन।", "Deposit money": "पैसा जम्मा गर्नुहोस्", "Type a promo code.": "प्रोमो कोड लेख्नुहोस्।",
+  "Your cart is empty": "तपाईंको कार्ट खाली छ", "Browse products": "प्रोडक्ट हेर्नुहोस्",
+  "Long-press any product on Home to add it here, then pay for everything at once.": "होममा कुनै प्रोडक्ट थिचिराखेर यहाँ थप्नुहोस्, अनि सबैको एकैपटक भुक्तानी गर्नुहोस्।",
+  "＋ Add more products": "＋ अरू प्रोडक्ट थप्नुहोस्", "Items": "सामानहरू", "Your balance": "तपाईंको ब्यालेन्स",
+  "Balance after paying": "भुक्तानी पछि ब्यालेन्स", "Empty cart": "कार्ट खाली गर्नुहोस्", "✏️ Edit": "✏️ सम्पादन", "🗑 Delete": "🗑 हटाउनुहोस्",
+  "Product removed": "प्रोडक्ट हटाइयो", "No longer available — please delete it.": "अब उपलब्ध छैन — कृपया हटाउनुहोस्।",
+  "Remove the unavailable or sold-out item to continue.": "अगाडि बढ्न उपलब्ध नभएको वा सकिएको सामान हटाउनुहोस्।",
+  "Cart updated.": "कार्ट अपडेट भयो।", "This product is no longer available.": "यो प्रोडक्ट अब उपलब्ध छैन।", "See my orders": "मेरा अर्डर हेर्नुहोस्",
+  "Pay now": "अहिले तिर्नुहोस्", "Pay for everything?": "सबैको भुक्तानी गर्ने?", "Empty cart?": "कार्ट खाली गर्ने?",
+  // history
+  "Last 30 days": "पछिल्लो ३० दिन", "All": "सबै", "Orders": "अर्डरहरू", "Withdrawals": "निकासीहरू",
+  "↩️ Request refund": "↩️ फिर्ता माग्नुहोस्", "Request a refund": "पैसा फिर्ता माग्नुहोस्", "Reason": "कारण",
+  "Tell us what went wrong": "के गल्ती भयो, लेख्नुहोस्", "Send refund request": "फिर्ता अनुरोध पठाउनुहोस्", "Refund request sent.": "फिर्ता अनुरोध पठाइयो।",
+  "Please choose a reason.": "कृपया कारण छान्नुहोस्।", "refund requested": "फिर्ता माग गरिएको", "refund rejected": "फिर्ता अस्वीकृत", "refunded": "फिर्ता भयो",
+  "pending": "बाँकी", "completed": "पूरा भयो", "cancelled": "रद्द", "approved": "स्वीकृत", "rejected": "अस्वीकृत", "paid": "भुक्तानी भयो", "expired": "म्याद सकियो",
+  "⭐ Rate this order": "⭐ यो अर्डरलाई रेटिङ दिनुहोस्", "Edit review": "समीक्षा बदल्नुहोस्", "💬 Help": "💬 सहायता",
+  "Rate your order": "आफ्नो अर्डरलाई रेटिङ दिनुहोस्", "Comment": "टिप्पणी", "(optional, shown with your first name)": "(ऐच्छिक, तपाईंको पहिलो नामसँग देखिन्छ)",
+  "How was it?": "कस्तो भयो?", "Tap the stars": "तारा थिच्नुहोस्", "Bad": "नराम्रो", "Not good": "राम्रो भएन", "Good": "राम्रो", "Excellent!": "उत्कृष्ट!",
+  "Send review": "समीक्षा पठाउनुहोस्", "Update review": "समीक्षा अपडेट गर्नुहोस्", "Thank you for your review! ⭐": "समीक्षाको लागि धन्यवाद! ⭐",
+  "Tap 1 to 5 stars.": "१ देखि ५ तारा थिच्नुहोस्।",
+  // deposit / withdraw
+  "Deposit": "जम्मा", "Withdraw": "निकासी", "Add money": "पैसा थप्नुहोस्", "Add money via an agent": "एजेन्टमार्फत पैसा थप्नुहोस्",
+  "Get a cash code": "क्यास कोड लिनुहोस्", "Choose a method": "तरिका छान्नुहोस्", "Balance": "ब्यालेन्स", "Details": "विवरण",
+  "Payment screenshot": "भुक्तानीको स्क्रिनसट", "Send for approval": "स्वीकृतिको लागि पठाउनुहोस्", "Enter the amount you paid.": "तिरेको रकम लेख्नुहोस्।",
+  "Please add a screenshot of your payment.": "कृपया भुक्तानीको स्क्रिनसट थप्नुहोस्।", "Enter a valid amount.": "सही रकम लेख्नुहोस्।",
+  "Request withdrawal": "निकासी अनुरोध गर्नुहोस्", "Get withdrawal code": "निकासी कोड लिनुहोस्", "Show this code to an agent": "यो कोड एजेन्टलाई देखाउनुहोस्",
+  "City": "सहर", "Street / area": "टोल / क्षेत्र", "Choose a city first": "पहिले सहर छान्नुहोस्", "Please choose a city from the list.": "कृपया सूचीबाट सहर छान्नुहोस्।",
+  "Please choose a street from the list.": "कृपया सूचीबाट टोल छान्नुहोस्।", "Withdrawal code created.": "निकासी कोड बन्यो।",
+  "Cancel &amp; refund": "रद्द गरी फिर्ता", "Cancel & refund": "रद्द गरी फिर्ता", "Cancelled and refunded.": "रद्द गरी पैसा फिर्ता भयो।",
+  "Complete KYC": "KYC पूरा गर्नुहोस्", "Required before you can withdraw money.": "पैसा निकाल्नुअघि आवश्यक छ।",
+  // settings
+  "Member ID": "Member ID", "Copy": "कपी", "KYC verification": "KYC प्रमाणीकरण", "Not submitted": "पेश गरिएको छैन", "Under review": "जाँच हुँदैछ",
+  "Verified": "प्रमाणित", "Rejected": "अस्वीकृत", "Document type": "कागजातको प्रकार", "Document number": "कागजात नम्बर",
+  "Full name (as on document)": "पूरा नाम (कागजातमा जस्तै)", "Region / Province": "प्रदेश", "Region / City": "क्षेत्र / सहर", "Submit KYC": "KYC पेश गर्नुहोस्",
+  "KYC submitted for review.": "KYC जाँचको लागि पेश भयो।", "We're reviewing your details. You'll be notified.": "हामी तपाईंको विवरण जाँच्दैछौं। तपाईंलाई सूचना आउनेछ।",
+  "Preferences": "प्राथमिकताहरू", "Light theme": "उज्यालो थिम", "Switch between dark and light": "गाढा र उज्यालो बीच बदल्नुहोस्",
+  "Push alerts on this device": "यो फोनमा सूचना", "Notifications on.": "सूचना खुल्यो।", "Account": "खाता", "Change": "बदल्नुहोस्",
+  "Phone": "फोन", "Change password": "पासवर्ड बदल्नुहोस्", "Change email": "इमेल बदल्नुहोस्", "Change phone": "फोन बदल्नुहोस्",
+  "Current password": "हालको पासवर्ड", "New passwords don't match.": "नयाँ पासवर्ड मिलेन।", "Password changed.": "पासवर्ड बदलियो।",
+  "New email": "नयाँ इमेल", "New phone number": "नयाँ फोन नम्बर", "Phone updated.": "फोन अपडेट भयो।", "Save": "सेभ गर्नुहोस्",
+  "Send confirmation": "पुष्टि पठाउनुहोस्", "Check your email to confirm the change.": "परिवर्तन पक्का गर्न इमेल हेर्नुहोस्।",
+  "Install app": "एप इन्स्टल गर्नुहोस्", "Add Premvio to your home screen": "Premvio लाई फोनको होम स्क्रिनमा राख्नुहोस्", "Install": "इन्स्टल",
+  "Log out": "लग आउट", "Language": "भाषा", "Need help?": "सहायता चाहियो?", "or": "वा",
+  // rewards
+  "🎁 Invite friends": "🎁 साथीलाई बोलाउनुहोस्", "Your invite code": "तपाईंको निमन्त्रणा कोड", "Share": "सेयर", "joined": "जोडिए",
+  "bought": "किने", "earned": "कमाइ", "Got an invite code from a friend?": "साथीबाट निमन्त्रणा कोड पाउनुभयो?", "Use code": "कोड प्रयोग गर्नुहोस्",
+  "You were invited by": "तपाईंलाई बोलाउनुहुने", "⭐ My points": "⭐ मेरो पोइन्ट", "No points yet.": "अहिलेसम्म पोइन्ट छैन।",
+  "Invite code looks like PV123456.": "निमन्त्रणा कोड PV123456 जस्तो हुन्छ।",
+  "🎟️ Gift vouchers": "🎟️ गिफ्ट भाउचर", "Buy voucher": "भाउचर किन्नुहोस्", "Got a voucher code?": "भाउचर कोड छ?", "Redeem": "प्रयोग गर्नुहोस्",
+  "My vouchers": "मेरा भाउचर", "Your voucher": "तपाईंको भाउचर", "Done": "भयो", "not used yet": "प्रयोग भएको छैन", "redeemed": "प्रयोग भयो",
+  "Buy gift voucher?": "गिफ्ट भाउचर किन्ने?", "Buy": "किन्नुहोस्", "Cancel voucher?": "भाउचर रद्द गर्ने?", "Cancel voucher": "भाउचर रद्द गर्नुहोस्",
+  "Not enough balance for this voucher.": "यो भाउचरको लागि ब्यालेन्स पुगेन।", "Type the full voucher code.": "पूरा भाउचर कोड लेख्नुहोस्।",
+  "The voucher money is now in your balance.": "भाउचरको पैसा तपाईंको ब्यालेन्समा आयो।", "Voucher cancelled — money returned.": "भाउचर रद्द भयो — पैसा फिर्ता भयो।",
+  // security
+  "🔒 Security": "🔒 सुरक्षा", "App PIN lock": "एप PIN लक", "Set PIN": "PIN राख्नुहोस्", "My devices": "मेरा डिभाइसहरू", "See devices": "डिभाइस हेर्नुहोस्",
+  "You get a notification when your account opens on a new device": "नयाँ डिभाइसमा खाता खुल्दा तपाईंलाई सूचना आउँछ",
+  "Current PIN": "हालको PIN", "New PIN": "नयाँ PIN", "Repeat new PIN": "नयाँ PIN फेरि लेख्नुहोस्", "Save PIN": "PIN सेभ गर्नुहोस्",
+  "PIN must be 4 numbers.": "PIN ४ अंकको हुनुपर्छ।", "The two PINs don't match.": "दुवै PIN मिलेन।", "PIN saved 🔒": "PIN सेभ भयो 🔒", "PIN removed.": "PIN हटाइयो।",
+  "Forgot PIN? Log in with your password": "PIN बिर्सनुभयो? पासवर्डले लग इन गर्नुहोस्", "Wrong PIN. Try again.": "PIN मिलेन। फेरि प्रयास गर्नुहोस्।",
+  "🔒 Enter your PIN": "🔒 आफ्नो PIN लेख्नुहोस्", "Enter your PIN to open Premvio": "Premvio खोल्न आफ्नो PIN लेख्नुहोस्",
+  "A 4-number PIN is asked when you open the app and before you pay or withdraw.": "एप खोल्दा र तिर्नु वा पैसा निकाल्नु अघि ४ अंकको PIN सोधिन्छ।",
+  "Log out all other devices": "अरू सबै डिभाइसबाट लग आउट गर्नुहोस्", "All other devices are logged out.": "अरू सबै डिभाइसबाट लग आउट भयो।",
+  "this device": "यो डिभाइस", "No devices yet.": "अहिलेसम्म कुनै डिभाइस छैन।",
+  "Didn't recognise a device? Log out the others and change your password.": "कुनै डिभाइस चिन्नुभएन? अरूबाट लग आउट गरी पासवर्ड बदल्नुहोस्।",
+  // help chat
+  "💬 Help chat": "💬 सहायता च्याट", "Help chat": "सहायता च्याट", "💬 Chat with us": "💬 हामीसँग च्याट गर्नुहोस्",
+  "Questions about an order, deposit or your account? Chat with us here.": "अर्डर, डिपोजिट वा खाताबारे प्रश्न छ? यहाँ च्याट गर्नुहोस्।",
+  "Start a new chat": "नयाँ च्याट सुरु गर्नुहोस्", "Topic": "विषय", "About an order": "कुन अर्डरबारे", "— No order —": "— अर्डर छैन —",
+  "Your message": "तपाईंको सन्देश", "Tell us what happened…": "के भयो, लेख्नुहोस्…", "Send": "पठाउनुहोस्", "My chats": "मेरा च्याटहरू",
+  "No chats yet": "अहिलेसम्म च्याट छैन", "New reply": "नयाँ जवाफ", "Waiting for Premvio": "Premvio को जवाफ पर्खँदै", "Solved": "समाधान भयो",
+  "✅ Solved": "✅ समाधान भयो", "solved": "समाधान भयो", "Write a message…": "सन्देश लेख्नुहोस्…", "Glad we could help! 🙌": "मद्दत गर्न पाउँदा खुसी लाग्यो! 🙌",
+  "This chat is solved. Writing a new message opens it again.": "यो च्याट समाधान भयो। नयाँ सन्देश लेखे फेरि खुल्छ।",
+  "Order problem": "अर्डरमा समस्या", "Withdrawal": "निकासी", "Account / KYC": "खाता / KYC", "Other": "अन्य", "Chat not found.": "च्याट भेटिएन।",
+  "Buy a voucher code with your balance and send it to a friend. They type the code here and the money goes to their balance.": "आफ्नो ब्यालेन्सले भाउचर कोड किनेर साथीलाई पठाउनुहोस्। उहाँले यहाँ कोड लेखेपछि पैसा उहाँको ब्यालेन्समा जान्छ।",
+  "Ask a 4-number PIN to open the app and to pay": "एप खोल्न र तिर्न ४ अंकको PIN सोध्नुहोस्",
+  "On — asked when you open the app and before paying": "खुला — एप खोल्दा र तिर्नुअघि सोधिन्छ",
+  "Help": "सहायता", "Chat with us": "हामीसँग च्याट गर्नुहोस्",
+  // common
+  "OK": "ठिक छ", "Cancel": "रद्द गर्नुहोस्", "Delete": "हटाउनुहोस्", "Back": "पछाडि", "Close": "बन्द गर्नुहोस्", "Please wait…": "कृपया पर्खनुहोस्…",
+  "Got it": "बुझेँ", "No notifications yet": "अहिलेसम्म सूचना छैन", "Choose…": "छान्नुहोस्…", "Name": "नाम", "Document": "कागजात",
+};
+// texts with a changing part
+const PV_NE_RX = [
+  [/^Hi, (.+)$/, "नमस्ते, $1"],
+  [/^Pay (NPR [\d,.]+) for all$/, "सबैको $1 तिर्नुहोस्"],
+  [/^Only (\d+) left today$/, "आज $1 मात्र बाँकी"],
+  [/^Price: (NPR [\d,.]+) each/, "मूल्य: प्रति $1"],
+  [/^Order #(\d+) placed$/, "अर्डर #$1 भयो"],
+  [/^Gift #(\d+) placed$/, "उपहार #$1 पठाइयो"],
+  [/^You'll earn ⭐ ([\d.]+) points when your orders are delivered\.$/, "अर्डर पुगेपछि तपाईंले ⭐ $1 पोइन्ट पाउनुहुनेछ।"],
+  [/^The amount will be deducted from your balance\.( You'll earn ⭐ ([\d.]+) points\.)?$/, (m, a, n) => "रकम तपाईंको ब्यालेन्सबाट काटिनेछ।" + (n ? ` तपाईंले ⭐ ${n} पोइन्ट पाउनुहुनेछ।` : "")],
+  [/^Added to cart \((\d+) items?\)\.$/, "कार्टमा थपियो ($1)।"],
+  [/^Quantity \((\d+)–(\d+)\)$/, "संख्या ($1–$2)"],
+];
+function pvTr(t) {
+  const k = t.trim();
+  if (!k || !/[A-Za-z]/.test(k)) return null;
+  let n = PV_NE[k];
+  if (n == null) for (const [rx, rep] of PV_NE_RX) { if (rx.test(k)) { n = k.replace(rx, rep); break; } }
+  if (n == null || n === k) return null;   // same text → leave it (prevents an endless loop)
+  const out = t.replace(k, n);
+  return out === t ? null : out;
+}
+function pvTranslate(root) {
+  if (!root) return;
+  if (root.nodeType === 3) { const n = pvTr(root.nodeValue); if (n != null) root.nodeValue = n; return; }
+  if (root.nodeType !== 1 || /^(SCRIPT|STYLE|TEXTAREA)$/.test(root.tagName) || root.closest?.("[data-notr]")) return;
+  for (const a of ["placeholder", "title", "aria-label"]) { const v = root.getAttribute?.(a); if (v) { const n = pvTr(v); if (n != null) root.setAttribute(a, n); } }
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+  let node;
+  while ((node = w.nextNode())) {
+    if (node.nodeType === 3) { if (!node.parentElement?.closest("textarea,script,style,[data-notr]")) { const n = pvTr(node.nodeValue); if (n != null) node.nodeValue = n; } }
+    else for (const a of ["placeholder", "title", "aria-label"]) { const v = node.getAttribute(a); if (v) { const n = pvTr(v); if (n != null) node.setAttribute(a, n); } }
+  }
+}
+function pvLang() { try { return localStorage.getItem("pv_lang") === "ne" ? "ne" : "en"; } catch (e) { return "en"; } }
+function pvSetLang(l) { try { localStorage.setItem("pv_lang", l); } catch (e) {} location.reload(); }
+if (pvLang() === "ne") {
+  document.documentElement.lang = "ne";
+  const start = () => {
+    pvTranslate(document.body);
+    new MutationObserver((ms) => ms.forEach((m) => {
+      if (m.type === "characterData") pvTranslate(m.target);
+      else m.addedNodes.forEach(pvTranslate);
+    })).observe(document.body, { childList: true, subtree: true, characterData: true });
+  };
+  if (document.body) start(); else document.addEventListener("DOMContentLoaded", start);
+}
+
+</script>
+<script>
 /* ============ PREMVIO — Customer panel ============ */
 const S = { user: null, profile: null, settings: {}, products: [], features: [], channel: null, unread: 0, histTab: "all", timer: null };
 const root = $("#root");
@@ -1099,6 +1303,7 @@ function renderAuth(mode = "login") {
     </div>
   </div></div>`;
   $$(".tabs button", root).forEach((b) => (b.onclick = () => renderAuth(b.dataset.m)));
+  if (!$(".auth-lang")) { const lb = document.createElement("button"); lb.className = "auth-lang"; lb.setAttribute("data-notr", ""); lb.textContent = pvLang() === "ne" ? "English" : "नेपाली"; lb.onclick = () => pvSetLang(pvLang() === "ne" ? "en" : "ne"); root.querySelector(".auth-wrap")?.appendChild(lb); }
   const body = $("#authBody");
 
   if (mode === "login") {
@@ -1376,6 +1581,17 @@ function tgLink() { return "https://t.me/" + tgHandle().replace(/^@/, ""); }
 
 function route() {
   const tab = (location.hash || "#home").slice(1);
+  if (S.helpCh && !tab.startsWith("help/")) { sb.removeChannel(S.helpCh); S.helpCh = null; }
+  // Help chat opens as its own screen
+  if (tab === "help" || tab.startsWith("help/")) {
+    $$(".nav-item").forEach((b) => b.classList.toggle("on", b.dataset.tab === "settings"));
+    clearInterval(S.timer);
+    const view = $("#view");
+    view.className = "view slide-in";
+    viewHelp(view, Number(tab.split("/")[1]) || null);
+    window.scrollTo(0, 0);
+    return;
+  }
   // Deposit and Withdraw open as their own screens (part of the Wallet tab)
   if (tab === "deposit" || tab === "withdraw") {
     $$(".nav-item").forEach((b) => b.classList.toggle("on", b.dataset.tab === "settings"));
@@ -2313,6 +2529,7 @@ async function viewHistory(v) {
       ${o.admin_note ? `<div class="small muted">Note: ${esc(o.admin_note)}</div>` : ""}
       ${refundInfo(o)}
       ${canRefund(o) ? `<button class="btn sm ghost mt" data-refund="${o.id}">↩️ Request refund</button>` : ""}
+      ${S.settings.help_on !== "false" ? `<button class="btn sm ghost mt" data-help="${o.id}">💬 Help</button>` : ""}
       ${o.status === "completed" && S.settings.reviews_on !== "false" ? (S.myReviews[o.id]
         ? `<button class="btn sm ghost mt" data-rate="${o.id}"><span class="stars">${stars(S.myReviews[o.id].rating)}</span> Edit review</button>`
         : `<button class="btn sm soft mt" data-rate="${o.id}">⭐ Rate this order</button>`) : ""}</div>
@@ -2325,6 +2542,7 @@ async function viewHistory(v) {
   }
   hl.innerHTML = rows.length ? rows.join("") : `<div class="empty"><div class="big">🗂️</div>Nothing here yet</div>`;
   $$("[data-refund]", hl).forEach((b) => (b.onclick = () => refundModal(S.orders.find((o) => o.id == b.dataset.refund), v)));
+  $$("[data-help]", hl).forEach((b) => (b.onclick = () => { S.helpOrder = Number(b.dataset.help); location.hash = "help"; }));
   $$("[data-rate]", hl).forEach((b) => (b.onclick = () => rateModal(S.orders.find((o) => o.id == b.dataset.rate), S.myReviews[b.dataset.rate], () => viewHistory(v))));
 }
 
@@ -2358,6 +2576,81 @@ function refundModal(o, view) {
 }
 
 /* ---------------- SETTINGS ---------------- */
+/* ---------------- 💬 HELP CHAT ---------------- */
+const HELP_TOPICS = ["Order problem", "Deposit", "Withdrawal", "Account / KYC", "Other"];
+async function viewHelp(v, id) {
+  if (id) return helpThread(v, id);
+  const [{ data: list }, { data: recent }] = await Promise.all([
+    sb.from("tickets").select("*").order("updated_at", { ascending: false }).limit(30),
+    sb.from("orders").select("id, product_name, quantity, created_at").order("created_at", { ascending: false }).limit(15)]);
+  const pre = S.helpOrder; S.helpOrder = null;
+  v.innerHTML = `<div class="screen-head"><button class="back-btn" id="back" aria-label="Back">←</button><h2 style="margin:0">💬 Help chat</h2></div>
+    <div class="card"><h3 style="margin-top:0">Start a new chat</h3>
+      <form id="ntf"><label>Topic</label><div class="chips">${HELP_TOPICS.map((t, i) => `<button type="button" class="chip ${(pre ? t === "Order problem" : i === 0) ? "on" : ""}" data-topic="${esc(t)}">${esc(t)}</button>`).join("")}</div>
+        <label>About an order <span class="muted">(optional)</span></label><select name="order"><option value="">— No order —</option>
+          ${(recent || []).map((o) => `<option value="${o.id}" ${pre === o.id ? "selected" : ""}>#${o.id} ${esc(o.product_name)} × ${o.quantity} · ${fmtDate(o.created_at)}</option>`).join("")}</select>
+        <label>Your message</label><textarea name="body" required maxlength="1000" placeholder="Tell us what happened…"></textarea>
+        <button class="btn block mt">${ICONS.send} Send</button></form></div>
+    <h3 class="mt">My chats</h3>
+    <div class="card">${(list || []).length ? list.map((t) => `<a class="list-item help-row" href="#help/${t.id}"><div class="ic">${t.status === "closed" ? "✅" : t.waiting_for === "customer" ? "🔵" : "💬"}</div>
+      <div class="grow"><b>${esc(t.subject)}</b> <span class="small muted">#${t.id}</span>
+        <div class="small muted">${t.status === "closed" ? "Solved" : t.waiting_for === "customer" ? "<b style='color:var(--blue)'>New reply</b>" : "Waiting for Premvio"} · ${fmtDate(t.updated_at)}</div></div><em>›</em></a>`).join("")
+      : `<div class="empty"><div class="big">💬</div>No chats yet</div>`}</div>`;
+  $("#back").onclick = goBack;
+  let topic = pre ? "Order problem" : HELP_TOPICS[0];
+  $$("[data-topic]", v).forEach((b) => (b.onclick = () => { topic = b.dataset.topic; $$("[data-topic]", v).forEach((x) => x.classList.toggle("on", x === b)); }));
+  $("#ntf").onsubmit = (e) => {
+    e.preventDefault();
+    const f = e.target;
+    busy($('button.btn:not([type="button"])', f), async () => {
+      const { data, error } = await sb.rpc("open_ticket", { p_subject: topic, p_body: f.body.value, p_order: f.order.value ? Number(f.order.value) : null });
+      if (error) throw error;
+      location.hash = "help/" + data;
+    });
+  };
+}
+async function helpThread(v, id) {
+  const [{ data: t, error }, { data: msgs }] = await Promise.all([
+    sb.from("tickets").select("*, orders(product_name, quantity)").eq("id", id).single(),
+    sb.from("ticket_messages").select("*").eq("ticket_id", id).order("created_at")]);
+  if (error || !t) { v.innerHTML = `<div class="empty">Chat not found. <a href="#help">Back</a></div>`; return; }
+  v.innerHTML = `<div class="screen-head"><button class="back-btn" id="back" aria-label="Back">←</button>
+      <div class="grow"><h2 style="margin:0;font-size:1.1rem">${esc(t.subject)}</h2><div class="small muted">#${t.id}${t.orders ? ` · Order #${t.order_id} ${esc(t.orders.product_name)}` : ""}</div></div>
+      ${t.status === "open" ? `<button class="btn sm soft" id="solved">✅ Solved</button>` : `<span class="badge completed">solved</span>`}</div>
+    <div class="chat" id="chat"></div>
+    <form id="msgf" class="chat-input"><textarea name="m" rows="1" maxlength="1000" placeholder="Write a message…" required></textarea>
+      <button class="btn" aria-label="Send">${ICONS.send}</button></form>
+    ${t.status === "closed" ? `<p class="small muted center">This chat is solved. Writing a new message opens it again.</p>` : ""}`;
+  $("#back").onclick = () => (location.hash = "help");
+  const chat = $("#chat"), seen = new Set();
+  const add = (m) => {
+    if (seen.has(m.id)) return; seen.add(m.id);
+    chat.insertAdjacentHTML("beforeend", `<div class="bubble ${m.from_staff ? "them" : "me"}">${m.from_staff ? `<div class="who">Premvio</div>` : ""}<div>${esc(m.body)}</div><div class="t">${fmtDate(m.created_at)}</div></div>`);
+    chat.scrollTop = chat.scrollHeight; window.scrollTo(0, document.body.scrollHeight);
+  };
+  (msgs || []).forEach(add);
+  if (S.helpCh) sb.removeChannel(S.helpCh);
+  S.helpCh = sb.channel("help-" + id).on("postgres_changes", { event: "INSERT", schema: "public", table: "ticket_messages", filter: `ticket_id=eq.${id}` }, (x) => add(x.new)).subscribe();
+  const f = $("#msgf"), ta = f.m;
+  ta.oninput = () => { ta.style.height = "auto"; ta.style.height = Math.min(140, ta.scrollHeight) + "px"; };
+  ta.onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey && !/Android|iPhone/i.test(navigator.userAgent)) { e.preventDefault(); f.requestSubmit(); } };
+  f.onsubmit = (e) => {
+    e.preventDefault();
+    const body = ta.value.trim(); if (!body) return;
+    busy($("button", f), async () => {
+      const { data: mid, error: er } = await sb.rpc("send_ticket_message", { p_ticket: id, p_body: body });
+      if (er) throw er;
+      ta.value = ""; ta.style.height = "auto";
+      add({ id: mid, from_staff: false, body, created_at: new Date().toISOString() });
+    });
+  };
+  if ($("#solved")) $("#solved").onclick = async () => {
+    const { error: er } = await sb.rpc("close_ticket", { p_ticket: id });
+    if (er) return toast(errMsg(er), "error");
+    toast("Glad we could help! 🙌", "success"); route();
+  };
+}
+
 /* ---------------- 🎟️ gift vouchers (Settings) ---------------- */
 async function drawVouchers() {
   const box = $("#voucherCard");
@@ -2509,6 +2802,8 @@ async function viewSettings(v) {
 
   ${S.settings.voucher_on !== "false" ? `<div class="card" id="voucherCard"><div class="loader"></div></div>` : ""}
 
+  ${S.settings.help_on !== "false" ? `<a class="card help-link" href="#help"><span class="hl-ic">💬</span><span class="grow"><b>Help chat</b><br><span class="small muted">Questions about an order, deposit or your account? Chat with us here.</span></span><em>›</em></a>` : ""}
+
   <div class="card">
     <h3>🔒 Security</h3>
     <div class="setting-row"><div><b>App PIN lock</b><div class="small muted">${p.has_pin ? "On — asked when you open the app and before paying" : "Ask a 4-number PIN to open the app and to pay"}</div></div>
@@ -2523,6 +2818,8 @@ async function viewSettings(v) {
       <label class="switch" style="margin:0"><input type="checkbox" id="thm" ${p.theme === "light" ? "checked" : ""}><span></span></label></div>
     <div class="setting-row"><div><b>Notifications</b><div class="small muted">Push alerts on this device</div></div>
       <label class="switch" style="margin:0"><input type="checkbox" id="ntf" ${p.notify ? "checked" : ""}><span></span></label></div>
+    <div class="setting-row"><div><b>Language</b><div class="small muted" data-notr>Language · भाषा</div></div>
+      <div class="lang-seg" data-notr><button type="button" data-lang="en" class="${pvLang() === "en" ? "on" : ""}">English</button><button type="button" data-lang="ne" class="${pvLang() === "ne" ? "on" : ""}">नेपाली</button></div></div>
   </div>
 
   <div class="card">
@@ -2533,11 +2830,12 @@ async function viewSettings(v) {
     <div class="setting-row"><div><b>Install app</b><div class="small muted">Add Premvio to your home screen</div></div><button class="btn sm soft" id="inst">Install</button></div>
   </div>
   <button class="btn ghost block mt" id="logout">${ICONS.logout} Log out</button>
-  <p class="center small muted mt">Need help? <a href="${esc(tgLink())}" target="_blank" rel="noopener">${esc(tgHandle())}</a></p>`;
+  <p class="center small muted mt">Need help? ${S.settings.help_on !== "false" ? `<a href="#help">💬 Chat with us</a> or ` : ""}<a href="${esc(tgLink())}" target="_blank" rel="noopener">${esc(tgHandle())}</a></p>`;
 
   // KYC
   drawRewards();
   drawVouchers();
+  $$("[data-lang]", v).forEach((b) => (b.onclick = () => { if (b.dataset.lang !== pvLang()) pvSetLang(b.dataset.lang); }));
   if ($("#pinSet")) $("#pinSet").onclick = setPinModal;
   if ($("#pinChange")) $("#pinChange").onclick = setPinModal;
   if ($("#pinOff")) $("#pinOff").onclick = removePin;
