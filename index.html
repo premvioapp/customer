@@ -665,6 +665,41 @@ input[type="file"]::file-selector-button { border: 0; padding: 10px 14px; margin
 .pts-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 14px; border-top: 1px solid var(--line); }
 .rewards-card .pts-row:first-child { border-top: 0; padding-top: 0; }
 
+/* ============ V28: reviews, PIN lock, vouchers ============ */
+.stars { color: var(--gold); letter-spacing: 1px; }
+.rating-line { font-size: .75rem; font-weight: 700; margin-top: 3px; }
+.review { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.review:last-child { border-bottom: 0; }
+.star-pick { display: flex; justify-content: center; gap: 6px; margin-top: 8px; }
+.star-pick button { font-size: 2.3rem; line-height: 1; background: none; border: 0; color: var(--line); cursor: pointer; padding: 2px; transition: transform .1s, color .1s; }
+.star-pick button.on { color: var(--gold); }
+.star-pick button:active { transform: scale(1.2); }
+.pin-screen { position: fixed; inset: 0; z-index: 300; background: var(--bg); display: grid; place-items: center; padding: 20px; }
+.pin-overlay { position: fixed; inset: 0; z-index: 400; background: rgba(0, 0, 0, .6); display: grid; place-items: center; padding: 16px; backdrop-filter: blur(4px); }
+.pin-card { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 22px 18px; width: 100%; max-width: 340px; }
+.pin-card .close { position: absolute; top: 10px; right: 10px; }
+.pin-pad { text-align: center; width: 100%; max-width: 300px; margin: 0 auto; }
+.pin-pad h2 { margin: 6px 0 2px; }
+.pin-logo { width: 72px; height: 72px; margin-bottom: 6px; }
+.pin-dots { display: flex; justify-content: center; gap: 16px; margin: 18px 0 6px; }
+.pin-dots i { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--muted); transition: background .1s, border-color .1s; }
+.pin-dots i.on { background: var(--gold); border-color: var(--gold); }
+.pin-dots.shake { animation: pin-shake .35s; }
+@keyframes pin-shake { 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-4px); } }
+.pin-msg { color: var(--red); min-height: 1.3em; margin: 4px 0 10px; }
+.pin-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.pin-keys button { height: 58px; border-radius: 16px; border: 1px solid var(--line); background: var(--card-2); color: var(--text); font: inherit; font-size: 1.4rem; font-weight: 700; cursor: pointer; }
+.pin-keys button:active { background: var(--line); transform: scale(.96); }
+.pin-pad.busy, .busy .pin-keys { opacity: .6; pointer-events: none; }
+.pin-input { text-align: center; letter-spacing: .6em; font-size: 1.3rem; font-weight: 800; }
+.v-amounts { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.v-amt { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 6px; border-radius: 14px; cursor: pointer; font: inherit; color: var(--text);
+  background: linear-gradient(135deg, rgba(255, 200, 61, .15), rgba(255, 159, 67, .08)); border: 1px dashed rgba(255, 200, 61, .5); }
+.v-amt b { color: var(--gold); } .v-amt span { font-size: .7rem; color: var(--muted); }
+.v-amt:active { transform: scale(.97); }
+@media (prefers-reduced-motion: reduce) { .pin-dots.shake { animation: none; } }
+.empty h2 { color: var(--text); }
+
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
 <meta name="description" content="Buy Telegram Stars and Telegram Premium with Premvio.">
@@ -1081,6 +1116,7 @@ function renderAuth(mode = "login") {
       const f = e.target;
       if (!cap.ok()) { toast("Wrong captcha answer, try again.", "error"); cap.reset(); return; }
       busy($("button.btn", f), async () => {
+        markUnlocked();   // typing the password counts as unlocking the PIN
         const { error } = await sb.auth.signInWithPassword({ email: f.email.value.trim(), password: f.password.value });
         if (error) { cap.reset(); throw error; }
       });
@@ -1113,6 +1149,7 @@ function renderAuth(mode = "login") {
         const { error } = await sb.rpc("register_customer", { p_email: email, p_password: password,
           p_full_name: f.full_name.value.trim(), p_phone: f.phone.value.trim(), p_country: f.country.value });
         if (error) { cap.reset(); throw error; }
+        markUnlocked();
         const { error: e2 } = await sb.auth.signInWithPassword({ email, password });
         if (e2) { toast("Account created. Please log in.", "success"); renderAuth("login"); return; }
         toast("Welcome to Premvio!", "success");
@@ -1176,6 +1213,7 @@ async function startApp() {
     return;
   }
   applyTheme(S.profile.theme);
+  if (S.profile.has_pin && !isUnlocked()) await pinLockScreen();
   root.innerHTML = `
   <div class="app">
     <header class="topbar">
@@ -1198,6 +1236,122 @@ async function startApp() {
   refreshUnread();
   if (S.profile.notify && pushSupported() && Notification.permission === "granted") enablePush(true);
   applySavedInvite();
+  registerDevice();
+}
+
+/* ---------------- 🔒 APP PIN LOCK ---------------- */
+function markUnlocked() { try { sessionStorage.setItem("pv_unlocked", String(Date.now())); } catch (e) {} }
+function isUnlocked() { try { return !!sessionStorage.getItem("pv_unlocked"); } catch (e) { return false; } }
+// full-screen keypad; resolves when the right PIN is typed
+function pinLockScreen() {
+  return new Promise((resolve) => {
+    const holder = document.createElement("div");
+    holder.className = "pin-screen";
+    document.body.appendChild(holder);
+    pinPad(holder, { title: `Hi ${esc((S.profile.full_name || "").split(" ")[0])} 👋`, sub: "Enter your PIN to open Premvio", forgot: true }, () => {
+      markUnlocked(); holder.remove(); resolve(true);
+    });
+  });
+}
+// asks for the PIN before paying (only if the customer turned the PIN on)
+function requirePin(reason) {
+  if (!S.profile.has_pin) return Promise.resolve(true);
+  return pinOverlay("🔒 Enter your PIN", reason || "Confirm with your PIN");
+}
+// PIN keypad on top of everything (keeps the open form underneath)
+function pinOverlay(title, sub) {
+  return new Promise((resolve) => {
+    const ov = document.createElement("div");
+    ov.className = "pin-overlay";
+    ov.innerHTML = `<div class="pin-card"><button type="button" class="icon-btn close" aria-label="Cancel">${ICONS.x}</button><div class="pin-host"></div></div>`;
+    document.body.appendChild(ov);
+    const done = (ok) => { ov.remove(); resolve(ok); };
+    $(".close", ov).onclick = () => done(false);
+    ov.onclick = (e) => { if (e.target === ov) done(false); };
+    pinPad($(".pin-host", ov), { title, sub }, () => done(true));
+  });
+}
+function pinPad(box, o, onOk) {
+  let v = "";
+  box.innerHTML = `<div class="pin-pad">
+    ${o.forgot ? `<img src="${PV_LOGO}" class="pin-logo" alt="">` : ""}
+    <h2>${o.title}</h2><p class="muted small">${esc(o.sub)}</p>
+    <div class="pin-dots">${"<i></i>".repeat(4)}</div><p class="pin-msg small"></p>
+    <div class="pin-keys">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `<button type="button" data-k="${n}">${n}</button>`).join("")}
+      <span></span><button type="button" data-k="0">0</button><button type="button" data-k="del" aria-label="Delete">⌫</button></div>
+    ${o.forgot ? `<button type="button" class="link-btn small mt" id="pinForgot">Forgot PIN? Log in with your password</button>` : ""}</div>`;
+  const dots = $$(".pin-dots i", box), msg = $(".pin-msg", box);
+  const paint = () => dots.forEach((d, i) => d.classList.toggle("on", i < v.length));
+  const check = async () => {
+    box.classList.add("busy");
+    const { data, error } = await sb.rpc("verify_pin", { p_pin: v });
+    box.classList.remove("busy");
+    if (data === true) { S._padPin = v; return onOk(); }
+    v = ""; paint();
+    msg.textContent = error ? errMsg(error) : "Wrong PIN. Try again.";
+    $(".pin-dots", box).classList.remove("shake"); void box.offsetWidth; $(".pin-dots", box).classList.add("shake");
+  };
+  $$("[data-k]", box).forEach((b) => (b.onclick = () => {
+    if (box.classList.contains("busy")) return;
+    if (b.dataset.k === "del") v = v.slice(0, -1); else if (v.length < 4) v += b.dataset.k;
+    msg.textContent = ""; paint();
+    if (v.length === 4) check();
+  }));
+  if ($("#pinForgot", box)) $("#pinForgot", box).onclick = async () => { await pvSignOut(); location.reload(); };
+  paint();
+}
+// lock again after 5 minutes in the background
+let pvHiddenAt = 0;
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) { pvHiddenAt = Date.now(); return; }
+  if (S.profile?.has_pin && pvHiddenAt && Date.now() - pvHiddenAt > 5 * 60e3 && !$(".pin-screen")) {
+    try { sessionStorage.removeItem("pv_unlocked"); } catch (e) {}
+    pinLockScreen();
+  }
+});
+function setPinModal() {
+  const has = S.profile.has_pin;
+  openModal(`<h2>🔒 ${has ? "Change" : "Set"} app PIN</h2>
+    <p class="small muted">A 4-number PIN is asked when you open the app and before you pay or withdraw.</p>
+    <form id="spf">${has ? `<label>Current PIN</label><input name="old" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required autocomplete="off" class="pin-input">` : ""}
+      <label>New PIN</label><input name="n1" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required autocomplete="off" class="pin-input">
+      <label>Repeat new PIN</label><input name="n2" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required autocomplete="off" class="pin-input">
+      <button class="btn block mt">Save PIN</button></form>`, (m) => {
+    $("#spf", m).onsubmit = (e) => {
+      e.preventDefault();
+      const f = e.target;
+      if (!/^\d{4}$/.test(f.n1.value)) return toast("PIN must be 4 numbers.", "error");
+      if (f.n1.value !== f.n2.value) return toast("The two PINs don't match.", "error");
+      busy($("button", f), async () => {
+        const { data, error } = await sb.rpc("set_pin", { p_new: f.n1.value, p_old: f.old ? f.old.value : null });
+        if (error) throw error;
+        if (data === "wrong") throw new Error("Current PIN is wrong.");
+        S.profile.has_pin = true; markUnlocked();
+        closeModal(); toast("PIN saved 🔒", "success"); route();
+      });
+    };
+  });
+}
+async function removePin() {
+  const ok = await pinOverlay("Remove PIN", "Enter your current PIN");
+  if (!ok) return;
+  S._lastPin = null;
+  const { data, error } = await sb.rpc("remove_pin", { p_pin: S._padPin || null });
+  if (error || data === false) return toast(error ? errMsg(error) : "Could not remove the PIN. Log in again with your password and try.", "error");
+  S.profile.has_pin = false; toast("PIN removed.", "success"); await loadProfile(); route();
+}
+
+/* ---------------- 🔐 new login alert ---------------- */
+function deviceLabel() {
+  const ua = navigator.userAgent;
+  const os = /Android/i.test(ua) ? "Android" : /iPhone|iPad|iPod/i.test(ua) ? "iPhone" : /Windows/i.test(ua) ? "Windows" : /Mac OS/i.test(ua) ? "Mac" : /Linux/i.test(ua) ? "Linux" : "device";
+  const br = /Edg\//.test(ua) ? "Edge" : /SamsungBrowser/.test(ua) ? "Samsung Internet" : /Chrome\//.test(ua) ? "Chrome" : /Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : "Browser";
+  return `${isStandalone() ? "Premvio app" : br} on ${os}`;
+}
+async function registerDevice() {
+  let id = null;
+  try { id = localStorage.getItem("pv_device"); if (!id) { id = "d" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10); localStorage.setItem("pv_device", id); } } catch (e) { return; }
+  sb.rpc("register_device", { p_device: id, p_label: deviceLabel() }).then(() => {}, () => {});
 }
 async function applySavedInvite() {
   let ref = null;
@@ -1320,9 +1474,10 @@ async function viewHome(v) {
   if (showPush) $("#pushOn").onclick = async (e) => { if (await enablePush()) { toast("Notifications on.", "success"); e.target.closest(".card").remove(); } };
   drawTicker();
   loadSettings().then(drawTicker).catch(() => {});   // pick up a new message from admin
-  const [{ data, error }, { data: today }] = await Promise.all([
+  const [{ data, error }, { data: today }, { data: rates }] = await Promise.all([
     sb.from("products").select("*").eq("active", true).order("sort").order("created_at", { ascending: false }),
-    sb.rpc("products_today")]);
+    sb.rpc("products_today"), sb.rpc("product_ratings")]);
+  S.ratings = Object.fromEntries((rates || []).map((r) => [r.product_id, r]));
   if (error) { $("#plist").innerHTML = `<div class="empty">${esc(errMsg(error))}</div>`; return; }
   S.today = Object.fromEntries((today || []).map((r) => [r.id, Number(r.sold_today)]));
   S.products = sortPinned(data);
@@ -1361,6 +1516,11 @@ function priceHtml(p, big) {
   const pct = Math.round((1 - Number(p.sale_price) / Number(p.price)) * 100);
   return `<span class="price">${money(p.sale_price)}</span> <s class="old-price">${money(p.price)}</s>${pct > 0 ? ` <span class="sale-pct">−${pct}%</span>` : ""}
     ${p.sale_ends_at ? `<div class="sale-cd ${big ? "big" : ""}" data-cd="${esc(p.sale_ends_at)}">⏱ ${cdText(p.sale_ends_at)}</div>` : ""}`;
+}
+function stars(n) { n = Math.round(Number(n) || 0); return "★★★★★".slice(0, n) + "☆☆☆☆☆".slice(0, 5 - n); }
+function ratingHtml(id) {
+  const r = (S.ratings || {})[id];
+  return r ? `<div class="rating-line"><span class="stars">★</span> ${Number(r.rating).toFixed(1)} <span class="muted">(${r.reviews})</span></div>` : "";
 }
 function stockHtml(p) {
   if (p.out_of_stock) return `<div class="stock-tag out">Out of stock</div>`;
@@ -1404,7 +1564,7 @@ function productCard(p) {
       <div class="ph">${p.image_url ? `<img src="${esc(p.image_url)}" alt="" loading="lazy">` : `<span style="color:var(--gold);width:44px">${ICONS.star}</span>`}
         ${p.pinned ? `<span class="pin-badge">${esc(p.pin_badge || "Recommended")}</span>` : ""}
         ${saleOn(p) ? `<span class="sale-badge">⚡ SALE</span>` : ""}</div>
-      <div class="info"><div class="name">${esc(p.name)}</div><div class="prices">${priceHtml(p)}</div>${stockHtml(p)}</div>
+      <div class="info"><div class="name">${esc(p.name)}</div><div class="prices">${priceHtml(p)}</div>${stockHtml(p)}${ratingHtml(p.id)}</div>
     </button>`;
 }
 
@@ -1426,6 +1586,38 @@ function drawProducts(v) {
   });
 }
 
+async function loadReviews(p, box) {
+  const { data } = await sb.from("reviews").select("display_name, rating, comment, created_at").eq("product_id", p.id).eq("hidden", false)
+    .order("created_at", { ascending: false }).limit(10);
+  if (!data || !data.length || !document.body.contains(box)) return;
+  const r = (S.ratings || {})[p.id];
+  box.innerHTML = `<h3 class="mt">Reviews ${r ? `<span class="stars">★</span> ${Number(r.rating).toFixed(1)} <span class="muted small">(${r.reviews})</span>` : ""}</h3>
+    ${data.map((x) => `<div class="review"><div class="row between"><b>${esc(x.display_name)}</b><span class="stars">${stars(x.rating)}</span></div>
+      ${x.comment ? `<div class="small">${esc(x.comment)}</div>` : ""}<div class="small muted">${fmtDate(x.created_at)}</div></div>`).join("")}`;
+}
+function rateModal(o, mine, after) {
+  let val = mine?.rating || 0;
+  openModal(`<h2>Rate your order</h2><p class="small muted">#${o.id} ${esc(o.product_name)} × ${o.quantity}</p>
+    <form id="rvf"><div class="star-pick">${[1, 2, 3, 4, 5].map((n) => `<button type="button" data-s="${n}">★</button>`).join("")}</div>
+      <p class="center small muted" id="starTxt"></p>
+      <label>Comment <span class="muted">(optional, shown with your first name)</span></label>
+      <textarea name="c" maxlength="300" placeholder="How was it?">${esc(mine?.comment || "")}</textarea>
+      <button class="btn block gold mt">${mine ? "Update review" : "Send review"}</button></form>`, (m) => {
+    const words = ["", "Bad", "Not good", "OK", "Good", "Excellent!"];
+    const paint = () => { $$("[data-s]", m).forEach((b) => b.classList.toggle("on", Number(b.dataset.s) <= val)); $("#starTxt", m).textContent = words[val] || "Tap the stars"; };
+    $$("[data-s]", m).forEach((b) => (b.onclick = () => { val = Number(b.dataset.s); paint(); }));
+    paint();
+    $("#rvf", m).onsubmit = (e) => {
+      e.preventDefault();
+      if (!val) return toast("Tap 1 to 5 stars.", "error");
+      busy($('button.btn:not([type="button"])', e.target), async () => {
+        const { error } = await sb.rpc("submit_review", { p_order: o.id, p_rating: val, p_comment: e.target.c.value });
+        if (error) throw error;
+        closeModal(); toast("Thank you for your review! ⭐", "success"); after && after();
+      });
+    };
+  });
+}
 function productModal(p) {
   openModal(`
     ${p.image_url ? `<img class="hero" src="${esc(p.image_url)}" alt="">` : ""}
@@ -1433,7 +1625,9 @@ function productModal(p) {
     <div class="prices big-price">${priceHtml(p, true)}</div>${stockHtml(p)}
     <p class="muted mt" style="white-space:pre-wrap">${esc(p.description || "No description.")}</p>
     <div class="buy-row mt"><button class="btn soft" id="cartBtn" ${soldOut(p) ? "disabled" : ""}>🛒 Add to cart</button>
-      <button class="btn gold" id="buyBtn" ${soldOut(p) ? "disabled" : ""}>${ICONS.bag} ${soldOut(p) ? "Not available" : "Buy now"}</button></div>`, (m) => {
+      <button class="btn gold" id="buyBtn" ${soldOut(p) ? "disabled" : ""}>${ICONS.bag} ${soldOut(p) ? "Not available" : "Buy now"}</button></div>
+    <div id="revBox"></div>`, (m) => {
+    loadReviews(p, $("#revBox", m));
     $("#buyBtn", m).onclick = () => buyModal(p);
     $("#cartBtn", m).onclick = () => cartModal(p);
   });
@@ -1577,6 +1771,7 @@ function buyModal(p) {
       if (gift === false) return;
       if (calc() > Number(S.profile.balance)) { toast("Not enough balance.", "error"); return; }
       busy($('button.btn:not([type="button"])', f), async () => {
+        if (!(await requirePin(`Pay ${money(calc())}`))) return;
         const args = { p_product: p.id, p_quantity: qty, p_form: form };
         if (promo) args.p_promo = promo.code;
         if (gift) args.p_gift = gift;
@@ -1798,6 +1993,7 @@ async function viewCart(v) {
   $("#payAll").onclick = async () => {
     if (!(await confirmBox("Pay for everything?", `<b>${money(pay())}</b> will be deducted from your balance for <b>${cart.length}</b> item${cart.length === 1 ? "" : "s"}.${disc ? ` You save <b>${money(disc)}</b> with ${esc(S.cartPromo.code)}.` : ""}`, "Pay now"))) return;
     busy($("#payAll"), async () => {
+      if (!(await requirePin(`Pay ${money(pay())}`))) return;
       const args = { p_items: cart.map((it) => ({ product: it.product, quantity: it.quantity, form: it.form || {}, ...(it.gift ? { gift: it.gift } : {}) })) };
       if (S.cartPromo) args.p_promo = S.cartPromo.code;
       if (pf.usePts?.checked) args.p_points = true;
@@ -1969,6 +2165,7 @@ function payoutPanel(body, m) {
     if (amt > Number(S.profile.balance)) return toast("Not enough balance.", "error");
     const form = readForm(f, fields);
     busy($("button.btn", f), async () => {
+      if (!(await requirePin(`Withdraw ${money(amt)}`))) return;
       const { data, error } = await sb.rpc("request_payout", { p_method: m.id, p_amount: amt, p_form: form });
       if (error) throw error;
       rememberFields(fields, form);
@@ -2071,6 +2268,7 @@ async function renderPremvioCash(body) {
       }
     }
     busy($("button.btn", wf), async () => {
+      if (!(await requirePin(`Withdraw ${money(amt)}`))) return;
       const { error } = await sb.rpc("request_withdrawal", { p_amount: amt, p_city: wf.city.value, p_street: wf.street.value });
       if (error) throw error;
       toast("Withdrawal code created.", "success");
@@ -2081,8 +2279,8 @@ async function renderPremvioCash(body) {
 }
 
 /* ---------------- HISTORY ---------------- */
-const TX_NAME = { deposit: "Deposit", load: "Deposit", adjust: "Admin adjustment", withdraw: "Withdrawal", purchase: "Purchase", refund: "Refund", agent_load: "Deposit to customer", agent_payout: "Withdrawal paid", bonus: "Bonus 🎉" };
-const TX_ICON = { deposit: "💰", adjust: "💰", load: "💰", withdraw: "🏧", purchase: "🛍️", refund: "↩️", agent_load: "📤", agent_payout: "📥", bonus: "🎁" };
+const TX_NAME = { deposit: "Deposit", load: "Deposit", adjust: "Admin adjustment", withdraw: "Withdrawal", purchase: "Purchase", refund: "Refund", agent_load: "Deposit to customer", agent_payout: "Withdrawal paid", bonus: "Bonus 🎉", voucher: "Gift voucher" };
+const TX_ICON = { deposit: "💰", adjust: "💰", load: "💰", withdraw: "🏧", purchase: "🛍️", refund: "↩️", agent_load: "📤", agent_payout: "📥", bonus: "🎁", voucher: "🎟️" };
 async function viewHistory(v) {
   v.innerHTML = `<h2>History</h2><p class="muted small">Last 30 days</p>
     <div class="chips">${[["all", "All"], ["orders", "Orders"], ["withdrawals", "Withdrawals"]].map(([k, l]) =>
@@ -2101,6 +2299,9 @@ async function viewHistory(v) {
   } else if (S.histTab === "orders") {
     const { data } = await sb.from("orders").select("*").gte("created_at", since).order("created_at", { ascending: false });
     S.orders = data || [];
+    const done = S.orders.filter((o) => o.status === "completed").map((o) => o.id);
+    const { data: revs } = done.length ? await sb.from("reviews").select("order_id, rating, comment").in("order_id", done) : { data: [] };
+    S.myReviews = Object.fromEntries((revs || []).map((r) => [r.order_id, r]));
     // refunds can only be requested while the order is still pending
     const canRefund = (o) => o.status === "pending" && !o.refund_status;
     rows = S.orders.map((o) => `<div class="list-item" style="align-items:flex-start"><div class="ic">🛍️</div>
@@ -2111,7 +2312,10 @@ async function viewHistory(v) {
       <div class="small muted">${fmtDate(o.created_at)}</div>
       ${o.admin_note ? `<div class="small muted">Note: ${esc(o.admin_note)}</div>` : ""}
       ${refundInfo(o)}
-      ${canRefund(o) ? `<button class="btn sm ghost mt" data-refund="${o.id}">↩️ Request refund</button>` : ""}</div>
+      ${canRefund(o) ? `<button class="btn sm ghost mt" data-refund="${o.id}">↩️ Request refund</button>` : ""}
+      ${o.status === "completed" && S.settings.reviews_on !== "false" ? (S.myReviews[o.id]
+        ? `<button class="btn sm ghost mt" data-rate="${o.id}"><span class="stars">${stars(S.myReviews[o.id].rating)}</span> Edit review</button>`
+        : `<button class="btn sm soft mt" data-rate="${o.id}">⭐ Rate this order</button>`) : ""}</div>
       <div style="text-align:right"><div class="${o.status === "refunded" ? "amt-pos" : "amt-neg"}">${money(o.total)}</div><span class="badge ${o.status}">${o.status}</span></div></div>`);
   } else {
     const { data } = await sb.from("withdrawals").select("*").gte("created_at", since).order("created_at", { ascending: false });
@@ -2121,6 +2325,7 @@ async function viewHistory(v) {
   }
   hl.innerHTML = rows.length ? rows.join("") : `<div class="empty"><div class="big">🗂️</div>Nothing here yet</div>`;
   $$("[data-refund]", hl).forEach((b) => (b.onclick = () => refundModal(S.orders.find((o) => o.id == b.dataset.refund), v)));
+  $$("[data-rate]", hl).forEach((b) => (b.onclick = () => rateModal(S.orders.find((o) => o.id == b.dataset.rate), S.myReviews[b.dataset.rate], () => viewHistory(v))));
 }
 
 function refundInfo(o) {
@@ -2153,6 +2358,79 @@ function refundModal(o, view) {
 }
 
 /* ---------------- SETTINGS ---------------- */
+/* ---------------- 🎟️ gift vouchers (Settings) ---------------- */
+async function drawVouchers() {
+  const box = $("#voucherCard");
+  if (!box) return;
+  const amounts = String(S.settings.voucher_amounts || "100,500,1000").split(",").map((x) => Number(x.trim())).filter((x) => x > 0);
+  const { data } = await sb.from("vouchers").select("*").eq("buyer_id", S.user.id).order("created_at", { ascending: false }).limit(20);
+  if (!document.body.contains(box)) return;
+  box.innerHTML = `<h3 style="margin-top:0">🎟️ Gift vouchers</h3>
+    <p class="small muted">Buy a voucher code with your balance and send it to a friend. They type the code here and the money goes to their balance.</p>
+    <div class="v-amounts">${amounts.map((a) => `<button class="v-amt" data-buy="${a}"><b>${money(a)}</b><span>Buy voucher</span></button>`).join("")}</div>
+    <form id="redeemF" class="mt"><label>Got a voucher code?</label>
+      <div class="promo-box"><input name="code" placeholder="PVG-XXXX-XXXX-XXXX" maxlength="20" autocomplete="off"><button class="btn gold">Redeem</button></div></form>
+    ${(data || []).length ? `<h4 class="mt" style="margin-bottom:4px">My vouchers</h4>${data.map((x) => `<div class="list-item"><div class="ic">🎟️</div>
+      <div class="grow"><b class="mono">${esc(x.code)}</b><div class="small muted">${money(x.amount)} · ${fmtDate(x.created_at)}</div></div>
+      <div style="text-align:right"><span class="badge ${x.status === "active" ? "active" : x.status === "redeemed" ? "completed" : "cancelled"}">${x.status === "active" ? "not used yet" : x.status}</span>
+        ${x.status === "active" ? `<div class="row mt" style="gap:4px;justify-content:flex-end"><button class="btn sm soft" data-vshare="${esc(x.code)}" data-amt="${x.amount}">Share</button>
+          <button class="btn sm ghost" data-vcancel="${x.id}">Cancel</button></div>` : ""}</div></div>`).join("")}` : ""}`;
+  const share = async (code, amt) => {
+    const text = `🎁 A Premvio gift voucher for you: ${code} (${money(amt)}). Open Premvio → Settings → Gift vouchers → Redeem. ${location.origin + location.pathname.replace(/index\.html$/, "")}`;
+    if (navigator.share) { try { await navigator.share({ title: "Premvio gift voucher", text }); return; } catch (e) { if (e.name === "AbortError") return; } }
+    copyText(text);
+  };
+  $$("[data-buy]", box).forEach((b) => (b.onclick = async () => {
+    const amt = Number(b.dataset.buy);
+    if (amt > Number(S.profile.balance)) return toast("Not enough balance for this voucher.", "error");
+    if (!(await confirmBox("Buy gift voucher?", `<b>${money(amt)}</b> will be taken from your balance. You get a code to give to a friend.`, "Buy"))) return;
+    if (!(await requirePin(`Buy voucher ${money(amt)}`))) return;
+    const { data: r, error } = await sb.rpc("buy_voucher", { p_amount: amt });
+    if (error) return toast(errMsg(error), "error");
+    await loadProfile(); $$("[data-balance]").forEach((el) => (el.textContent = money(S.profile.balance)));
+    openModal(`<div class="empty"><div class="big">🎟️</div><h2>Your voucher</h2>
+      <div class="code-box mt"><div class="small muted">${money(r.amount)}</div><div class="code mono" style="font-size:1.25rem;letter-spacing:.06em">${esc(r.code)}</div></div>
+      <p class="small muted mt">Send this code to your friend. Anyone who has it can use it once, so keep it private until you give it.</p>
+      <button class="btn block gold mt" id="vShare">${ICONS.send} Share</button><button class="btn ghost block mt" data-close>Done</button></div>`, (m) => { $("#vShare", m).onclick = () => share(r.code, r.amount); });
+    drawVouchers();
+  }));
+  $$("[data-vshare]", box).forEach((b) => (b.onclick = () => share(b.dataset.vshare, b.dataset.amt)));
+  $$("[data-vcancel]", box).forEach((b) => (b.onclick = async () => {
+    if (!(await confirmBox("Cancel voucher?", "The code stops working and the money comes back to your balance.", "Cancel voucher", true))) return;
+    const { error } = await sb.rpc("cancel_voucher", { p_id: Number(b.dataset.vcancel) });
+    if (error) return toast(errMsg(error), "error");
+    toast("Voucher cancelled — money returned.", "success"); await loadProfile(); route();
+  }));
+  $("#redeemF", box).onsubmit = (e) => {
+    e.preventDefault();
+    const code = e.target.code.value.trim();
+    if (code.replace(/[^a-z0-9]/gi, "").length < 12) return toast("Type the full voucher code.", "error");
+    busy($("button", e.target), async () => {
+      const { data: r, error } = await sb.rpc("redeem_voucher", { p_code: code });
+      if (error) throw error;
+      if (!r.ok) throw new Error(r.message);
+      e.target.reset(); await loadProfile(); $$("[data-balance]").forEach((el) => (el.textContent = money(S.profile.balance)));
+      openModal(`<div class="empty"><div class="big">🎉</div><h2>${money(r.amount)} added!</h2><p>The voucher money is now in your balance.</p><button class="btn block mt" data-close>OK</button></div>`);
+    });
+  };
+}
+async function devicesModal() {
+  openModal(`<h2>My devices</h2><div id="devList"><div class="loader"></div></div>
+    <button class="btn danger block mt" id="outOthers">Log out all other devices</button>
+    <p class="small muted mt">Didn't recognise a device? Log out the others and change your password.</p>`, async (m) => {
+    let mine = null; try { mine = localStorage.getItem("pv_device"); } catch (e) {}
+    const { data } = await sb.from("devices").select("*").order("last_seen", { ascending: false });
+    $("#devList", m).innerHTML = (data || []).map((d) => `<div class="list-item"><div class="ic">${/iPhone|Android/.test(d.label) ? "📱" : "💻"}</div>
+      <div class="grow"><b>${esc(d.label)}</b>${d.device_id === mine ? ` <span class="badge active">this device</span>` : ""}
+      <div class="small muted">First: ${fmtDate(d.first_seen)} · Last: ${fmtDate(d.last_seen)}</div></div></div>`).join("") || `<p class="small muted">No devices yet.</p>`;
+    $("#outOthers", m).onclick = () => busy($("#outOthers", m), async () => {
+      const { error } = await sb.auth.signOut({ scope: "others" });
+      if (error) throw error;
+      closeModal(); toast("All other devices are logged out.", "success");
+    });
+  });
+}
+
 /* ---------------- 🎁 invite friends + ⭐ points (Settings) ---------------- */
 async function drawRewards() {
   const box = $("#rewardsCard");
@@ -2229,6 +2507,16 @@ async function viewSettings(v) {
     <div id="kycBox" class="mt"></div>
   </div>
 
+  ${S.settings.voucher_on !== "false" ? `<div class="card" id="voucherCard"><div class="loader"></div></div>` : ""}
+
+  <div class="card">
+    <h3>🔒 Security</h3>
+    <div class="setting-row"><div><b>App PIN lock</b><div class="small muted">${p.has_pin ? "On — asked when you open the app and before paying" : "Ask a 4-number PIN to open the app and to pay"}</div></div>
+      <div class="row" style="gap:6px">${p.has_pin ? `<button class="btn sm soft" id="pinChange">Change</button><button class="btn sm ghost" id="pinOff">Remove</button>` : `<button class="btn sm" id="pinSet">Set PIN</button>`}</div></div>
+    <div class="setting-row"><div><b>My devices</b><div class="small muted">You get a notification when your account opens on a new device</div></div>
+      <button class="btn sm soft" id="devs">See devices</button></div>
+  </div>
+
   <div class="card">
     <h3>Preferences</h3>
     <div class="setting-row"><div><b>Light theme</b><div class="small muted">Switch between dark and light</div></div>
@@ -2249,6 +2537,11 @@ async function viewSettings(v) {
 
   // KYC
   drawRewards();
+  drawVouchers();
+  if ($("#pinSet")) $("#pinSet").onclick = setPinModal;
+  if ($("#pinChange")) $("#pinChange").onclick = setPinModal;
+  if ($("#pinOff")) $("#pinOff").onclick = removePin;
+  $("#devs").onclick = devicesModal;
   const kb = $("#kycBox");
   if (p.kyc_status === "approved" || p.kyc_status === "pending") {
     kb.innerHTML = kyc ? `<div class="small">
