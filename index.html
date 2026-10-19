@@ -734,6 +734,57 @@ input[type="file"]::file-selector-button { border: 0; padding: 10px 14px; margin
 .report-btn .ri { font-size: 1.6rem; }
 .report-btn .dl { flex: none; font-weight: 800; color: var(--green); font-size: .85rem; }
 .report-btn:disabled { opacity: .6; cursor: wait; }
+.comm-card { margin: 0 0 14px; }
+.comm-rates { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0 8px; }
+.comm-rates div { background: var(--card-2); border-radius: 12px; padding: 10px 12px; }
+.comm-rates span { display: block; font-size: .72rem; color: var(--muted); }
+.comm-rates b { font-size: 1.4rem; color: var(--gold); }
+
+/* ============ V31: WhatsApp-style help chat ============ */
+:root { --wa-head: #1f2c34; --wa-bg: #0b141a; --wa-out: #005c4b; --wa-in: #202c33; --wa-text: #e9edef; --wa-sub: #8696a0; --wa-input: #2a3942; --wa-green: #00a884; --wa-dot: rgba(255,255,255,.035); }
+:root[data-theme="light"] { --wa-head: #008069; --wa-bg: #efeae2; --wa-out: #d9fdd3; --wa-in: #ffffff; --wa-text: #111b21; --wa-sub: #667781; --wa-input: #ffffff; --wa-dot: rgba(0,0,0,.04); }
+body.wa-mode .topbar, body.wa-mode .bottom-nav { display: none !important; }
+.wa { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; max-width: 560px; margin: 0 auto; background: var(--wa-bg); color: var(--wa-text); }
+.wa-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; padding-top: calc(10px + env(safe-area-inset-top)); background: var(--wa-head); color: #e9edef; }
+:root[data-theme="light"] .wa-head { color: #fff; }
+.wa-head img { width: 40px; height: 40px; border-radius: 50%; background: #fff; }
+.wa-head b { font-size: 1.02rem; }
+.wa-sub { font-size: .76rem; opacity: .8; }
+.wa-back { background: none; border: 0; color: inherit; font-size: 1.4rem; padding: 4px 6px; cursor: pointer; }
+.wa-solved { border: 1px solid rgba(255,255,255,.35); background: transparent; color: inherit; border-radius: 999px; padding: 6px 10px; font: inherit; font-size: .78rem; font-weight: 700; cursor: pointer; }
+.wa-topic { text-align: center; font-size: .74rem; padding: 6px 12px; background: var(--wa-head); color: #e9edef; opacity: .92; border-top: 1px solid rgba(255,255,255,.08); }
+:root[data-theme="light"] .wa-topic { color: #fff; }
+.wa-body { flex: 1; overflow-y: auto; padding: 10px 12px 14px; display: flex; flex-direction: column; gap: 3px;
+  background-color: var(--wa-bg); background-image: radial-gradient(var(--wa-dot) 1.2px, transparent 1.2px); background-size: 18px 18px; }
+.wa-note { align-self: center; max-width: 85%; text-align: center; font-size: .72rem; padding: 6px 10px; margin: 4px 0 8px; border-radius: 8px; background: rgba(255, 210, 120, .14); color: var(--wa-sub); }
+.wa-day { align-self: center; margin: 8px 0 6px; }
+.wa-day span { font-size: .72rem; padding: 5px 12px; border-radius: 8px; background: var(--wa-in); color: var(--wa-sub); box-shadow: 0 1px 1px rgba(0,0,0,.15); }
+.wa-msg { position: relative; max-width: 80%; padding: 6px 9px 18px; border-radius: 10px; font-size: .95rem; line-height: 1.35; box-shadow: 0 1px 1px rgba(0,0,0,.18); margin: 1px 0; }
+.wa-msg.out { align-self: flex-end; background: var(--wa-out); border-top-right-radius: 3px; }
+.wa-msg.in { align-self: flex-start; background: var(--wa-in); border-top-left-radius: 3px; }
+.wa-txt { white-space: pre-wrap; word-break: break-word; padding-right: 54px; }
+.wa-meta { position: absolute; right: 8px; bottom: 4px; font-size: .66rem; color: var(--wa-sub); white-space: nowrap; }
+.wa-tick { font-style: normal; } .wa-tick.sent { color: #53bdeb; }
+.wa-closed { text-align: center; font-size: .85rem; padding: 10px; background: var(--wa-in); color: var(--wa-sub); }
+.wa-closed .btn { margin-left: 6px; }
+.wa-input { display: flex; align-items: flex-end; gap: 8px; padding: 8px 10px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); background: transparent; }
+.wa-input textarea { flex: 1; margin: 0; resize: none; min-height: 44px; max-height: 120px; padding: 11px 16px; border-radius: 22px; border: 0; background: var(--wa-input); color: var(--wa-text); font-size: .95rem; box-shadow: 0 1px 1px rgba(0,0,0,.15); }
+.wa-send { flex: none; width: 46px; height: 46px; border-radius: 50%; border: 0; background: var(--wa-green); color: #fff; display: grid; place-items: center; cursor: pointer; }
+.wa-send svg { width: 20px; height: 20px; }
+.wa-send:active { transform: scale(.94); }
+/* help: choose a problem */
+.help-hero { text-align: center; margin: 4px 0 14px; }
+.help-hero img { width: 64px; height: 64px; }
+.help-hero h2 { margin: 6px 0 2px; }
+.help-topics { display: grid; gap: 10px; }
+.help-topic { display: flex; align-items: center; gap: 12px; text-align: left; padding: 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; cursor: pointer; }
+.help-topic:active { transform: scale(.99); } .help-topic:hover { border-color: var(--wa-green); }
+.help-topic .ht-ic { font-size: 1.7rem; } .help-topic em { font-style: normal; color: var(--muted); font-size: 1.3rem; }
+.help-orders { display: grid; gap: 8px; }
+.help-order { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--card-2); color: var(--text); font: inherit; cursor: pointer; }
+.help-order.on { border-color: var(--wa-green); box-shadow: 0 0 0 2px rgba(0,168,132,.25); }
+.wa-start { background: var(--wa-green) !important; color: #fff !important; }
+.help-hero img { display: block; margin: 0 auto; }
 
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
@@ -1217,6 +1268,18 @@ const PV_NE = {
   "Ask a 4-number PIN to open the app and to pay": "एप खोल्न र तिर्न ४ अंकको PIN सोध्नुहोस्",
   "On — asked when you open the app and before paying": "खुला — एप खोल्दा र तिर्नुअघि सोधिन्छ",
   "Help": "सहायता", "Chat with us": "हामीसँग च्याट गर्नुहोस्",
+  "What problem are you facing?": "तपाईंलाई के समस्या भयो?", "Choose one — then you can chat with us.": "एउटा छान्नुहोस् — त्यसपछि हामीसँग च्याट गर्न सक्नुहुन्छ।",
+  "Help": "सहायता", "Deposit problem": "डिपोजिटमा समस्या", "Withdrawal problem": "निकासीमा समस्या", "Something else": "अरू केही",
+  "My order didn't arrive, is wrong or late": "मेरो अर्डर आएन, गलत छ वा ढिला भयो", "I paid but my balance didn't update": "तिरेँ तर ब्यालेन्स अपडेट भएन",
+  "A withdrawal or cash code problem": "निकासी वा क्यास कोडमा समस्या", "Login, KYC, PIN or account details": "लग इन, KYC, PIN वा खाताको विवरण", "Any other question": "अरू कुनै प्रश्न",
+  "Which order?": "कुन अर्डर?", "Not about one order": "कुनै एक अर्डरबारे होइन", "Describe your problem": "आफ्नो समस्या लेख्नुहोस्", "💬 Start chat": "💬 च्याट सुरु गर्नुहोस्",
+  "Premvio Support": "Premvio सहायता", "Usually replies in a few minutes": "प्रायः केही मिनेटमै जवाफ दिन्छ", "Solved ✅": "समाधान भयो ✅", "Message": "सन्देश",
+  "Today": "आज", "Yesterday": "हिजो", "🔒 Messages are only between you and Premvio.": "🔒 सन्देशहरू तपाईं र Premvio बीच मात्र हुन्छन्।",
+  "This chat is solved. Need more help?": "यो च्याट समाधान भयो। अझै सहायता चाहियो?", "Problem solved?": "समस्या समाधान भयो?", "Yes, solved": "हो, समाधान भयो",
+  "We'll close this chat. You can always start a new one from Help.": "हामी यो च्याट बन्द गर्छौं। सहायताबाट जुनसुकै बेला नयाँ सुरु गर्न सक्नुहुन्छ।",
+  "Vouchers": "भाउचरहरू", "No vouchers yet. Buy one in Settings → Gift vouchers.": "अहिलेसम्म भाउचर छैन। सेटिङ → गिफ्ट भाउचरमा किन्नुहोस्।",
+  "Your vouchers are in": "तपाईंका भाउचरहरू यहाँ छन्:", "History → Vouchers": "इतिहास → भाउचरहरू", "You can find it later in History → Vouchers.": "पछि इतिहास → भाउचरहरूमा भेट्नुहुन्छ।",
+  "Cancel & refund": "रद्द गरी फिर्ता",
   // common
   "OK": "ठिक छ", "Cancel": "रद्द गर्नुहोस्", "Delete": "हटाउनुहोस्", "Back": "पछाडि", "Close": "बन्द गर्नुहोस्", "Please wait…": "कृपया पर्खनुहोस्…",
   "Got it": "बुझेँ", "No notifications yet": "अहिलेसम्म सूचना छैन", "Choose…": "छान्नुहोस्…", "Name": "नाम", "Document": "कागजात",
@@ -1581,6 +1644,7 @@ function tgLink() { return "https://t.me/" + tgHandle().replace(/^@/, ""); }
 
 function route() {
   const tab = (location.hash || "#home").slice(1);
+  document.body.classList.remove("wa-mode");
   if (S.helpCh && !tab.startsWith("help/")) { sb.removeChannel(S.helpCh); S.helpCh = null; }
   // Help chat opens as its own screen
   if (tab === "help" || tab.startsWith("help/")) {
@@ -2499,7 +2563,7 @@ const TX_NAME = { deposit: "Deposit", load: "Deposit", adjust: "Admin adjustment
 const TX_ICON = { deposit: "💰", adjust: "💰", load: "💰", withdraw: "🏧", purchase: "🛍️", refund: "↩️", agent_load: "📤", agent_payout: "📥", bonus: "🎁", voucher: "🎟️" };
 async function viewHistory(v) {
   v.innerHTML = `<h2>History</h2><p class="muted small">Last 30 days</p>
-    <div class="chips">${[["all", "All"], ["orders", "Orders"], ["withdrawals", "Withdrawals"]].map(([k, l]) =>
+    <div class="chips">${[["all", "All"], ["orders", "Orders"], ["withdrawals", "Withdrawals"], ...(S.settings.voucher_on !== "false" ? [["vouchers", "Vouchers"]] : [])].map(([k, l]) =>
       `<button class="chip ${S.histTab === k ? "on" : ""}" data-h="${k}">${l}</button>`).join("")}</div>
     <div class="card" id="hl"><div class="loader"></div></div>`;
   $$(".chip", v).forEach((c) => (c.onclick = () => { S.histTab = c.dataset.h; viewHistory(v); }));
@@ -2540,7 +2604,24 @@ async function viewHistory(v) {
       <div class="grow"><b class="mono">${esc(w.code)}</b><div class="small muted">${esc(w.city)}, ${esc(w.street)} · ${fmtDate(w.created_at)}</div></div>
       <div style="text-align:right"><div><b>${money(w.amount)}</b></div><span class="badge ${w.status}">${w.status}</span></div></div>`);
   }
-  hl.innerHTML = rows.length ? rows.join("") : `<div class="empty"><div class="big">🗂️</div>Nothing here yet</div>`;
+  if (S.histTab === "vouchers") {
+    const { data } = await sb.from("vouchers").select("*").eq("buyer_id", S.user.id).order("created_at", { ascending: false }).limit(100);
+    S.myVouchers = data || [];
+    rows = S.myVouchers.map((x) => `<div class="list-item" style="align-items:flex-start"><div class="ic">🎟️</div>
+      <div class="grow"><b class="mono">${esc(x.code)}</b><div class="small muted">${money(x.amount)} · bought ${fmtDate(x.created_at)}</div>
+        ${x.status === "redeemed" && x.redeemed_at ? `<div class="small muted">Used ${fmtDate(x.redeemed_at)}</div>` : ""}
+        ${x.status === "active" ? `<div class="row mt" style="gap:6px"><button class="btn sm soft" data-vshare="${x.id}">${ICONS.send} Share</button>
+          <button class="btn sm ghost" data-vcancel="${x.id}">Cancel</button></div>` : ""}</div>
+      <span class="badge ${x.status === "active" ? "active" : x.status === "redeemed" ? "completed" : "cancelled"}">${x.status === "active" ? "not used yet" : x.status}</span></div>`);
+  }
+  hl.innerHTML = rows.length ? rows.join("") : `<div class="empty"><div class="big">${S.histTab === "vouchers" ? "🎟️" : "🗂️"}</div>${S.histTab === "vouchers" ? "No vouchers yet. Buy one in Settings → Gift vouchers." : "Nothing here yet"}</div>`;
+  $$("[data-vshare]", hl).forEach((b) => (b.onclick = () => { const x = S.myVouchers.find((y) => y.id == b.dataset.vshare); shareVoucher(x.code, x.amount); }));
+  $$("[data-vcancel]", hl).forEach((b) => (b.onclick = async () => {
+    if (!(await confirmBox("Cancel voucher?", "The code stops working and the money comes back to your balance.", "Cancel voucher", true))) return;
+    const { error } = await sb.rpc("cancel_voucher", { p_id: Number(b.dataset.vcancel) });
+    if (error) return toast(errMsg(error), "error");
+    toast("Voucher cancelled — money returned.", "success"); await loadProfile(); viewHistory(v);
+  }));
   $$("[data-refund]", hl).forEach((b) => (b.onclick = () => refundModal(S.orders.find((o) => o.id == b.dataset.refund), v)));
   $$("[data-help]", hl).forEach((b) => (b.onclick = () => { S.helpOrder = Number(b.dataset.help); location.hash = "help"; }));
   $$("[data-rate]", hl).forEach((b) => (b.onclick = () => rateModal(S.orders.find((o) => o.id == b.dataset.rate), S.myReviews[b.dataset.rate], () => viewHistory(v))));
@@ -2576,103 +2657,135 @@ function refundModal(o, view) {
 }
 
 /* ---------------- SETTINGS ---------------- */
-/* ---------------- 💬 HELP CHAT ---------------- */
-const HELP_TOPICS = ["Order problem", "Deposit", "Withdrawal", "Account / KYC", "Other"];
+/* ---------------- 💬 HELP CHAT (WhatsApp style) ---------------- */
+// Step 1: "What problem are you facing?"  Step 2: details  →  chat page. An open chat opens straight away.
+const HELP_TOPICS = [
+  ["Order problem", "🛍️", "My order didn't arrive, is wrong or late"],
+  ["Deposit problem", "💰", "I paid but my balance didn't update"],
+  ["Withdrawal problem", "🏧", "A withdrawal or cash code problem"],
+  ["Account / KYC", "🔐", "Login, KYC, PIN or account details"],
+  ["Something else", "💬", "Any other question"],
+];
 async function viewHelp(v, id) {
   if (id) return helpThread(v, id);
-  const [{ data: list }, { data: recent }] = await Promise.all([
-    sb.from("tickets").select("*").order("updated_at", { ascending: false }).limit(30),
-    sb.from("orders").select("id, product_name, quantity, created_at").order("created_at", { ascending: false }).limit(15)]);
-  const pre = S.helpOrder; S.helpOrder = null;
-  v.innerHTML = `<div class="screen-head"><button class="back-btn" id="back" aria-label="Back">←</button><h2 style="margin:0">💬 Help chat</h2></div>
-    <div class="card"><h3 style="margin-top:0">Start a new chat</h3>
-      <form id="ntf"><label>Topic</label><div class="chips">${HELP_TOPICS.map((t, i) => `<button type="button" class="chip ${(pre ? t === "Order problem" : i === 0) ? "on" : ""}" data-topic="${esc(t)}">${esc(t)}</button>`).join("")}</div>
-        <label>About an order <span class="muted">(optional)</span></label><select name="order"><option value="">— No order —</option>
-          ${(recent || []).map((o) => `<option value="${o.id}" ${pre === o.id ? "selected" : ""}>#${o.id} ${esc(o.product_name)} × ${o.quantity} · ${fmtDate(o.created_at)}</option>`).join("")}</select>
-        <label>Your message</label><textarea name="body" required maxlength="1000" placeholder="Tell us what happened…"></textarea>
-        <button class="btn block mt">${ICONS.send} Send</button></form></div>
-    <h3 class="mt">My chats</h3>
-    <div class="card">${(list || []).length ? list.map((t) => `<a class="list-item help-row" href="#help/${t.id}"><div class="ic">${t.status === "closed" ? "✅" : t.waiting_for === "customer" ? "🔵" : "💬"}</div>
-      <div class="grow"><b>${esc(t.subject)}</b> <span class="small muted">#${t.id}</span>
-        <div class="small muted">${t.status === "closed" ? "Solved" : t.waiting_for === "customer" ? "<b style='color:var(--blue)'>New reply</b>" : "Waiting for Premvio"} · ${fmtDate(t.updated_at)}</div></div><em>›</em></a>`).join("")
-      : `<div class="empty"><div class="big">💬</div>No chats yet</div>`}</div>`;
+  const pre = S.helpOrder;
+  if (!pre && !S.helpNew) {
+    const { data: open } = await sb.from("tickets").select("id").eq("status", "open").order("updated_at", { ascending: false }).limit(1);
+    if (open && open.length) { location.replace("#help/" + open[0].id); return; }
+  }
+  S.helpNew = false;
+  if (pre) return helpDetails(v, "Order problem", pre);
+  v.innerHTML = `<div class="screen-head"><button class="back-btn" id="back" aria-label="Back">←</button><h2 style="margin:0">Help</h2></div>
+    <div class="help-hero"><img src="${PV_LOGO}" alt=""><h2>What problem are you facing?</h2><p class="muted small">Choose one — then you can chat with us.</p></div>
+    <div class="help-topics">${HELP_TOPICS.map(([t, ic, d]) => `<button class="help-topic" data-topic="${esc(t)}"><span class="ht-ic">${ic}</span>
+      <span class="grow"><b>${esc(t)}</b><br><span class="small muted">${esc(d)}</span></span><em>›</em></button>`).join("")}</div>`;
   $("#back").onclick = goBack;
-  let topic = pre ? "Order problem" : HELP_TOPICS[0];
-  $$("[data-topic]", v).forEach((b) => (b.onclick = () => { topic = b.dataset.topic; $$("[data-topic]", v).forEach((x) => x.classList.toggle("on", x === b)); }));
-  $("#ntf").onsubmit = (e) => {
+  $$("[data-topic]", v).forEach((b) => (b.onclick = () => helpDetails(v, b.dataset.topic, null)));
+}
+async function helpDetails(v, topic, orderId) {
+  S.helpOrder = null;
+  const t = HELP_TOPICS.find((x) => x[0] === topic) || HELP_TOPICS[4];
+  const { data: recent } = topic === "Order problem"
+    ? await sb.from("orders").select("id, product_name, quantity, total, status, created_at").order("created_at", { ascending: false }).limit(10) : { data: [] };
+  let sel = orderId || null;
+  v.innerHTML = `<div class="screen-head"><button class="back-btn" id="back" aria-label="Back">←</button><h2 style="margin:0">${t[1]} ${esc(topic)}</h2></div>
+    <form id="hdf" class="card">
+      ${topic === "Order problem" ? `<label style="margin-top:0">Which order?</label>
+        <div class="help-orders">${(recent || []).map((o) => `<button type="button" class="help-order ${sel === o.id ? "on" : ""}" data-oid="${o.id}">
+          <b>#${o.id} ${esc(o.product_name)} × ${o.quantity}</b><span class="small muted">${money(o.total)} · ${esc(o.status)} · ${fmtDate(o.created_at)}</span></button>`).join("")}
+          <button type="button" class="help-order ${sel ? "" : "on"}" data-oid=""><b>Not about one order</b></button></div>` : ""}
+      <label ${topic === "Order problem" ? "" : `style="margin-top:0"`}>Describe your problem</label>
+      <textarea name="body" required maxlength="1000" rows="4" placeholder="Tell us what happened…"></textarea>
+      <button class="btn block mt wa-start">💬 Start chat</button></form>`;
+  $("#back").onclick = () => viewHelp(v, null);
+  $$("[data-oid]", v).forEach((b) => (b.onclick = () => { sel = b.dataset.oid ? Number(b.dataset.oid) : null; $$("[data-oid]", v).forEach((x) => x.classList.toggle("on", x === b)); }));
+  $("#hdf").onsubmit = (e) => {
     e.preventDefault();
     const f = e.target;
-    busy($('button.btn:not([type="button"])', f), async () => {
-      const { data, error } = await sb.rpc("open_ticket", { p_subject: topic, p_body: f.body.value, p_order: f.order.value ? Number(f.order.value) : null });
+    busy($(".wa-start", f), async () => {
+      const { data, error } = await sb.rpc("open_ticket", { p_subject: topic, p_body: f.body.value, p_order: sel });
       if (error) throw error;
       location.hash = "help/" + data;
     });
   };
 }
+function waDay(d) {
+  const x = new Date(d), today = new Date(), y = new Date(Date.now() - 864e5);
+  if (x.toDateString() === today.toDateString()) return "Today";
+  if (x.toDateString() === y.toDateString()) return "Yesterday";
+  return x.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+const waTime = (d) => new Date(d).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 async function helpThread(v, id) {
   const [{ data: t, error }, { data: msgs }] = await Promise.all([
     sb.from("tickets").select("*, orders(product_name, quantity)").eq("id", id).single(),
     sb.from("ticket_messages").select("*").eq("ticket_id", id).order("created_at")]);
-  if (error || !t) { v.innerHTML = `<div class="empty">Chat not found. <a href="#help">Back</a></div>`; return; }
-  v.innerHTML = `<div class="screen-head"><button class="back-btn" id="back" aria-label="Back">←</button>
-      <div class="grow"><h2 style="margin:0;font-size:1.1rem">${esc(t.subject)}</h2><div class="small muted">#${t.id}${t.orders ? ` · Order #${t.order_id} ${esc(t.orders.product_name)}` : ""}</div></div>
-      ${t.status === "open" ? `<button class="btn sm soft" id="solved">✅ Solved</button>` : `<span class="badge completed">solved</span>`}</div>
-    <div class="chat" id="chat"></div>
-    <form id="msgf" class="chat-input"><textarea name="m" rows="1" maxlength="1000" placeholder="Write a message…" required></textarea>
-      <button class="btn" aria-label="Send">${ICONS.send}</button></form>
-    ${t.status === "closed" ? `<p class="small muted center">This chat is solved. Writing a new message opens it again.</p>` : ""}`;
-  $("#back").onclick = () => (location.hash = "help");
+  if (error || !t) { location.replace("#help"); return; }
+  document.body.classList.add("wa-mode");
+  const closed = t.status === "closed";
+  v.innerHTML = `<div class="wa">
+    <header class="wa-head"><button class="wa-back" id="back" aria-label="Back">←</button><img src="${PV_LOGO}" alt="">
+      <div class="grow"><b>Premvio Support</b><div class="wa-sub">${closed ? "Solved ✅" : "Usually replies in a few minutes"}</div></div>
+      ${closed ? "" : `<button class="wa-solved" id="solved">✅ Solved</button>`}</header>
+    <div class="wa-topic">${esc(t.subject)}${t.orders ? ` · Order #${t.order_id} ${esc(t.orders.product_name)}` : ""}</div>
+    <div class="wa-body" id="chat"><div class="wa-note">🔒 Messages are only between you and Premvio.</div></div>
+    ${closed ? `<div class="wa-closed">This chat is solved. Need more help? <button class="btn sm" id="newChat">Start a new chat</button></div>` : ""}
+    <form id="msgf" class="wa-input"><textarea name="m" rows="1" maxlength="1000" placeholder="Message" required></textarea>
+      <button class="wa-send" aria-label="Send">${ICONS.send}</button></form></div>`;
+  $("#back").onclick = () => (location.hash = "settings");
   const chat = $("#chat"), seen = new Set();
-  const add = (m) => {
-    if (seen.has(m.id)) return; seen.add(m.id);
-    chat.insertAdjacentHTML("beforeend", `<div class="bubble ${m.from_staff ? "them" : "me"}">${m.from_staff ? `<div class="who">Premvio</div>` : ""}<div>${esc(m.body)}</div><div class="t">${fmtDate(m.created_at)}</div></div>`);
-    chat.scrollTop = chat.scrollHeight; window.scrollTo(0, document.body.scrollHeight);
+  let lastDay = "";
+  const add = (m, pending) => {
+    if (m.id && seen.has(m.id)) return; if (m.id) seen.add(m.id);
+    const day = waDay(m.created_at);
+    if (day !== lastDay) { chat.insertAdjacentHTML("beforeend", `<div class="wa-day"><span>${day}</span></div>`); lastDay = day; }
+    chat.insertAdjacentHTML("beforeend", `<div class="wa-msg ${m.from_staff ? "in" : "out"}"><div class="wa-txt">${esc(m.body)}</div>
+      <span class="wa-meta">${waTime(m.created_at)}${m.from_staff ? "" : ` <i class="wa-tick ${pending ? "" : "sent"}">${pending ? "🕓" : "✓✓"}</i>`}</span></div>`);
+    chat.scrollTop = chat.scrollHeight;
   };
-  (msgs || []).forEach(add);
+  (msgs || []).forEach((m) => add(m));
   if (S.helpCh) sb.removeChannel(S.helpCh);
   S.helpCh = sb.channel("help-" + id).on("postgres_changes", { event: "INSERT", schema: "public", table: "ticket_messages", filter: `ticket_id=eq.${id}` }, (x) => add(x.new)).subscribe();
   const f = $("#msgf"), ta = f.m;
-  ta.oninput = () => { ta.style.height = "auto"; ta.style.height = Math.min(140, ta.scrollHeight) + "px"; };
+  ta.oninput = () => { ta.style.height = "auto"; ta.style.height = Math.min(120, ta.scrollHeight) + "px"; };
   ta.onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey && !/Android|iPhone/i.test(navigator.userAgent)) { e.preventDefault(); f.requestSubmit(); } };
-  f.onsubmit = (e) => {
+  f.onsubmit = async (e) => {
     e.preventDefault();
     const body = ta.value.trim(); if (!body) return;
-    busy($("button", f), async () => {
-      const { data: mid, error: er } = await sb.rpc("send_ticket_message", { p_ticket: id, p_body: body });
-      if (er) throw er;
-      ta.value = ""; ta.style.height = "auto";
-      add({ id: mid, from_staff: false, body, created_at: new Date().toISOString() });
-    });
+    ta.value = ""; ta.style.height = "auto"; ta.focus();
+    const { data: mid, error: er } = await sb.rpc("send_ticket_message", { p_ticket: id, p_body: body });
+    if (er) { ta.value = body; return toast(errMsg(er), "error"); }
+    add({ id: mid, from_staff: false, body, created_at: new Date().toISOString() });
+    if (closed) route();
   };
   if ($("#solved")) $("#solved").onclick = async () => {
+    if (!(await confirmBox("Problem solved?", "We'll close this chat. You can always start a new one from Help.", "Yes, solved"))) return;
     const { error: er } = await sb.rpc("close_ticket", { p_ticket: id });
     if (er) return toast(errMsg(er), "error");
     toast("Glad we could help! 🙌", "success"); route();
   };
+  if ($("#newChat")) $("#newChat").onclick = () => { S.helpNew = true; location.hash = "help"; };
+  setTimeout(() => (chat.scrollTop = chat.scrollHeight), 50);
 }
 
-/* ---------------- 🎟️ gift vouchers (Settings) ---------------- */
+/* ---------------- 🎟️ gift vouchers (Settings: buy + redeem; the list is in History → Vouchers) ---------------- */
+async function shareVoucher(code, amt) {
+  const text = `🎁 A Premvio gift voucher for you: ${code} (${money(amt)}). Open Premvio → Settings → Gift vouchers → Redeem. ${location.origin + location.pathname.replace(/index\.html$/, "")}`;
+  if (navigator.share) { try { await navigator.share({ title: "Premvio gift voucher", text }); return; } catch (e) { if (e.name === "AbortError") return; } }
+  copyText(text);
+}
 async function drawVouchers() {
   const box = $("#voucherCard");
   if (!box) return;
   const amounts = String(S.settings.voucher_amounts || "100,500,1000").split(",").map((x) => Number(x.trim())).filter((x) => x > 0);
-  const { data } = await sb.from("vouchers").select("*").eq("buyer_id", S.user.id).order("created_at", { ascending: false }).limit(20);
   if (!document.body.contains(box)) return;
   box.innerHTML = `<h3 style="margin-top:0">🎟️ Gift vouchers</h3>
     <p class="small muted">Buy a voucher code with your balance and send it to a friend. They type the code here and the money goes to their balance.</p>
     <div class="v-amounts">${amounts.map((a) => `<button class="v-amt" data-buy="${a}"><b>${money(a)}</b><span>Buy voucher</span></button>`).join("")}</div>
     <form id="redeemF" class="mt"><label>Got a voucher code?</label>
       <div class="promo-box"><input name="code" placeholder="PVG-XXXX-XXXX-XXXX" maxlength="20" autocomplete="off"><button class="btn gold">Redeem</button></div></form>
-    ${(data || []).length ? `<h4 class="mt" style="margin-bottom:4px">My vouchers</h4>${data.map((x) => `<div class="list-item"><div class="ic">🎟️</div>
-      <div class="grow"><b class="mono">${esc(x.code)}</b><div class="small muted">${money(x.amount)} · ${fmtDate(x.created_at)}</div></div>
-      <div style="text-align:right"><span class="badge ${x.status === "active" ? "active" : x.status === "redeemed" ? "completed" : "cancelled"}">${x.status === "active" ? "not used yet" : x.status}</span>
-        ${x.status === "active" ? `<div class="row mt" style="gap:4px;justify-content:flex-end"><button class="btn sm soft" data-vshare="${esc(x.code)}" data-amt="${x.amount}">Share</button>
-          <button class="btn sm ghost" data-vcancel="${x.id}">Cancel</button></div>` : ""}</div></div>`).join("")}` : ""}`;
-  const share = async (code, amt) => {
-    const text = `🎁 A Premvio gift voucher for you: ${code} (${money(amt)}). Open Premvio → Settings → Gift vouchers → Redeem. ${location.origin + location.pathname.replace(/index\.html$/, "")}`;
-    if (navigator.share) { try { await navigator.share({ title: "Premvio gift voucher", text }); return; } catch (e) { if (e.name === "AbortError") return; } }
-    copyText(text);
-  };
+    <p class="small muted mt">Your vouchers are in <a href="#history" data-vh>History → Vouchers</a>.</p>`;
+  $("[data-vh]", box).onclick = () => { S.histTab = "vouchers"; };
   $$("[data-buy]", box).forEach((b) => (b.onclick = async () => {
     const amt = Number(b.dataset.buy);
     if (amt > Number(S.profile.balance)) return toast("Not enough balance for this voucher.", "error");
@@ -2684,15 +2797,9 @@ async function drawVouchers() {
     openModal(`<div class="empty"><div class="big">🎟️</div><h2>Your voucher</h2>
       <div class="code-box mt"><div class="small muted">${money(r.amount)}</div><div class="code mono" style="font-size:1.25rem;letter-spacing:.06em">${esc(r.code)}</div></div>
       <p class="small muted mt">Send this code to your friend. Anyone who has it can use it once, so keep it private until you give it.</p>
-      <button class="btn block gold mt" id="vShare">${ICONS.send} Share</button><button class="btn ghost block mt" data-close>Done</button></div>`, (m) => { $("#vShare", m).onclick = () => share(r.code, r.amount); });
+      <button class="btn block gold mt" id="vShare">${ICONS.send} Share</button><button class="btn ghost block mt" data-close>Done</button>
+      <p class="small muted mt">You can find it later in History → Vouchers.</p></div>`, (m) => { $("#vShare", m).onclick = () => shareVoucher(r.code, r.amount); });
     drawVouchers();
-  }));
-  $$("[data-vshare]", box).forEach((b) => (b.onclick = () => share(b.dataset.vshare, b.dataset.amt)));
-  $$("[data-vcancel]", box).forEach((b) => (b.onclick = async () => {
-    if (!(await confirmBox("Cancel voucher?", "The code stops working and the money comes back to your balance.", "Cancel voucher", true))) return;
-    const { error } = await sb.rpc("cancel_voucher", { p_id: Number(b.dataset.vcancel) });
-    if (error) return toast(errMsg(error), "error");
-    toast("Voucher cancelled — money returned.", "success"); await loadProfile(); route();
   }));
   $("#redeemF", box).onsubmit = (e) => {
     e.preventDefault();
