@@ -1179,6 +1179,23 @@ function bindRange(root, r, onChange) {
 }
 function fmtDay(s) { return new Date(s + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }); }
 
+// Method button link: "@premvio", "premvio", "t.me/premvio" or a full https link → a link that opens.
+// Telegram usernames open the Telegram app (https://t.me/…). Returns "" if it can't be used.
+function pvLink(v) {
+  v = String(v || "").trim();
+  if (!v) return "";
+  if (/^@?[A-Za-z][A-Za-z0-9_]{3,31}$/.test(v)) return "https://t.me/" + v.replace(/^@/, "");
+  if (/^tg:\/\//i.test(v)) return v;
+  if (/^(t|telegram)\.me\//i.test(v)) return "https://" + v;
+  if (!/^https?:\/\//i.test(v) && /^[\w-]+(\.[\w-]+)+(\/.*)?$/.test(v)) return "https://" + v;
+  return /^https?:\/\//i.test(v) ? v : "";
+}
+function pvLinkBtn(m, cls = "btn sm deposit") {
+  const href = pvLink(m.link);
+  if (!href) return "";
+  const tg = /^(https:\/\/(t|telegram)\.me\/|tg:)/i.test(href);
+  return `<a class="${cls}" href="${esc(href)}" target="_blank" rel="noopener">${ICONS.send} ${tg ? "Open in Telegram" : "Open " + esc(m.name)}</a>`;
+}
 function copyText(t) {
   navigator.clipboard?.writeText(t).then(() => toast("Copied: " + t, "success"), () => toast(t));
 }
@@ -1219,7 +1236,7 @@ const PV_NE = {
   "FREE": "निःशुल्क", "🎁 FREE": "🎁 निःशुल्क", "🎁 Get it free": "🎁 निःशुल्क लिनुहोस्", "from": "सुरु मूल्य",
   "Price depends on the option you choose.": "मूल्य तपाईंले छान्नुभएको विकल्प अनुसार फरक हुन्छ।",
   "It's free — nothing is taken from your balance.": "यो निःशुल्क हो — तपाईंको ब्यालेन्सबाट केही काटिँदैन।",
-  "Choose…": "छान्नुहोस्…", "How many months?": "कति महिना?",
+  "Choose…": "छान्नुहोस्…", "Open in Telegram": "Telegram मा खोल्नुहोस्", "Pay here, then send the form": "यहाँ तिर्नुहोस्, अनि फारम पठाउनुहोस्", "How many months?": "कति महिना?",
   "Out of stock": "स्टक सकियो", "Sold out today": "आजको लागि सकियो", "Sale ended": "सेल सकियो", "⚡ SALE": "⚡ सेल", "sale": "सेल",
   "Reviews": "समीक्षाहरू", "⭐ Use my points": "⭐ मेरो पोइन्ट प्रयोग गर्नुहोस्", "available": "उपलब्ध",
   "🎁 Send as a gift to a friend": "🎁 साथीलाई उपहारको रूपमा पठाउनुहोस्", "Friend's name": "साथीको नाम",
@@ -2495,47 +2512,53 @@ function limitsText(m, fallbackMin, fallbackMax) {
   return [mn != null && mn !== "" ? "Min " + money(mn) : "", mx != null && mx !== "" ? "Max " + money(mx) : ""].filter(Boolean).join(" · ");
 }
 
-// Deposit: show account details, customer pays outside, then sends amount + screenshot
+// Deposit: show account details, customer pays outside, then sends what the admin asks for
+// (amount and screenshot are switched on/off per method by the admin)
 function depositPanel(body, m) {
   const fields = m.fields || [];
+  const askAmt = m.ask_amount !== false, proof = m.proof_mode || "required";
   body.innerHTML = `<div class="card pm-panel">
-    ${methodHead(m, "Pay here, then upload the screenshot")}
+    ${methodHead(m, proof === "off" ? "Pay here, then send the form" : "Pay here, then upload the screenshot")}
     <div class="row wrap mt" style="gap:8px">
       ${m.details ? `<button class="btn sm soft" id="cpDet">${ICONS.copy} Copy details</button>` : ""}
-      ${m.link ? `<a class="btn sm deposit" href="${esc(m.link)}" target="_blank" rel="noopener">${ICONS.send} Open ${esc(m.name)}</a>` : ""}
+      ${pvLinkBtn(m)}
       <button class="btn sm soft" onclick="copyText('${esc(S.profile.member_id)}')">${ICONS.copy} My ID ${esc(S.profile.member_id)}</button>
     </div>
     <form id="depf" class="mt">
-      <label>Amount you paid (${CFG.CURRENCY}) <span class="muted">${esc(limitsText(m))}</span></label>
-      <input type="number" name="amount" min="${m.min_amount ?? 1}" ${m.max_amount != null ? `max="${m.max_amount}"` : ""} step="0.01" required inputmode="decimal">
+      ${askAmt ? `<label>Amount you paid (${CFG.CURRENCY}) <span class="muted">${esc(limitsText(m))}</span></label>
+      <input type="number" name="amount" min="${m.min_amount ?? 1}" ${m.max_amount != null ? `max="${m.max_amount}"` : ""} step="0.01" required inputmode="decimal">` : ""}
       ${fields.map((fd) => fieldInput(fd)).join("")}
-      <label>Payment screenshot <span style="color:var(--red)">*</span></label>
-      <input type="file" name="proof" accept="image/*" required>
-      <img id="proofPrev" class="doc-preview hidden" alt="">
+      ${proof === "off" ? "" : `<label>Payment screenshot ${proof === "required" ? `<span style="color:var(--red)">*</span>` : `<span class="muted">(optional)</span>`}</label>
+      <input type="file" name="proof" accept="image/*" ${proof === "required" ? "required" : ""}>
+      <img id="proofPrev" class="doc-preview hidden" alt="">`}
       <button class="btn block deposit mt">Send for approval</button>
       <p class="small muted mt">We add the money to your balance after checking your payment. You'll get a notification.</p>
     </form></div>`;
   if ($("#cpDet")) $("#cpDet").onclick = () => copyText(m.details);
   const f = $("#depf");
-  f.proof.onchange = () => { const fl = f.proof.files[0]; if (fl) { $("#proofPrev").src = URL.createObjectURL(fl); $("#proofPrev").classList.remove("hidden"); } };
+  if (f.proof) f.proof.onchange = () => { const fl = f.proof.files[0]; if (fl) { $("#proofPrev").src = URL.createObjectURL(fl); $("#proofPrev").classList.remove("hidden"); } };
   f.onsubmit = (e) => {
     e.preventDefault();
-    const amt = Number(f.amount.value);
-    if (!(amt > 0)) return toast("Enter the amount you paid.", "error");
-    const file = f.proof.files?.[0];
-    if (!file) return toast("Please add a screenshot of your payment.", "error");
+    const amt = askAmt ? Number(f.amount.value) : null;
+    if (askAmt && !(amt > 0)) return toast("Enter the amount you paid.", "error");
+    const file = f.proof?.files?.[0] || null;
+    if (proof === "required" && !file) return toast("Please add a screenshot of your payment.", "error");
     const form = readForm(f, fields);
+    if (!form) return;
     busy($("button.btn", f), async () => {
-      const blob = await compressImage(file);
-      if (blob.size > 6 * 1024 * 1024) throw new Error("Screenshot is too large.");
-      const path = `${S.user.id}/dep-${Date.now()}.jpg`;
-      const { error: upErr } = await sb.storage.from("proofs").upload(path, blob, { contentType: blob.type || "image/jpeg", upsert: false });
-      if (upErr) throw upErr;
+      let path = null;
+      if (file) {
+        const blob = await compressImage(file);
+        if (blob.size > 6 * 1024 * 1024) throw new Error("Screenshot is too large.");
+        path = `${S.user.id}/dep-${Date.now()}.jpg`;
+        const { error: upErr } = await sb.storage.from("proofs").upload(path, blob, { contentType: blob.type || "image/jpeg", upsert: false });
+        if (upErr) throw upErr;
+      }
       const { data, error } = await sb.rpc("request_deposit", { p_method: m.id, p_amount: amt, p_form: form, p_proof: path });
       if (error) throw error;
       rememberFields(fields, form);
       openModal(`<div class="empty"><div class="big">🧾</div><h2>Deposit #${data} sent</h2>
-        <p>We're checking your payment of <b>${money(amt)}</b> via <b>${esc(m.name)}</b>. You'll get a notification when it's added to your balance.</p>
+        <p>We're checking your payment${amt ? ` of <b>${money(amt)}</b>` : ""} via <b>${esc(m.name)}</b>. You'll get a notification when it's added to your balance.</p>
         <button class="btn block mt" data-close>OK</button></div>`);
       depositPanel(body, m);
     });
@@ -2595,7 +2618,7 @@ async function drawRecent(kind) {
   box.innerHTML = data && data.length ? `<h3 class="mt">My ${kind === "deposit" ? "deposits" : "withdrawal requests"}</h3><div class="card" style="padding:4px 14px">
     ${data.map((r) => `<div class="list-item"><div class="grow"><b>#${r.id} · ${esc(r.method_name)}</b>
       <div class="small muted">${fmtDate(r.created_at)}</div>${r.admin_note ? `<div class="small muted">${esc(r.admin_note)}</div>` : ""}</div>
-      <div style="text-align:right"><b>${money(r.amount)}</b><br><span class="badge ${cls[r.status]}">${label[r.status] || r.status}</span></div></div>`).join("")}</div>` : "";
+      <div style="text-align:right"><b>${r.amount != null ? money(r.amount) : "—"}</b><br><span class="badge ${cls[r.status]}">${label[r.status] || r.status}</span></div></div>`).join("")}</div>` : "";
 }
 
 // PremvioCash: city + street + 24-hour code paid by an agent
