@@ -1670,7 +1670,6 @@ document.addEventListener("visibilitychange", () => {
 function setPinModal() {
   const has = S.profile.has_pin;
   openModal(`<h2>🔒 ${has ? "Change" : "Set"} app PIN</h2>
-    <p class="small muted">A 4-number PIN is asked when you open the app and before you pay or withdraw.</p>
     <form id="spf">${has ? `<label>Current PIN</label><input name="old" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required autocomplete="off" class="pin-input">` : ""}
       <label>New PIN</label><input name="n1" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required autocomplete="off" class="pin-input">
       <label>Repeat new PIN</label><input name="n2" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required autocomplete="off" class="pin-input">
@@ -1819,8 +1818,8 @@ async function showNotifications() {
 // Deposit / Withdraw buttons (used in Wallet tab and Settings)
 function walletButtons() {
   return `<div class="wallet-btns">
-    <a class="wbtn dep" href="#deposit"><span class="wi">${ICONS.cash}</span><span><b>Deposit</b><small>Add money via an agent</small></span><em>›</em></a>
-    <a class="wbtn wd" href="#withdraw"><span class="wi">${ICONS.wallet}</span><span><b>Withdraw</b><small>Get a cash code</small></span><em>›</em></a>
+    <a class="wbtn dep" href="#deposit"><span class="wi">${ICONS.cash}</span><span><b>Deposit</b></span><em>›</em></a>
+    <a class="wbtn wd" href="#withdraw"><span class="wi">${ICONS.wallet}</span><span><b>Withdraw</b></span><em>›</em></a>
   </div>`;
 }
 function balanceCard() {
@@ -1849,7 +1848,6 @@ async function viewHome(v) {
     <div class="search-box">${ICONS.search}
       <input type="search" id="psearch" placeholder="Search products…" autocomplete="off" value="${esc(S.pq || "")}">
       <button type="button" class="clear ${S.pq ? "" : "hidden"}" id="pclear" aria-label="Clear search">${ICONS.x}</button></div>
-    <p class="small muted press-hint">💡 Long-press a product to add it to your cart</p>
     <div id="plist"><div class="loader"></div></div>`;
   if (showPush) $("#pushOn").onclick = async (e) => { if (await enablePush()) { toast("Notifications on.", "success"); e.target.closest(".card").remove(); } };
   drawTicker();
@@ -2074,7 +2072,6 @@ function giftBlock(g) {
   return `<div class="gift-box">
     <label class="gift-toggle"><input type="checkbox" name="isGift" ${g ? "checked" : ""}><span>🎁 Send as a gift to a friend</span></label>
     <div class="gift-fields ${g ? "" : "hidden"}">
-      <p class="small muted" style="margin:6px 0 0">Fill in the order details above with <b>your friend's</b> Telegram username.</p>
       <label>Friend's name</label><input name="g_name" maxlength="60" value="${esc(g?.to_name || "")}" placeholder="e.g. Sita">
       <label>Friend's Premvio Member ID <span class="muted">(optional — they get a notification)</span></label>
       <input name="g_member" maxlength="12" value="${esc(g?.to_member || "")}" placeholder="PV123456" autocapitalize="characters" style="text-transform:uppercase">
@@ -2162,8 +2159,8 @@ function buyModal(p) {
       const earn = cashbackFor(t);
       $("#warn", m).dataset.earn = earn ? ` You'll earn ⭐ ${earn} points.` : "";
       const low = t > Number(S.profile.balance);
-      $("#warn", m).innerHTML = free ? "It's free — nothing is taken from your balance."
-        : low ? `⚠️ Not enough balance. <a href="#deposit" data-close>Deposit money</a>` : "The amount will be deducted from your balance." + ($("#warn", m).dataset.earn || "");
+      $("#warn", m).innerHTML = free ? ""
+        : low ? `⚠️ Not enough balance. <a href="#deposit" data-close>Deposit money</a>` : ($("#warn", m).dataset.earn || "").trim();
       return t;
     };
     if (f.usePts) f.usePts.onchange = calc;
@@ -2366,7 +2363,6 @@ async function viewCart(v) {
   const cart = getCart();
   if (!cart.length) {
     box.innerHTML = `<div class="empty"><div class="big">🛒</div><b>Your cart is empty</b>
-      <p class="small muted">Long-press any product on Home to add it here, then pay for everything at once.</p>
       <a class="btn mt" href="#home">Browse products</a></div>`;
     return;
   }
@@ -2478,7 +2474,7 @@ async function viewCart(v) {
 
 /* ---------------- NEW FEATURES ---------------- */
 async function viewFeatures(v) {
-  v.innerHTML = `<h2>What's coming next</h2><p class="muted">New features we're working on.</p><div id="fl"><div class="loader"></div></div>`;
+  v.innerHTML = `<h2>What's coming next</h2><div id="fl"><div class="loader"></div></div>`;
   const { data } = await sb.from("features").select("*").order("created_at", { ascending: false });
   $("#fl").innerHTML = data?.length ? data.map((f) => `
     <div class="card feature">
@@ -2501,7 +2497,7 @@ async function viewWallet(v, mode) {
   v.innerHTML = `<div class="screen-head"><button class="back-btn" id="back" aria-label="Back">←</button>
     <h2 style="margin:0;color:${color}">${kind === "deposit" ? "Deposit" : "Withdraw"}</h2><span class="grow"></span>
     <span class="small muted">Balance <b data-balance>${money(S.profile.balance)}</b></span></div>
-    <p class="small muted" id="pmHint" style="margin:-6px 0 8px">Choose a method</p>
+    <span id="pmHint" class="hidden"></span>
     <div id="pmGrid" class="pm-grid"><div class="loader"></div></div>
     <div id="pmBody"></div>
     <div id="pmRecent"></div>`;
@@ -2551,7 +2547,7 @@ async function viewWallet(v, mode) {
 
 function methodHead(m, sub) {
   return `<div class="row"><span class="pm-logo">${m.logo_url ? `<img src="${esc(m.logo_url)}" alt="">` : `<b>${esc(m.name.slice(0, 2).toUpperCase())}</b>`}</span>
-    <div class="grow"><b style="font-size:1.05rem">${esc(m.name)}</b><div class="small muted">${sub}</div></div></div>
+    <div class="grow"><b style="font-size:1.05rem">${esc(m.name)}</b>${sub ? `<div class="small muted">${sub}</div>` : ""}</div></div>
     ${m.details ? `<div class="pm-info mt">${esc(m.details)}</div>` : ""}`;
 }
 function limitsText(m, fallbackMin, fallbackMax) {
@@ -2565,7 +2561,7 @@ function depositPanel(body, m) {
   const fields = m.fields || [];
   const askAmt = m.ask_amount !== false, proof = m.proof_mode || "required";
   body.innerHTML = `<div class="card pm-panel">
-    ${methodHead(m, proof === "off" ? "Pay here, then send the form" : "Pay here, then upload the screenshot")}
+    ${methodHead(m, "")}
     <div class="row wrap mt" style="gap:8px">
       ${m.details ? `<button class="btn sm soft" id="cpDet">${ICONS.copy} Copy details</button>` : ""}
       ${pvLinkBtn(m)}
@@ -2579,7 +2575,6 @@ function depositPanel(body, m) {
       <input type="file" name="proof" accept="image/*" ${proof === "required" ? "required" : ""}>
       <img id="proofPrev" class="doc-preview hidden" alt="">`}
       <button class="btn block deposit mt">Send for approval</button>
-      <p class="small muted mt">We add the money to your balance after checking your payment. You'll get a notification.</p>
     </form></div>`;
   if ($("#cpDet")) $("#cpDet").onclick = () => copyText(m.details);
   const f = $("#depf");
@@ -2618,13 +2613,12 @@ function payoutPanel(body, m) {
   if (kyc !== "approved") { body.innerHTML = `<div class="card">${kycGate()}</div>`; return; }
   const fields = m.fields || [];
   body.innerHTML = `<div class="card pm-panel">
-    ${methodHead(m, "We send the money to your account")}
+    ${methodHead(m, "")}
     <form id="payf" class="mt">
       <label>Amount (${CFG.CURRENCY}) <span class="muted">${esc(limitsText(m, S.settings.min_withdraw, S.settings.max_withdraw))}</span></label>
       <input type="number" name="amount" step="0.01" min="${m.min_amount ?? S.settings.min_withdraw ?? 1}" required inputmode="decimal">
       ${fields.map((fd) => fieldInput(fd)).join("")}
       <button class="btn block withdraw mt">Request withdrawal</button>
-      <p class="small muted mt">The amount is taken from your balance now and sent to you after review. If we can't pay, it comes back to your balance.</p>
     </form></div>`;
   const f = $("#payf");
   f.onsubmit = (e) => {
@@ -2685,7 +2679,6 @@ async function renderPremvioCash(body) {
         <button class="btn sm soft" onclick="copyText('${esc(w.code)}')">${ICONS.copy} Copy</button>
         <button class="btn sm ghost" data-cancel="${w.id}">Cancel &amp; refund</button>
       </div>
-      <p class="small muted mt">If no agent pays you within the time limit, the money comes back to your balance automatically.</p>
     </div>`;
   });
   const kyc = S.profile.kyc_status;
@@ -2694,7 +2687,7 @@ async function renderPremvioCash(body) {
   } else if (!active?.length) {
     const min = Number(S.settings.min_withdraw || 0);
     html += `<form id="wf">
-      <p class="muted small">You'll get a code valid for ${esc(S.settings.withdraw_hours || 24)} hours. An agent uses it to pay you cash.</p>
+      <p class="muted small">Code valid for ${esc(S.settings.withdraw_hours || 24)} hours.</p>
       <label>Amount (${CFG.CURRENCY})</label><input type="number" name="amount" min="${min}" step="0.01" required inputmode="decimal" placeholder="Minimum ${min}">
       <label>City</label><input name="city" required maxlength="60" placeholder="Type to search, e.g. P">
       <label>Street / area</label><input name="street" required maxlength="120" placeholder="Choose a city first">
@@ -2718,7 +2711,7 @@ async function renderPremvioCash(body) {
     mountPicker(wf.street, streets);
     sb.rpc("withdraw_locations").then(({ data }) => {
       locs = data || [];
-      $("#locHint").textContent = locs.length ? `Choose where to collect your cash — ${cities().length} cities with Premvio agents.` : "";
+      $("#locHint").textContent = "";
     });
   }
   if (wf) wf.onsubmit = (e) => {
@@ -2751,7 +2744,7 @@ async function renderPremvioCash(body) {
 const TX_NAME = { deposit: "Deposit", load: "Deposit", adjust: "Deposit", withdraw: "Withdrawal", purchase: "Purchase", refund: "Refund", agent_load: "Deposit to customer", agent_payout: "Withdrawal paid", bonus: "Bonus 🎉", voucher: "Gift voucher" };
 const TX_ICON = { deposit: "💰", adjust: "💰", load: "💰", withdraw: "🏧", purchase: "🛍️", refund: "↩️", agent_load: "📤", agent_payout: "📥", bonus: "🎁", voucher: "🎟️" };
 async function viewHistory(v) {
-  v.innerHTML = `<h2>History</h2><p class="muted small">Last 30 days</p>
+  v.innerHTML = `<h2>History</h2>
     <div class="chips">${[["all", "All"], ["orders", "Orders"], ["withdrawals", "Withdrawals"], ...(S.settings.voucher_on !== "false" ? [["vouchers", "Vouchers"]] : [])].map(([k, l]) =>
       `<button class="chip ${S.histTab === k ? "on" : ""}" data-h="${k}">${l}</button>`).join("")}</div>
     <div class="card" id="hl"><div class="loader"></div></div>`;
@@ -2829,7 +2822,6 @@ function refundModal(o, view) {
     <form id="rf">
       <label>Reason</label><select name="why" required><option value="">Choose…</option>${REFUND_REASONS.map((r) => `<option>${r}</option>`).join("")}</select>
       <label>Details <span class="muted">(optional)</span></label><textarea name="more" maxlength="300" placeholder="Tell us what went wrong"></textarea>
-      <p class="small muted mt">If approved, ${money(o.total)} goes back to your Premvio balance. You'll get a notification.</p>
       <button class="btn block withdraw mt">Send refund request</button></form>`, (m) => {
     $("#rf", m).onsubmit = (e) => {
       e.preventDefault();
@@ -2865,7 +2857,7 @@ async function viewHelp(v, id) {
   S.helpNew = false;
   if (pre) return helpDetails(v, "Order problem", pre);
   v.innerHTML = `<div class="screen-head"><button class="back-btn" id="back" aria-label="Back">←</button><h2 style="margin:0">Help</h2></div>
-    <div class="help-hero"><img src="${PV_LOGO}" alt=""><h2>What problem are you facing?</h2><p class="muted small">Choose one — then you can chat with us.</p></div>
+    <div class="help-hero"><img src="${PV_LOGO}" alt=""><h2>What problem are you facing?</h2></div>
     <div class="help-topics">${HELP_TOPICS.map(([t, ic, d]) => `<button class="help-topic" data-topic="${esc(t)}"><span class="ht-ic">${ic}</span>
       <span class="grow"><b>${esc(t)}</b><br><span class="small muted">${esc(d)}</span></span><em>›</em></button>`).join("")}</div>`;
   $("#back").onclick = goBack;
@@ -2969,11 +2961,10 @@ async function drawVouchers() {
   const amounts = String(S.settings.voucher_amounts || "100,500,1000").split(",").map((x) => Number(x.trim())).filter((x) => x > 0);
   if (!document.body.contains(box)) return;
   box.innerHTML = `<h3 style="margin-top:0">🎟️ Gift vouchers</h3>
-    <p class="small muted">Buy a voucher code with your balance and send it to a friend. They type the code here and the money goes to their balance.</p>
     <div class="v-amounts">${amounts.map((a) => `<button class="v-amt" data-buy="${a}"><b>${money(a)}</b><span>Buy voucher</span></button>`).join("")}</div>
     <form id="redeemF" class="mt"><label>Got a voucher code?</label>
       <div class="promo-box"><input name="code" placeholder="PVG-XXXX-XXXX-XXXX" maxlength="20" autocomplete="off"><button class="btn gold">Redeem</button></div></form>
-    <p class="small muted mt">Your vouchers are in <a href="#history" data-vh>History → Vouchers</a>.</p>`;
+    <p class="small mt"><a href="#history" data-vh>My vouchers →</a></p>`;
   $("[data-vh]", box).onclick = () => { S.histTab = "vouchers"; };
   $$("[data-buy]", box).forEach((b) => (b.onclick = async () => {
     const amt = Number(b.dataset.buy);
@@ -2986,8 +2977,7 @@ async function drawVouchers() {
     openModal(`<div class="empty"><div class="big">🎟️</div><h2>Your voucher</h2>
       <div class="code-box mt"><div class="small muted">${money(r.amount)}</div><div class="code mono" style="font-size:1.25rem;letter-spacing:.06em">${esc(r.code)}</div></div>
       <p class="small muted mt">Send this code to your friend. Anyone who has it can use it once, so keep it private until you give it.</p>
-      <button class="btn block gold mt" id="vShare">${ICONS.send} Share</button><button class="btn ghost block mt" data-close>Done</button>
-      <p class="small muted mt">You can find it later in History → Vouchers.</p></div>`, (m) => { $("#vShare", m).onclick = () => shareVoucher(r.code, r.amount); });
+      <button class="btn block gold mt" id="vShare">${ICONS.send} Share</button><button class="btn ghost block mt" data-close>Done</button></div>`, (m) => { $("#vShare", m).onclick = () => shareVoucher(r.code, r.amount); });
     drawVouchers();
   }));
   $("#redeemF", box).onsubmit = (e) => {
@@ -3005,8 +2995,7 @@ async function drawVouchers() {
 }
 async function devicesModal() {
   openModal(`<h2>My devices</h2><div id="devList"><div class="loader"></div></div>
-    <button class="btn danger block mt" id="outOthers">Log out all other devices</button>
-    <p class="small muted mt">Didn't recognise a device? Log out the others and change your password.</p>`, async (m) => {
+    <button class="btn danger block mt" id="outOthers">Log out all other devices</button>`, async (m) => {
     let mine = null; try { mine = localStorage.getItem("pv_device"); } catch (e) {}
     const { data } = await sb.from("devices").select("*").order("last_seen", { ascending: false });
     $("#devList", m).innerHTML = (data || []).map((d) => `<div class="list-item"><div class="ic">${/iPhone|Android/.test(d.label) ? "📱" : "💻"}</div>
@@ -3032,8 +3021,7 @@ async function drawRewards() {
   const link = location.origin + location.pathname.replace(/index\.html$/, "") + "?ref=" + r.code;
   box.innerHTML = `
     ${refOn ? `<h3 style="margin-top:0">🎁 Invite friends</h3>
-      <p class="small muted">Share your link. When a friend registers with your code and their first order is delivered,
-        ${br ? `<b>you get ${money(br)}</b>` : ""}${br && bf ? " and " : ""}${bf ? `<b>they get ${money(bf)}</b>` : ""}.</p>
+      ${br || bf ? `<p class="small">${br ? `You get <b>${money(br)}</b>` : ""}${br && bf ? " · " : ""}${bf ? `Friend gets <b>${money(bf)}</b>` : ""}</p>` : ""}
       <div class="id-row"><div><div class="small muted">Your invite code</div><div class="mono id-big">${esc(r.code)}</div></div>
         <button class="btn sm gold" id="shareRef">${ICONS.send} Share</button></div>
       <div class="ref-stats mt"><div><b>${r.invited}</b><span>joined</span></div><div><b>${r.joined_and_bought}</b><span>bought</span></div>
@@ -3092,22 +3080,22 @@ async function viewSettings(v, sub) {
     <span class="grow"><b>${esc(p.full_name)}</b><small class="mono">${esc(p.member_id)}</small></span><em>›</em></a>
 
   <div class="set-group">
-    ${setItem("#settings/account", "👤", "Account", "Name, email, phone, Member ID")}
-    ${setItem("#settings/wallet", "💰", "Wallet", "Deposit and withdraw", `<span class="si-val" data-balance>${money(p.balance)}</span>`)}
-    ${setItem("#settings/kyc", "🪪", "KYC verification", "Needed to withdraw money", `<span class="badge ${p.kyc_status === "none" ? "" : p.kyc_status}">${kycBadge}</span>`)}
+    ${setItem("#settings/account", "👤", "Account", "")}
+    ${setItem("#settings/wallet", "💰", "Wallet", "", `<span class="si-val" data-balance>${money(p.balance)}</span>`)}
+    ${setItem("#settings/kyc", "🪪", "KYC verification", "", `<span class="badge ${p.kyc_status === "none" ? "" : p.kyc_status}">${kycBadge}</span>`)}
   </div>
 
   ${showRewards || st.voucher_on !== "false" ? `<div class="set-group">
-    ${showRewards ? setItem("#settings/rewards", "🎁", "Invite & rewards", "Invite friends, my points") : ""}
-    ${st.voucher_on !== "false" ? setItem("#settings/vouchers", "🎟️", "Gift vouchers", "Buy or redeem a voucher code") : ""}
+    ${showRewards ? setItem("#settings/rewards", "🎁", "Invite & rewards", "") : ""}
+    ${st.voucher_on !== "false" ? setItem("#settings/vouchers", "🎟️", "Gift vouchers", "") : ""}
   </div>` : ""}
 
   <div class="set-group">
-    ${setItem("#settings/prefs", "🎨", "Preferences", "Theme, notifications, language")}
-    ${setItem("#settings/security", "🔒", "Security", "Password, app PIN, my devices", p.has_pin ? `<span class="badge completed">PIN on</span>` : "")}
+    ${setItem("#settings/prefs", "🎨", "Preferences", "")}
+    ${setItem("#settings/security", "🔒", "Security", "", p.has_pin ? `<span class="badge completed">PIN on</span>` : "")}
   </div>
 
-  ${st.help_on !== "false" ? `<div class="set-group">${setItem("#help", "💬", "Help chat", "Questions about an order, deposit or your account")}</div>` : ""}
+  ${st.help_on !== "false" ? `<div class="set-group">${setItem("#help", "💬", "Help chat", "")}</div>` : ""}
 
   <button class="btn ghost block mt" id="logout">${ICONS.logout} Log out</button>
   <p class="center small muted mt">Telegram: <a href="${esc(tgLink())}" target="_blank" rel="noopener">${esc(tgHandle())}</a></p>`;
@@ -3129,8 +3117,7 @@ async function settingsPage(v, sub) {
   if (sub === "account") {
     box.innerHTML = `<div class="card">
       <div class="id-row"><div><div class="small muted">Member ID</div><div class="mono id-big">${esc(p.member_id)}</div></div>
-        <button class="btn sm soft" onclick="copyText('${esc(p.member_id)}')">${ICONS.copy} Copy</button></div>
-      <p class="small muted" style="margin:8px 0 0">Give this ID to an agent or to us when you need help.</p></div>
+        <button class="btn sm soft" onclick="copyText('${esc(p.member_id)}')">${ICONS.copy} Copy</button></div></div>
     <div class="card">
       <div class="setting-row"><div><span class="small muted">Name</span><div><b>${esc(p.full_name)}</b></div></div></div>
       <div class="setting-row"><div><span class="small muted">Email</span><div><b>${esc(p.email)}</b></div></div><button class="btn sm soft" id="chMail">Change</button></div>
@@ -3179,13 +3166,13 @@ async function settingsPage(v, sub) {
 
   if (sub === "prefs") {
     box.innerHTML = `<div class="card">
-      <div class="setting-row"><div><b>Light theme</b><div class="small muted">Switch between dark and light</div></div>
+      <div class="setting-row"><div><b>Light theme</b></div>
         <label class="switch" style="margin:0"><input type="checkbox" id="thm" ${p.theme === "light" ? "checked" : ""}><span></span></label></div>
-      <div class="setting-row"><div><b>Notifications</b><div class="small muted">Push alerts on this device</div></div>
+      <div class="setting-row"><div><b>Notifications</b></div>
         <label class="switch" style="margin:0"><input type="checkbox" id="ntf" ${p.notify ? "checked" : ""}><span></span></label></div>
-      <div class="setting-row"><div><b>Language</b><div class="small muted" data-notr>Language · भाषा</div></div>
+      <div class="setting-row"><div><b>Language</b></div>
         <div class="lang-seg" data-notr><button type="button" data-lang="en" class="${pvLang() === "en" ? "on" : ""}">English</button><button type="button" data-lang="ne" class="${pvLang() === "ne" ? "on" : ""}">नेपाली</button></div></div>
-      <div class="setting-row"><div><b>Install app</b><div class="small muted">Add Premvio to your home screen</div></div><button class="btn sm soft" id="inst">Install</button></div>
+      <div class="setting-row"><div><b>Install app</b></div><button class="btn sm soft" id="inst">Install</button></div>
     </div>`;
     $$("[data-lang]", box).forEach((b) => (b.onclick = () => { if (b.dataset.lang !== pvLang()) pvSetLang(b.dataset.lang); }));
     $("#thm").onchange = async (e) => {
@@ -3218,10 +3205,10 @@ async function settingsPage(v, sub) {
 
   if (sub === "security") {
     box.innerHTML = `<div class="card">
-      <div class="setting-row"><div><b>Password</b><div class="small muted">Change the password you log in with</div></div><button class="btn sm soft" id="chPass">Change</button></div>
-      <div class="setting-row"><div><b>App PIN lock</b><div class="small muted">${p.has_pin ? "On — asked when you open the app and before paying" : "Ask a 4-number PIN to open the app and to pay"}</div></div>
+      <div class="setting-row"><div><b>Password</b></div><button class="btn sm soft" id="chPass">Change</button></div>
+      <div class="setting-row"><div><b>App PIN lock</b></div>
         <div class="row" style="gap:6px">${p.has_pin ? `<button class="btn sm soft" id="pinChange">Change</button><button class="btn sm ghost" id="pinOff">Remove</button>` : `<button class="btn sm" id="pinSet">Set PIN</button>`}</div></div>
-      <div class="setting-row"><div><b>My devices</b><div class="small muted">You get a notification when your account opens on a new device</div></div>
+      <div class="setting-row"><div><b>My devices</b></div>
         <button class="btn sm soft" id="devs">See devices</button></div>
     </div>`;
     if ($("#pinSet")) $("#pinSet").onclick = setPinModal;
@@ -3265,7 +3252,6 @@ async function settingsPage(v, sub) {
       return;
     }
     kb.innerHTML = `${p.kyc_status === "rejected" && kyc?.note ? `<p class="small" style="color:var(--red)">Reason: ${esc(kyc.note)}</p>` : ""}
-      <p class="small muted">Required before you can withdraw money.</p>
       <form id="kf">
         <label>Full name (as on document)</label><input name="full_name" required value="${esc(kyc?.full_name || p.full_name)}">
         <label>Document type</label><select name="doc_type" required>
