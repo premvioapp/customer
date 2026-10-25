@@ -818,6 +818,23 @@ body.wa-mode .topbar, body.wa-mode .bottom-nav { display: none !important; }
 .modal { max-height: calc(92vh - env(safe-area-inset-top, 0px)); }
 .sidebar { padding-top: calc(18px + env(safe-area-inset-top, 0px)); }
 
+/* ===== V37: clean Settings menu ===== */
+.set-profile { display: flex; align-items: center; gap: 14px; text-decoration: none; color: var(--text); }
+.set-profile .sp-av { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto;
+  background: linear-gradient(135deg, var(--gold), #ff9f1c); color: #1a1200; font-weight: 800; font-size: 1.15rem; }
+.set-profile b { display: block; font-size: 1.08rem; }
+.set-profile small { color: var(--muted); font-size: .85rem; }
+.set-profile em, .set-item em { font-style: normal; font-size: 1.4rem; color: var(--muted); line-height: 1; }
+.set-group { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); margin-top: 14px; overflow: hidden; }
+.set-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; text-decoration: none; color: var(--text); }
+.set-item + .set-item { border-top: 1px solid var(--line); }
+.set-item:active { background: var(--bg-2); }
+.set-item .si-ic { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; background: var(--bg-2); font-size: 1.15rem; flex: 0 0 auto; }
+.set-item b { display: block; font-weight: 700; }
+.set-item small { display: block; color: var(--muted); font-size: .8rem; margin-top: 1px; }
+.set-item .si-val { font-weight: 700; color: var(--gold); font-size: .9rem; white-space: nowrap; }
+.set-item .badge { white-space: nowrap; }
+
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
 <meta name="description" content="Buy Telegram Stars and Telegram Premium with Premvio.">
@@ -1236,7 +1253,13 @@ const PV_NE = {
   "FREE": "निःशुल्क", "🎁 FREE": "🎁 निःशुल्क", "🎁 Get it free": "🎁 निःशुल्क लिनुहोस्", "from": "सुरु मूल्य",
   "Price depends on the option you choose.": "मूल्य तपाईंले छान्नुभएको विकल्प अनुसार फरक हुन्छ।",
   "It's free — nothing is taken from your balance.": "यो निःशुल्क हो — तपाईंको ब्यालेन्सबाट केही काटिँदैन।",
-  "Choose…": "छान्नुहोस्…", "Open in Telegram": "Telegram मा खोल्नुहोस्", "Pay here, then send the form": "यहाँ तिर्नुहोस्, अनि फारम पठाउनुहोस्", "How many months?": "कति महिना?",
+  "Choose…": "छान्नुहोस्…", "Account": "खाता", "Name, email, phone, Member ID": "नाम, इमेल, फोन, Member ID", "Deposit and withdraw": "जम्मा र झिक्नुहोस्",
+  "KYC verification": "KYC प्रमाणीकरण", "Needed to withdraw money": "पैसा झिक्न आवश्यक", "Invite & rewards": "निमन्त्रणा र पुरस्कार",
+  "Invite friends, my points": "साथीलाई निमन्त्रणा, मेरो पोइन्ट", "Gift vouchers": "उपहार भाउचर", "Buy or redeem a voucher code": "भाउचर कोड किन्नुहोस् वा प्रयोग गर्नुहोस्",
+  "Preferences": "प्राथमिकताहरू", "Theme, notifications, language": "थिम, सूचना, भाषा", "Security": "सुरक्षा",
+  "Password, app PIN, my devices": "पासवर्ड, एप PIN, मेरा डिभाइस", "Help chat": "सहायता च्याट",
+  "Questions about an order, deposit or your account": "अर्डर, जम्मा वा खाताबारे प्रश्न", "PIN on": "PIN खुला", "Your balance": "तपाईंको ब्यालेन्स",
+  "Status": "स्थिति", "Name": "नाम", "Phone": "फोन", "Open in Telegram": "Telegram मा खोल्नुहोस्", "Pay here, then send the form": "यहाँ तिर्नुहोस्, अनि फारम पठाउनुहोस्", "How many months?": "कति महिना?",
   "Out of stock": "स्टक सकियो", "Sold out today": "आजको लागि सकियो", "Sale ended": "सेल सकियो", "⚡ SALE": "⚡ सेल", "sale": "सेल",
   "Reviews": "समीक्षाहरू", "⭐ Use my points": "⭐ मेरो पोइन्ट प्रयोग गर्नुहोस्", "available": "उपलब्ध",
   "🎁 Send as a gift to a friend": "🎁 साथीलाई उपहारको रूपमा पठाउनुहोस्", "Friend's name": "साथीको नाम",
@@ -1247,7 +1270,7 @@ const PV_NE = {
   "⚠️ Not enough balance.": "⚠️ ब्यालेन्स पुगेन।", "Deposit money": "पैसा जम्मा गर्नुहोस्", "Type a promo code.": "प्रोमो कोड लेख्नुहोस्।",
   "Your cart is empty": "तपाईंको कार्ट खाली छ", "Browse products": "प्रोडक्ट हेर्नुहोस्",
   "Long-press any product on Home to add it here, then pay for everything at once.": "होममा कुनै प्रोडक्ट थिचिराखेर यहाँ थप्नुहोस्, अनि सबैको एकैपटक भुक्तानी गर्नुहोस्।",
-  "＋ Add more products": "＋ अरू प्रोडक्ट थप्नुहोस्", "Items": "सामानहरू", "Your balance": "तपाईंको ब्यालेन्स",
+  "＋ Add more products": "＋ अरू प्रोडक्ट थप्नुहोस्", "Items": "सामानहरू",
   "Balance after paying": "भुक्तानी पछि ब्यालेन्स", "Empty cart": "कार्ट खाली गर्नुहोस्", "✏️ Edit": "✏️ सम्पादन", "🗑 Delete": "🗑 हटाउनुहोस्",
   "Product removed": "प्रोडक्ट हटाइयो", "No longer available — please delete it.": "अब उपलब्ध छैन — कृपया हटाउनुहोस्।",
   "Remove the unavailable or sold-out item to continue.": "अगाडि बढ्न उपलब्ध नभएको वा सकिएको सामान हटाउनुहोस्।",
@@ -1275,13 +1298,13 @@ const PV_NE = {
   "Cancel &amp; refund": "रद्द गरी फिर्ता", "Cancel & refund": "रद्द गरी फिर्ता", "Cancelled and refunded.": "रद्द गरी पैसा फिर्ता भयो।",
   "Complete KYC": "KYC पूरा गर्नुहोस्", "Required before you can withdraw money.": "पैसा निकाल्नुअघि आवश्यक छ।",
   // settings
-  "Member ID": "Member ID", "Copy": "कपी", "KYC verification": "KYC प्रमाणीकरण", "Not submitted": "पेश गरिएको छैन", "Under review": "जाँच हुँदैछ",
+  "Member ID": "Member ID", "Copy": "कपी", "Not submitted": "पेश गरिएको छैन", "Under review": "जाँच हुँदैछ",
   "Verified": "प्रमाणित", "Rejected": "अस्वीकृत", "Document type": "कागजातको प्रकार", "Document number": "कागजात नम्बर",
   "Full name (as on document)": "पूरा नाम (कागजातमा जस्तै)", "Region / Province": "प्रदेश", "Region / City": "क्षेत्र / सहर", "Submit KYC": "KYC पेश गर्नुहोस्",
   "KYC submitted for review.": "KYC जाँचको लागि पेश भयो।", "We're reviewing your details. You'll be notified.": "हामी तपाईंको विवरण जाँच्दैछौं। तपाईंलाई सूचना आउनेछ।",
-  "Preferences": "प्राथमिकताहरू", "Light theme": "उज्यालो थिम", "Switch between dark and light": "गाढा र उज्यालो बीच बदल्नुहोस्",
-  "Push alerts on this device": "यो फोनमा सूचना", "Notifications on.": "सूचना खुल्यो।", "Account": "खाता", "Change": "बदल्नुहोस्",
-  "Phone": "फोन", "Change password": "पासवर्ड बदल्नुहोस्", "Change email": "इमेल बदल्नुहोस्", "Change phone": "फोन बदल्नुहोस्",
+  "Light theme": "उज्यालो थिम", "Switch between dark and light": "गाढा र उज्यालो बीच बदल्नुहोस्",
+  "Push alerts on this device": "यो फोनमा सूचना", "Notifications on.": "सूचना खुल्यो।", "Change": "बदल्नुहोस्",
+  "Change password": "पासवर्ड बदल्नुहोस्", "Change email": "इमेल बदल्नुहोस्", "Change phone": "फोन बदल्नुहोस्",
   "Current password": "हालको पासवर्ड", "New passwords don't match.": "नयाँ पासवर्ड मिलेन।", "Password changed.": "पासवर्ड बदलियो।",
   "New email": "नयाँ इमेल", "New phone number": "नयाँ फोन नम्बर", "Phone updated.": "फोन अपडेट भयो।", "Save": "सेभ गर्नुहोस्",
   "Send confirmation": "पुष्टि पठाउनुहोस्", "Check your email to confirm the change.": "परिवर्तन पक्का गर्न इमेल हेर्नुहोस्।",
@@ -1309,7 +1332,7 @@ const PV_NE = {
   "this device": "यो डिभाइस", "No devices yet.": "अहिलेसम्म कुनै डिभाइस छैन।",
   "Didn't recognise a device? Log out the others and change your password.": "कुनै डिभाइस चिन्नुभएन? अरूबाट लग आउट गरी पासवर्ड बदल्नुहोस्।",
   // help chat
-  "💬 Help chat": "💬 सहायता च्याट", "Help chat": "सहायता च्याट", "💬 Chat with us": "💬 हामीसँग च्याट गर्नुहोस्",
+  "💬 Help chat": "💬 सहायता च्याट", "💬 Chat with us": "💬 हामीसँग च्याट गर्नुहोस्",
   "Questions about an order, deposit or your account? Chat with us here.": "अर्डर, डिपोजिट वा खाताबारे प्रश्न छ? यहाँ च्याट गर्नुहोस्।",
   "Start a new chat": "नयाँ च्याट सुरु गर्नुहोस्", "Topic": "विषय", "About an order": "कुन अर्डरबारे", "— No order —": "— अर्डर छैन —",
   "Your message": "तपाईंको सन्देश", "Tell us what happened…": "के भयो, लेख्नुहोस्…", "Send": "पठाउनुहोस्", "My chats": "मेरा च्याटहरू",
@@ -1335,7 +1358,7 @@ const PV_NE = {
   "Cancel & refund": "रद्द गरी फिर्ता",
   // common
   "OK": "ठिक छ", "Cancel": "रद्द गर्नुहोस्", "Delete": "हटाउनुहोस्", "Back": "पछाडि", "Close": "बन्द गर्नुहोस्", "Please wait…": "कृपया पर्खनुहोस्…",
-  "Got it": "बुझेँ", "No notifications yet": "अहिलेसम्म सूचना छैन", "Choose…": "छान्नुहोस्…", "Name": "नाम", "Document": "कागजात",
+  "Got it": "बुझेँ", "No notifications yet": "अहिलेसम्म सूचना छैन", "Choose…": "छान्नुहोस्…", "Document": "कागजात",
 };
 // texts with a changing part
 const PV_NE_RX = [
@@ -1706,6 +1729,16 @@ function route() {
     const view = $("#view");
     view.className = "view slide-in";
     viewHelp(view, Number(tab.split("/")[1]) || null);
+    window.scrollTo(0, 0);
+    return;
+  }
+  // Settings sub-pages (Account, Wallet, KYC, Rewards, Vouchers, Preferences, Security)
+  if (tab.startsWith("settings/")) {
+    $$(".nav-item").forEach((b) => b.classList.toggle("on", b.dataset.tab === "settings"));
+    clearInterval(S.timer);
+    const view = $("#view");
+    view.className = "view slide-in";
+    viewSettings(view, tab.split("/")[1]);
     window.scrollTo(0, 0);
     return;
   }
@@ -2605,7 +2638,7 @@ function kycGate() {
   return `<div class="empty" style="padding:14px"><div class="big">🪪</div>
     <b>${kyc === "pending" ? "Your KYC is being reviewed" : "KYC verification required"}</b>
     <p class="muted small">${kyc === "pending" ? "You can withdraw once it is approved. We'll notify you." : "Complete KYC in Settings before you can withdraw."}</p>
-    ${kyc === "pending" ? "" : `<a class="btn mt" href="#settings">Complete KYC</a>`}</div>`;
+    ${kyc === "pending" ? "" : `<a class="btn mt" href="#settings/kyc">Complete KYC</a>`}</div>`;
 }
 async function drawRecent(kind) {
   const box = $("#pmRecent");
@@ -3023,80 +3056,200 @@ async function drawRewards() {
   };
 }
 
-async function viewSettings(v) {
+/* ---------------- SETTINGS: clean menu → each part on its own page (#settings/<page>) ---------------- */
+const SET_PAGES = {
+  account: ["👤", "Account"], wallet: ["💰", "Wallet"], kyc: ["🪪", "KYC verification"], rewards: ["🎁", "Invite & rewards"],
+  vouchers: ["🎟️", "Gift vouchers"], prefs: ["🎨", "Preferences"], security: ["🔒", "Security"],
+};
+function setItem(href, ic, title, sub, right) {
+  return `<a class="set-item" href="${href}"><span class="si-ic">${ic}</span><span class="grow"><b>${title}</b>${sub ? `<small>${sub}</small>` : ""}</span>${right || ""}<em>›</em></a>`;
+}
+async function viewSettings(v, sub) {
   const p = S.profile;
-  const { data: kyc } = await sb.from("kyc").select("*").eq("user_id", p.id).maybeSingle();
-  const kycBadge = { none: "Not submitted", pending: "Under review", approved: "Verified", rejected: "Rejected" }[p.kyc_status];
+  if (sub && SET_PAGES[sub]) return settingsPage(v, sub);
+  const st = S.settings;
+  const kycBadge = { none: "Not submitted", pending: "Under review", approved: "Verified", rejected: "Rejected" }[p.kyc_status] || "";
+  const initials = String(p.full_name || "?").trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+  const showRewards = st.ref_on !== "false" || st.cashback_on === "true" || Number(p.points) > 0;
   v.innerHTML = `
   <h2>Settings</h2>
-  <div class="card">
-    <div class="row"><img src="${PV_LOGO}" style="width:52px"><div class="grow">
-      <b>${esc(p.full_name)}</b><div class="small muted">${esc(p.email)}</div>
-      <div class="small muted">${esc(p.phone || "")} · ${esc(p.country || "")}</div></div></div>
-    <div class="id-row mt"><div><div class="small muted">Member ID</div><div class="mono id-big">${esc(p.member_id)}</div></div>
-      <button class="btn sm soft" onclick="copyText('${esc(p.member_id)}')">${ICONS.copy} Copy</button></div>
+  <a class="card set-profile" href="#settings/account">
+    <span class="sp-av">${esc(initials)}</span>
+    <span class="grow"><b>${esc(p.full_name)}</b><small class="mono">${esc(p.member_id)}</small></span><em>›</em></a>
+
+  <div class="set-group">
+    ${setItem("#settings/account", "👤", "Account", "Name, email, phone, Member ID")}
+    ${setItem("#settings/wallet", "💰", "Wallet", "Deposit and withdraw", `<span class="si-val" data-balance>${money(p.balance)}</span>`)}
+    ${setItem("#settings/kyc", "🪪", "KYC verification", "Needed to withdraw money", `<span class="badge ${p.kyc_status === "none" ? "" : p.kyc_status}">${kycBadge}</span>`)}
   </div>
 
-  <div class="card rewards-card" id="rewardsCard"><div class="loader"></div></div>
+  ${showRewards || st.voucher_on !== "false" ? `<div class="set-group">
+    ${showRewards ? setItem("#settings/rewards", "🎁", "Invite & rewards", "Invite friends, my points") : ""}
+    ${st.voucher_on !== "false" ? setItem("#settings/vouchers", "🎟️", "Gift vouchers", "Buy or redeem a voucher code") : ""}
+  </div>` : ""}
 
-  <div class="card">
-    <div class="row between"><h3 style="margin:0">Wallet</h3><span class="small muted">Balance <b data-balance>${money(p.balance)}</b></span></div>
-    <div class="mt">${walletButtons()}</div>
+  <div class="set-group">
+    ${setItem("#settings/prefs", "🎨", "Preferences", "Theme, notifications, language")}
+    ${setItem("#settings/security", "🔒", "Security", "Password, app PIN, my devices", p.has_pin ? `<span class="badge completed">PIN on</span>` : "")}
   </div>
 
-  <div class="card">
-    <div class="row between"><h3 style="margin:0">KYC verification</h3><span class="badge ${p.kyc_status === "none" ? "" : p.kyc_status}">${kycBadge}</span></div>
-    <div id="kycBox" class="mt"></div>
-  </div>
+  ${st.help_on !== "false" ? `<div class="set-group">${setItem("#help", "💬", "Help chat", "Questions about an order, deposit or your account")}</div>` : ""}
 
-  ${S.settings.voucher_on !== "false" ? `<div class="card" id="voucherCard"><div class="loader"></div></div>` : ""}
-
-  ${S.settings.help_on !== "false" ? `<a class="card help-link" href="#help"><span class="hl-ic">💬</span><span class="grow"><b>Help chat</b><br><span class="small muted">Questions about an order, deposit or your account? Chat with us here.</span></span><em>›</em></a>` : ""}
-
-  <div class="card">
-    <h3>🔒 Security</h3>
-    <div class="setting-row"><div><b>App PIN lock</b><div class="small muted">${p.has_pin ? "On — asked when you open the app and before paying" : "Ask a 4-number PIN to open the app and to pay"}</div></div>
-      <div class="row" style="gap:6px">${p.has_pin ? `<button class="btn sm soft" id="pinChange">Change</button><button class="btn sm ghost" id="pinOff">Remove</button>` : `<button class="btn sm" id="pinSet">Set PIN</button>`}</div></div>
-    <div class="setting-row"><div><b>My devices</b><div class="small muted">You get a notification when your account opens on a new device</div></div>
-      <button class="btn sm soft" id="devs">See devices</button></div>
-  </div>
-
-  <div class="card">
-    <h3>Preferences</h3>
-    <div class="setting-row"><div><b>Light theme</b><div class="small muted">Switch between dark and light</div></div>
-      <label class="switch" style="margin:0"><input type="checkbox" id="thm" ${p.theme === "light" ? "checked" : ""}><span></span></label></div>
-    <div class="setting-row"><div><b>Notifications</b><div class="small muted">Push alerts on this device</div></div>
-      <label class="switch" style="margin:0"><input type="checkbox" id="ntf" ${p.notify ? "checked" : ""}><span></span></label></div>
-    <div class="setting-row"><div><b>Language</b><div class="small muted" data-notr>Language · भाषा</div></div>
-      <div class="lang-seg" data-notr><button type="button" data-lang="en" class="${pvLang() === "en" ? "on" : ""}">English</button><button type="button" data-lang="ne" class="${pvLang() === "ne" ? "on" : ""}">नेपाली</button></div></div>
-  </div>
-
-  <div class="card">
-    <h3>Account</h3>
-    <div class="setting-row"><b>Password</b><button class="btn sm soft" id="chPass">Change</button></div>
-    <div class="setting-row"><div><b>Email</b><div class="small muted">${esc(p.email)}</div></div><button class="btn sm soft" id="chMail">Change</button></div>
-    <div class="setting-row"><div><b>Phone</b><div class="small muted">${esc(p.phone || "—")}</div></div><button class="btn sm soft" id="chPhone">Change</button></div>
-    <div class="setting-row"><div><b>Install app</b><div class="small muted">Add Premvio to your home screen</div></div><button class="btn sm soft" id="inst">Install</button></div>
-  </div>
   <button class="btn ghost block mt" id="logout">${ICONS.logout} Log out</button>
-  <p class="center small muted mt">Need help? ${S.settings.help_on !== "false" ? `<a href="#help">💬 Chat with us</a> or ` : ""}<a href="${esc(tgLink())}" target="_blank" rel="noopener">${esc(tgHandle())}</a></p>`;
+  <p class="center small muted mt">Telegram: <a href="${esc(tgLink())}" target="_blank" rel="noopener">${esc(tgHandle())}</a></p>`;
+  $("#logout").onclick = async () => {
+    if (!(await confirmBox("Log out?", "You can log in again any time.", "Log out"))) return;
+    await disablePush().catch(() => {});
+    await pvSignOut();
+    location.hash = "";
+  };
+}
 
-  // KYC
-  drawRewards();
-  drawVouchers();
-  $$("[data-lang]", v).forEach((b) => (b.onclick = () => { if (b.dataset.lang !== pvLang()) pvSetLang(b.dataset.lang); }));
-  if ($("#pinSet")) $("#pinSet").onclick = setPinModal;
-  if ($("#pinChange")) $("#pinChange").onclick = setPinModal;
-  if ($("#pinOff")) $("#pinOff").onclick = removePin;
-  $("#devs").onclick = devicesModal;
-  const kb = $("#kycBox");
-  if (p.kyc_status === "approved" || p.kyc_status === "pending") {
-    kb.innerHTML = kyc ? `<div class="small">
-      <div class="setting-row"><span class="muted">Name</span><b>${esc(kyc.full_name)}</b></div>
-      <div class="setting-row"><span class="muted">Document</span><b>${esc(kyc.doc_type)} · ${esc(kyc.doc_number)}</b></div>
-      <div class="setting-row"><span class="muted">Region / City</span><b>${esc(kyc.region)}, ${esc(kyc.city)}</b></div></div>
-      ${p.kyc_status === "pending" ? `<p class="small muted mt">We're reviewing your details. You'll be notified.</p>` : ""}` : "";
-  } else {
+async function settingsPage(v, sub) {
+  const p = S.profile;
+  const [ic, title] = SET_PAGES[sub];
+  v.innerHTML = `<div class="screen-head"><button class="back-btn" id="back" aria-label="Back">←</button><h2 style="margin:0">${ic} ${title}</h2></div><div id="sp"></div>`;
+  $("#back").onclick = () => { location.hash = "#settings"; };
+  const box = $("#sp");
+
+  if (sub === "account") {
+    box.innerHTML = `<div class="card">
+      <div class="id-row"><div><div class="small muted">Member ID</div><div class="mono id-big">${esc(p.member_id)}</div></div>
+        <button class="btn sm soft" onclick="copyText('${esc(p.member_id)}')">${ICONS.copy} Copy</button></div>
+      <p class="small muted" style="margin:8px 0 0">Give this ID to an agent or to us when you need help.</p></div>
+    <div class="card">
+      <div class="setting-row"><div><span class="small muted">Name</span><div><b>${esc(p.full_name)}</b></div></div></div>
+      <div class="setting-row"><div><span class="small muted">Email</span><div><b>${esc(p.email)}</b></div></div><button class="btn sm soft" id="chMail">Change</button></div>
+      <div class="setting-row"><div><span class="small muted">Phone</span><div><b>${esc(p.phone || "—")}</b></div></div><button class="btn sm soft" id="chPhone">Change</button></div>
+      <div class="setting-row"><div><span class="small muted">Country</span><div><b>${esc(p.country || "—")}</b></div></div></div>
+    </div>`;
+    $("#chMail").onclick = () => openModal(`<h2>Change email</h2><form id="cm">
+        <label>New email</label><input type="email" name="email" required>
+        <p class="small muted mt">We'll send confirmation links to your old and new email. The change applies after you confirm.</p>
+        <button class="btn block mt">Send confirmation</button></form>`, (m) => {
+      $("#cm", m).onsubmit = (e) => {
+        e.preventDefault();
+        busy($("button", e.target), async () => {
+          const { error } = await sb.auth.updateUser({ email: e.target.email.value.trim() }, { emailRedirectTo: location.origin + location.pathname });
+          if (error) throw error;
+          closeModal(); toast("Check your email to confirm the change.", "success");
+        });
+      };
+    });
+    $("#chPhone").onclick = () => openModal(`<h2>Change phone</h2><form id="cph">
+        <label>New phone number</label><input type="tel" name="phone" required value="${esc(p.phone || "")}">
+        <label>Country</label><select name="country">${countryOptions(p.country || "Nepal")}</select>
+        <button class="btn block mt">Save</button></form>`, (m) => {
+      $("#cph", m).onsubmit = (e) => {
+        e.preventDefault();
+        const f = e.target;
+        if (!/^[+0-9 ()-]{7,20}$/.test(f.phone.value.trim())) return toast("Enter a valid phone number.", "error");
+        busy($("button", f), async () => {
+          const { error } = await sb.from("profiles").update({ phone: f.phone.value.trim(), country: f.country.value }).eq("id", p.id);
+          if (error) throw error;
+          await loadProfile(); closeModal(); toast("Phone updated.", "success"); route();
+        });
+      };
+    });
+    return;
+  }
+
+  if (sub === "wallet") {
+    box.innerHTML = `<div class="card"><div class="row between"><span class="muted">Your balance</span><b class="id-big" data-balance>${money(p.balance)}</b></div></div>
+      ${walletButtons()}`;
+    return;
+  }
+
+  if (sub === "rewards") { box.innerHTML = `<div class="card rewards-card" id="rewardsCard"><div class="loader"></div></div>`; drawRewards(); return; }
+  if (sub === "vouchers") { box.innerHTML = `<div class="card" id="voucherCard"><div class="loader"></div></div>`; drawVouchers(); return; }
+
+  if (sub === "prefs") {
+    box.innerHTML = `<div class="card">
+      <div class="setting-row"><div><b>Light theme</b><div class="small muted">Switch between dark and light</div></div>
+        <label class="switch" style="margin:0"><input type="checkbox" id="thm" ${p.theme === "light" ? "checked" : ""}><span></span></label></div>
+      <div class="setting-row"><div><b>Notifications</b><div class="small muted">Push alerts on this device</div></div>
+        <label class="switch" style="margin:0"><input type="checkbox" id="ntf" ${p.notify ? "checked" : ""}><span></span></label></div>
+      <div class="setting-row"><div><b>Language</b><div class="small muted" data-notr>Language · भाषा</div></div>
+        <div class="lang-seg" data-notr><button type="button" data-lang="en" class="${pvLang() === "en" ? "on" : ""}">English</button><button type="button" data-lang="ne" class="${pvLang() === "ne" ? "on" : ""}">नेपाली</button></div></div>
+      <div class="setting-row"><div><b>Install app</b><div class="small muted">Add Premvio to your home screen</div></div><button class="btn sm soft" id="inst">Install</button></div>
+    </div>`;
+    $$("[data-lang]", box).forEach((b) => (b.onclick = () => { if (b.dataset.lang !== pvLang()) pvSetLang(b.dataset.lang); }));
+    $("#thm").onchange = async (e) => {
+      const t = e.target.checked ? "light" : "dark";
+      applyTheme(t); S.profile.theme = t;
+      await sb.from("profiles").update({ theme: t }).eq("id", p.id);
+    };
+    $("#ntf").onchange = async (e) => {
+      const on = e.target.checked;
+      if (on) {
+        const ok = await enablePush();
+        if (!ok) { e.target.checked = false; return; }
+      } else {
+        await disablePush();
+      }
+      await sb.from("profiles").update({ notify: on }).eq("id", p.id);
+      S.profile.notify = on;
+      toast(on ? "Notifications on." : "Notifications off.", "success");
+    };
+    $("#inst").onclick = async () => {
+      if (isStandalone()) return toast("Premvio is already installed.", "success");
+      if (installEvt) { installEvt.prompt(); installEvt = null; return; }
+      openModal(`<h2>Install Premvio</h2>
+        <p><b>iPhone (Safari):</b> tap the Share button, then <b>Add to Home Screen</b>.</p>
+        <p><b>Android (Chrome):</b> tap the ⋮ menu, then <b>Add to Home screen</b> or <b>Install app</b>.</p>
+        <button class="btn block mt" data-close>Got it</button>`);
+    };
+    return;
+  }
+
+  if (sub === "security") {
+    box.innerHTML = `<div class="card">
+      <div class="setting-row"><div><b>Password</b><div class="small muted">Change the password you log in with</div></div><button class="btn sm soft" id="chPass">Change</button></div>
+      <div class="setting-row"><div><b>App PIN lock</b><div class="small muted">${p.has_pin ? "On — asked when you open the app and before paying" : "Ask a 4-number PIN to open the app and to pay"}</div></div>
+        <div class="row" style="gap:6px">${p.has_pin ? `<button class="btn sm soft" id="pinChange">Change</button><button class="btn sm ghost" id="pinOff">Remove</button>` : `<button class="btn sm" id="pinSet">Set PIN</button>`}</div></div>
+      <div class="setting-row"><div><b>My devices</b><div class="small muted">You get a notification when your account opens on a new device</div></div>
+        <button class="btn sm soft" id="devs">See devices</button></div>
+    </div>`;
+    if ($("#pinSet")) $("#pinSet").onclick = setPinModal;
+    if ($("#pinChange")) $("#pinChange").onclick = setPinModal;
+    if ($("#pinOff")) $("#pinOff").onclick = removePin;
+    $("#devs").onclick = devicesModal;
+    $("#chPass").onclick = () => openModal(`<h2>Change password</h2><form id="cp">
+        <label>Current password</label><input type="password" name="old" required>
+        <label>New password</label><input type="password" name="n1" minlength="6" required>
+        <label>Confirm new password</label><input type="password" name="n2" minlength="6" required>
+        <button class="btn block mt">Save</button></form>`, (m) => {
+      $("#cp", m).onsubmit = (e) => {
+        e.preventDefault();
+        const f = e.target;
+        if (f.n1.value !== f.n2.value) return toast("New passwords don't match.", "error");
+        busy($("button", f), async () => {
+          const { error: e1 } = await sb.auth.signInWithPassword({ email: p.email, password: f.old.value });
+          if (e1) throw new Error("Current password is wrong.");
+          const { error } = await sb.auth.updateUser({ password: f.n1.value });
+          if (error) throw error;
+          closeModal(); toast("Password changed.", "success");
+        });
+      };
+    });
+    return;
+  }
+
+  if (sub === "kyc") {
+    const { data: kyc } = await sb.from("kyc").select("*").eq("user_id", p.id).maybeSingle();
+    const kycBadge = { none: "Not submitted", pending: "Under review", approved: "Verified", rejected: "Rejected" }[p.kyc_status];
+    box.innerHTML = `<div class="card">
+      <div class="row between"><h3 style="margin:0">Status</h3><span class="badge ${p.kyc_status === "none" ? "" : p.kyc_status}">${kycBadge}</span></div>
+      <div id="kycBox" class="mt"></div></div>`;
+    const kb = $("#kycBox");
+    if (p.kyc_status === "approved" || p.kyc_status === "pending") {
+      kb.innerHTML = kyc ? `<div class="small">
+        <div class="setting-row"><span class="muted">Name</span><b>${esc(kyc.full_name)}</b></div>
+        <div class="setting-row"><span class="muted">Document</span><b>${esc(kyc.doc_type)} · ${esc(kyc.doc_number)}</b></div>
+        <div class="setting-row"><span class="muted">Region / City</span><b>${esc(kyc.region)}, ${esc(kyc.city)}</b></div></div>
+        ${p.kyc_status === "pending" ? `<p class="small muted mt">We're reviewing your details. You'll be notified.</p>` : ""}` : "";
+      return;
+    }
     kb.innerHTML = `${p.kyc_status === "rejected" && kyc?.note ? `<p class="small" style="color:var(--red)">Reason: ${esc(kyc.note)}</p>` : ""}
       <p class="small muted">Required before you can withdraw money.</p>
       <form id="kf">
@@ -3139,84 +3292,6 @@ async function viewSettings(v) {
       });
     };
   }
-
-  $("#thm").onchange = async (e) => {
-    const t = e.target.checked ? "light" : "dark";
-    applyTheme(t); S.profile.theme = t;
-    await sb.from("profiles").update({ theme: t }).eq("id", p.id);
-  };
-  $("#ntf").onchange = async (e) => {
-    const on = e.target.checked;
-    if (on) {
-      const ok = await enablePush();
-      if (!ok) { e.target.checked = false; return; }
-    } else {
-      await disablePush();
-    }
-    await sb.from("profiles").update({ notify: on }).eq("id", p.id);
-    S.profile.notify = on;
-    toast(on ? "Notifications on." : "Notifications off.", "success");
-  };
-  $("#chPass").onclick = () => openModal(`<h2>Change password</h2><form id="cp">
-      <label>Current password</label><input type="password" name="old" required>
-      <label>New password</label><input type="password" name="n1" minlength="6" required>
-      <label>Confirm new password</label><input type="password" name="n2" minlength="6" required>
-      <button class="btn block mt">Save</button></form>`, (m) => {
-    $("#cp", m).onsubmit = (e) => {
-      e.preventDefault();
-      const f = e.target;
-      if (f.n1.value !== f.n2.value) return toast("New passwords don't match.", "error");
-      busy($("button", f), async () => {
-        const { error: e1 } = await sb.auth.signInWithPassword({ email: p.email, password: f.old.value });
-        if (e1) throw new Error("Current password is wrong.");
-        const { error } = await sb.auth.updateUser({ password: f.n1.value });
-        if (error) throw error;
-        closeModal(); toast("Password changed.", "success");
-      });
-    };
-  });
-  $("#chMail").onclick = () => openModal(`<h2>Change email</h2><form id="cm">
-      <label>New email</label><input type="email" name="email" required>
-      <p class="small muted mt">We'll send confirmation links to your old and new email. The change applies after you confirm.</p>
-      <button class="btn block mt">Send confirmation</button></form>`, (m) => {
-    $("#cm", m).onsubmit = (e) => {
-      e.preventDefault();
-      busy($("button", e.target), async () => {
-        const { error } = await sb.auth.updateUser({ email: e.target.email.value.trim() }, { emailRedirectTo: location.origin + location.pathname });
-        if (error) throw error;
-        closeModal(); toast("Check your email to confirm the change.", "success");
-      });
-    };
-  });
-  $("#chPhone").onclick = () => openModal(`<h2>Change phone</h2><form id="cph">
-      <label>New phone number</label><input type="tel" name="phone" required value="${esc(p.phone || "")}">
-      <label>Country</label><select name="country">${countryOptions(p.country || "Nepal")}</select>
-      <button class="btn block mt">Save</button></form>`, (m) => {
-    $("#cph", m).onsubmit = (e) => {
-      e.preventDefault();
-      const f = e.target;
-      if (!/^[+0-9 ()-]{7,20}$/.test(f.phone.value.trim())) return toast("Enter a valid phone number.", "error");
-      busy($("button", f), async () => {
-        const { error } = await sb.from("profiles").update({ phone: f.phone.value.trim(), country: f.country.value }).eq("id", p.id);
-        if (error) throw error;
-        await loadProfile(); closeModal(); toast("Phone updated.", "success"); route();
-      });
-    };
-  });
-  $("#inst").onclick = async () => {
-    if (isStandalone()) return toast("Premvio is already installed.", "success");
-    if (installEvt) { installEvt.prompt(); installEvt = null; return; }
-    openModal(`<h2>Install Premvio</h2>
-      <p><b>iPhone (Safari):</b> tap the Share button, then <b>Add to Home Screen</b>.</p>
-      <p><b>Android (Chrome):</b> tap the ⋮ menu, then <b>Add to Home screen</b> or <b>Install app</b>.</p>
-      <button class="btn block mt" data-close>Got it</button>`);
-  };
-  $("#logout").onclick = async () => {
-    if (!(await confirmBox("Log out?", "You can log in again any time.", "Log out"))) return;
-    await disablePush().catch(() => {});
-    await pvSignOut();
-    location.hash = "";
-  };
 }
 
 </script>
