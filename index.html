@@ -949,6 +949,8 @@ button.tile-wide { width: 100%; font: inherit; color: var(--text); text-align: l
 .badge.tue { background: rgba(255, 200, 61, .15); color: var(--gold); }
 /* V44: Cloudflare "I am human" check */
 .ts-box { margin-top: 14px; min-height: 65px; }
+.ts-fail { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; border-radius: 12px;
+  border: 1px dashed var(--red); color: var(--red); font-size: .85rem; }
 
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
@@ -1540,34 +1542,58 @@ window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); inst
 try { const r = new URLSearchParams(location.search).get("ref"); if (r && /^PV\d{6}$/i.test(r)) localStorage.setItem("pv_ref", r.toUpperCase()); } catch (e) {}
 sb.auth.onAuthStateChange((event, session) => {
   if (event === "PASSWORD_RECOVERY") { setTimeout(newPasswordModal, 300); return; }
-  if (event === "SIGNED_OUT") { S.user = null; stopLive(); renderAuth(); return; }
+  if (event === "SIGNED_OUT") {
+    const was = S.user; S.user = null; stopLive();
+    if (was || !$(".auth-wrap")) renderAuth();   // already on the login/register screen → don't redraw it (keeps Register + the human check)
+    return;
+  }
   if (session?.user && (!S.user || S.user.id !== session.user.id)) {
     S.user = session.user;
     setTimeout(startApp, 0);
   }
 });
-sb.auth.getSession().then(({ data }) => { if (!data.session) renderAuth(); });
+sb.auth.getSession().then(({ data }) => { if (!data.session && !$(".auth-wrap")) renderAuth(); });
 
 /* ---------------- Cloudflare Turnstile ("I am human" check) on Register ---------------- */
 function mountTurnstile(box) {
-  let tok = null, wid = null, tries = 0;
+  let tok = null, tries = 0;
   const key = CFG.TURNSTILE_SITE_KEY;
   if (!key) return { token: () => "off", reset() {} };
+  const T = () => window.turnstile;
+  const fail = (msg) => {
+    if (!document.body.contains(box)) return;
+    box.innerHTML = `<div class="ts-fail"><span>${esc(msg)}</span><button type="button" class="btn sm soft" id="tsRetry">Try again</button></div>`;
+    $("#tsRetry", box).onclick = () => { tries = 0; draw(); };
+  };
   const draw = () => {
     if (!document.body.contains(box)) return;
-    if (!window.turnstile) {
-      if (++tries > 40) { box.innerHTML = `<p class="small" style="color:var(--red)">Could not load the security check. Check your internet and refresh.</p>`; return; }
+    if (!T()) {
+      if (++tries > 60) return fail("Security check did not load. Check your internet.");
       return setTimeout(draw, 250);
     }
-    wid = window.turnstile.render(box, { sitekey: key, theme: document.documentElement.dataset.theme === "light" ? "light" : "dark",
-      size: "flexible", callback: (t) => { tok = t; }, "expired-callback": () => { tok = null; }, "error-callback": () => { tok = null; } });
+    try { if (S.tsWid != null) T().remove(S.tsWid); } catch (e) {}
+    S.tsWid = null; tok = null;
+    box.innerHTML = "";
+    const holder = document.createElement("div");
+    box.appendChild(holder);
+    try {
+      S.tsWid = T().render(holder, {
+        sitekey: key, size: "flexible", appearance: "always", retry: "auto", "refresh-expired": "auto",
+        theme: document.documentElement.dataset.theme === "light" ? "light" : "dark",
+        callback: (t) => { tok = t; },
+        "expired-callback": () => { tok = null; },
+        "error-callback": (code) => { tok = null; fail("Security check error" + (code ? " (" + code + ")" : "") + "."); return true; },
+      });
+    } catch (e) { fail("Security check error."); }
   };
   draw();
-  return { token: () => tok, reset() { tok = null; try { if (wid != null) window.turnstile.reset(wid); } catch (e) {} } };
+  return { token: () => tok, reset() { tok = null; try { if (S.tsWid != null) T().reset(S.tsWid); else draw(); } catch (e) { draw(); } } };
 }
 
 /* ---------------- auth screens ---------------- */
-function renderAuth(mode = "login") {
+function renderAuth(mode) {
+  if (!mode) { try { mode = sessionStorage.getItem("pv_auth_mode") || "login"; } catch (e) { mode = "login"; } }
+  try { sessionStorage.setItem("pv_auth_mode", mode); } catch (e) {}
   root.innerHTML = `
   <div class="auth-wrap"><div class="auth-box">
     <img src="${PV_LOGO}" class="auth-logo" alt="Premvio">
@@ -1682,6 +1708,7 @@ const TABS = [
 ];
 
 async function startApp() {
+  try { sessionStorage.removeItem("pv_auth_mode"); } catch (e) {}
   root.innerHTML = `<div class="loader"></div>`;
   try {
     await Promise.all([loadProfile(), loadSettings()]);
