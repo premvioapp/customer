@@ -835,6 +835,20 @@ body.wa-mode .topbar, body.wa-mode .bottom-nav { display: none !important; }
 .set-item .si-val { font-weight: 700; color: var(--gold); font-size: .9rem; white-space: nowrap; }
 .set-item .badge { white-space: nowrap; }
 
+/* ===== V38: agent delivery orders ===== */
+button.tile-wide { width: 100%; font: inherit; color: var(--text); text-align: left; cursor: pointer; border: 1px solid var(--line); background: var(--card); }
+.tile-wide.ao-tile { margin: -6px 0 12px; }
+.tile-wide.ao-tile .ti { background: linear-gradient(135deg, var(--gold), #ff9f1c); font-size: 1.2rem; }
+.ao-count { background: var(--red); color: #fff !important; font-weight: 800; font-size: .8rem !important; min-width: 24px; height: 24px; padding: 0 7px;
+  border-radius: 999px; display: inline-grid; place-items: center; }
+.ao-count.hidden { display: none; }
+.seg-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; border-radius: 12px; background: var(--bg-2); border: 1px solid var(--line); margin-bottom: 12px; }
+.seg-tabs button { border: 0; background: transparent; color: var(--muted); font: inherit; font-weight: 700; padding: 10px; border-radius: 9px; cursor: pointer; }
+.seg-tabs button.on { background: var(--card); color: var(--text); box-shadow: 0 1px 0 var(--line); }
+.ao-card .ao-form { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--bg-2); }
+.ao-card .ao-form .kv { padding: 3px 0; }
+.agent-tag { margin-top: 4px; color: var(--gold); }
+
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
 <meta name="description" content="Buy Telegram Stars and Telegram Premium with Premvio.">
@@ -2734,7 +2748,7 @@ async function renderPremvioCash(body) {
 }
 
 /* ---------------- HISTORY ---------------- */
-const TX_NAME = { deposit: "Deposit", load: "Deposit", adjust: "Admin adjustment", withdraw: "Withdrawal", purchase: "Purchase", refund: "Refund", agent_load: "Deposit to customer", agent_payout: "Withdrawal paid", bonus: "Bonus 🎉", voucher: "Gift voucher" };
+const TX_NAME = { deposit: "Deposit", load: "Deposit", adjust: "Deposit", withdraw: "Withdrawal", purchase: "Purchase", refund: "Refund", agent_load: "Deposit to customer", agent_payout: "Withdrawal paid", bonus: "Bonus 🎉", voucher: "Gift voucher" };
 const TX_ICON = { deposit: "💰", adjust: "💰", load: "💰", withdraw: "🏧", purchase: "🛍️", refund: "↩️", agent_load: "📤", agent_payout: "📥", bonus: "🎁", voucher: "🎟️" };
 async function viewHistory(v) {
   v.innerHTML = `<h2>History</h2><p class="muted small">Last 30 days</p>
@@ -2748,7 +2762,7 @@ async function viewHistory(v) {
   if (S.histTab === "all") {
     const { data } = await sb.from("transactions").select("*").gte("created_at", since).order("created_at", { ascending: false }).limit(500);
     rows = (data || []).map((t) => `<div class="list-item"><div class="ic">${TX_ICON[t.type] || "•"}</div>
-      <div class="grow"><b>${esc(t.type === "adjust" ? (t.amount >= 0 ? "Deposit" : "Withdrawal") : TX_NAME[t.type] || t.type)}</b>
+      <div class="grow"><b>${esc(t.type === "adjust" ? (t.amount >= 0 ? "Deposit" : "Balance deducted") : TX_NAME[t.type] || t.type)}</b>
       <div class="small muted">${esc(t.description || "")}</div><div class="small muted">${fmtDate(t.created_at)}</div></div>
       <div class="${t.amount >= 0 ? "amt-pos" : "amt-neg"}">${t.amount >= 0 ? "+" : "−"}${money(Math.abs(t.amount)).replace(CFG.CURRENCY + " ", "")}</div></div>`);
   } else if (S.histTab === "orders") {
@@ -3261,7 +3275,7 @@ async function settingsPage(v, sub) {
         <div><label>City</label><input name="city" required value="${esc(kyc?.city || "")}"></div></div>
         ${kyc?.photo_required ? `<div class="photo-ask">
           <b>📷 Photo of your document required</b>
-          <div class="small muted">Take a clear photo of the front of your ${esc(kyc?.doc_type || "document")}. All text must be readable. Only Premvio admins can see it.</div>
+          <div class="small muted">Take a clear photo of the front of your ${esc(kyc?.doc_type || "document")}. All text must be readable. It is kept private and safe.</div>
           <input type="file" name="photo" accept="image/*" capture="environment" class="mt" required>
           <img id="docPrev" class="doc-preview hidden" alt=""></div>` : ""}
         <button class="btn block mt">Submit KYC</button>
