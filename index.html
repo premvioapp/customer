@@ -1001,6 +1001,8 @@ button.tile-wide { width: 100%; font: inherit; color: var(--text); text-align: l
 .opt-edit { margin-top: 8px; }
 .opt-edit .opt-info-in { margin-top: 6px; min-height: 38px; padding: 8px 10px; font-size: .85rem; resize: vertical; }
 .info-field .if-val { word-break: normal; overflow-wrap: break-word; }
+.sec-title.sec-ic { display: flex; align-items: center; gap: 6px; } .sec-title.sec-ic svg { width: 18px; height: 18px; color: var(--green); }
+input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
 
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
@@ -2119,11 +2121,12 @@ async function viewHome(v) {
   loadSettings().then(drawTicker).catch(() => {});   // pick up a new moving message
   drawBanners();
   drawLastOrder();
-  const [{ data, error }, { data: today }, { data: rates }, { data: best }, { count: sellCount }] = await Promise.all([
+  const [{ data, error }, { data: today }, { data: rates }, { data: best }, { data: sellItems }] = await Promise.all([
     sb.from("products").select("*").eq("active", true).order("sort").order("created_at", { ascending: false }),
     sb.rpc("products_today"), sb.rpc("product_ratings"), sb.rpc("best_sellers", { p_days: 30, p_limit: 6 }),
-    sb.from("sell_items").select("id", { count: "exact", head: true }).eq("active", true)]);
-  S.sellCount = sellCount || 0;
+    sb.from("sell_items").select("*").eq("active", true).order("sort").order("id")]);
+  S.sellItems = sellItems || [];
+  S.sellCount = S.sellItems.length;
   S.ratings = Object.fromEntries((rates || []).map((r) => [r.product_id, r]));
   S.best = (best || []).map((r) => r.product_id);
   if (error) { if ($("#plist")) $("#plist").innerHTML = `<div class="empty">${esc(errMsg(error))}</div>`; return; }
@@ -2221,11 +2224,21 @@ function drawProducts(v) {
   $$("[data-cat]", $("#catChips")).forEach((b) => (b.onclick = () => { S.cat = b.dataset.cat; drawProducts(v); }));
   const words = String(S.pq || "").toLowerCase().split(/\s+/).filter(Boolean);
   if (S.cat === "__sell" && !words.length) { box.innerHTML = `<div class="loader"></div>`; sellPage(box); return; }
-  const data = all.filter((p) => inCat(p, S.cat) && words.every((w) => (p.name + " " + (p.description || "") + " " + (p.category || "")).toLowerCase().includes(w)));
-  if (!all.length) { box.innerHTML = `<div class="empty"><div class="big">🛍️</div>No products yet. Check back soon!</div>`; return; }
-  if (!data.length) { box.innerHTML = `<div class="empty"><div class="big">🔍</div>No products found</div>`; return; }
+  // searching also looks through the "We buy" list
+  const sellHits = words.length && (!S.cat || S.cat === "__sell")
+    ? (S.sellItems || []).filter((it) => words.every((w) => (it.name + " " + (it.description || "")).toLowerCase().includes(w))) : [];
+  const data = S.cat === "__sell" ? [] : all.filter((p) => inCat(p, S.cat) && words.every((w) => (p.name + " " + (p.description || "") + " " + (p.category || "")).toLowerCase().includes(w)));
+  if (!all.length && !sellHits.length) { box.innerHTML = `<div class="empty"><div class="big">🛍️</div>No products yet. Check back soon!</div>`; return; }
+  if (!data.length && !sellHits.length) { box.innerHTML = `<div class="empty"><div class="big">🔍</div>No products found</div>`; return; }
   if (words.length || S.cat) {
-    box.innerHTML = `<div class="products">${data.map((p) => productCard(p)).join("")}</div>`;
+    box.innerHTML = (data.length ? `<div class="products">${data.map((p) => productCard(p)).join("")}</div>` : "")
+      + (sellHits.length ? `<h3 class="sec-title sec-ic">${ICONS.tag}<span>Sell</span></h3><div class="sell-grid">${sellHits.map((it) => `<button class="sell-card" data-sellhit="${it.id}">
+          <span class="sc-ph">${it.image_url ? `<img src="${esc(it.image_url)}" alt="" loading="lazy">` : ICONS.coins}</span>
+          <b>${esc(it.name)}</b><small>We pay <em>${money(it.pay_price)}</em></small></button>`).join("")}</div>` : "");
+    $$("[data-sellhit]", box).forEach((b) => (b.onclick = () => {
+      if (S.profile.kyc_status !== "approved") { toast("Complete KYC before you can sell.", "error"); location.hash = "#settings/kyc"; return; }
+      sellModal(S.sellItems.find((x) => x.id == b.dataset.sellhit), null);
+    }));
   } else {
     const sale = all.filter((p) => saleOn(p) && !p.is_free && !soldOut(p));
     const ends = sale.map((p) => p.sale_ends_at).filter(Boolean).sort()[0];
@@ -3523,7 +3536,7 @@ function sellModal(it, box) {
         openModal(`<div class="empty"><div class="big">💰</div><h2>Request #${data} sent</h2>
           <p>We'll check it and add <b>${money(qty * Number(it.pay_price))}</b> to your balance. You'll get a notification.</p>
           <button class="btn block mt" data-close>OK</button></div>`);
-        sellPage(box);
+        if (box && box.isConnected) sellPage(box);
       });
     };
   });
