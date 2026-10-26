@@ -962,6 +962,16 @@ button.tile-wide { width: 100%; font: inherit; color: var(--text); text-align: l
 .ord-btns .btn.sm { padding: 6px 10px; font-size: .78rem; }
 .list-item:has(.ord-btns.full) { flex-wrap: wrap; }
 .ord-btns.full { flex-basis: 100%; padding-left: 52px; margin-top: 2px; }
+/* V47: Sell to Premvio */
+.sell-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.sell-card { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 10px; border-radius: 16px; text-align: left; cursor: pointer;
+  background: var(--card); border: 1px solid var(--line); color: var(--text); font: inherit; }
+.sell-card:disabled { opacity: .5; cursor: not-allowed; }
+.sell-card .sc-ph { width: 100%; aspect-ratio: 1; border-radius: 12px; background: var(--card-2); display: grid; place-items: center; font-size: 2rem; overflow: hidden; margin-bottom: 4px; }
+.sell-card .sc-ph img { width: 100%; height: 100%; object-fit: cover; }
+.sell-card b { font-size: .9rem; }
+.sell-card small { color: var(--muted); font-size: .78rem; }
+.sell-card small em { font-style: normal; color: var(--green); font-weight: 800; }
 
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
@@ -1392,7 +1402,9 @@ const PV_NE = {
   "FREE": "निःशुल्क", "🎁 FREE": "🎁 निःशुल्क", "🎁 Get it free": "🎁 निःशुल्क लिनुहोस्", "from": "सुरु मूल्य",
   "Price depends on the option you choose.": "मूल्य तपाईंले छान्नुभएको विकल्प अनुसार फरक हुन्छ।",
   "It's free — nothing is taken from your balance.": "यो निःशुल्क हो — तपाईंको ब्यालेन्सबाट केही काटिँदैन।",
-  "Choose…": "छान्नुहोस्…", "Buy more, pay less": "धेरै किन्नुहोस्, कम तिर्नुहोस्", "🔁 Buy again": "🔁 फेरि किन्नुहोस्", "📷 Delivery proof": "📷 डेलिभरी प्रमाण",
+  "Choose…": "छान्नुहोस्…", "Sell to Premvio": "Premvio लाई बेच्नुहोस्", "We pay": "हामी तिर्छौं", "Send to Premvio": "Premvio लाई पठाउनुहोस्",
+  "My sell requests": "मेरा बिक्री अनुरोध", "checking": "जाँच हुँदैछ", "not accepted": "स्वीकार भएन", "Sold to Premvio 💰": "Premvio लाई बेचियो 💰",
+  "Nothing on the list right now.": "अहिले सूचीमा केही छैन।", "Buy more, pay less": "धेरै किन्नुहोस्, कम तिर्नुहोस्", "🔁 Buy again": "🔁 फेरि किन्नुहोस्", "📷 Delivery proof": "📷 डेलिभरी प्रमाण",
   "Open full size": "पूरा साइजमा खोल्नुहोस्", "This product is not available any more.": "यो प्रोडक्ट अब उपलब्ध छैन।",
  
  
@@ -2933,11 +2945,11 @@ function payoutPanel(body, m) {
     });
   };
 }
-function kycGate() {
+function kycGate(what = "withdraw") {
   const kyc = S.profile.kyc_status;
   return `<div class="empty" style="padding:14px"><div class="big">🪪</div>
     <b>${kyc === "pending" ? "Your KYC is being reviewed" : "KYC verification required"}</b>
-    <p class="muted small">${kyc === "pending" ? "You can withdraw once it is approved. We'll notify you." : "Complete KYC in Settings before you can withdraw."}</p>
+    <p class="muted small">${kyc === "pending" ? `You can ${what} once it is approved. We'll notify you.` : `Complete KYC before you can ${what}.`}</p>
     ${kyc === "pending" ? "" : `<a class="btn mt" href="#settings/kyc">Complete KYC</a>`}</div>`;
 }
 async function drawRecent(kind) {
@@ -3033,7 +3045,7 @@ async function renderPremvioCash(body) {
 }
 
 /* ---------------- HISTORY ---------------- */
-const TX_NAME = { deposit: "Deposit", load: "Deposit", adjust: "Deposit", withdraw: "Withdrawal", purchase: "Purchase", refund: "Refund", agent_load: "Deposit to customer", agent_payout: "Withdrawal paid", bonus: "Bonus 🎉", voucher: "Gift voucher" };
+const TX_NAME = { deposit: "Deposit", load: "Deposit", adjust: "Deposit", withdraw: "Withdrawal", purchase: "Purchase", refund: "Refund", agent_load: "Deposit to customer", agent_payout: "Withdrawal paid", bonus: "Bonus 🎉", voucher: "Gift voucher", sell: "Sold to Premvio 💰" };
 const TX_ICON = { deposit: "💰", adjust: "💰", load: "💰", withdraw: "🏧", purchase: "🛍️", refund: "↩️", agent_load: "📤", agent_payout: "📥", bonus: "🎁", voucher: "🎟️" };
 async function viewHistory(v) {
   v.innerHTML = `<h2>History</h2>
@@ -3373,10 +3385,73 @@ async function drawRewards() {
   };
 }
 
+/* ---------------- 💰 SELL TO PREMVIO ("We buy" list made by admin) ---------------- */
+async function sellPage(box) {
+  const [{ data: items }, { data: mine }] = await Promise.all([
+    sb.from("sell_items").select("*").eq("active", true).order("sort").order("id"),
+    sb.from("sell_requests").select("*").order("created_at", { ascending: false }).limit(30)]);
+  if (!box.isConnected) return;
+  const kycOk = S.profile.kyc_status === "approved";
+  const label = { pending: ["pending", "checking"], approved: ["completed", "paid"], rejected: ["rejected", "not accepted"] };
+  box.innerHTML = `${kycOk ? "" : `<div class="card">${kycGate("sell")}</div>`}
+    <div class="sell-grid">${(items || []).map((it) => `<button class="sell-card" data-sell="${it.id}" ${kycOk ? "" : "disabled"}>
+        <span class="sc-ph">${it.image_url ? `<img src="${esc(it.image_url)}" alt="" loading="lazy">` : "💰"}</span>
+        <b>${esc(it.name)}</b><small>We pay <em>${money(it.pay_price)}</em></small></button>`).join("") || `<div class="empty">Nothing on the list right now.</div>`}</div>
+    ${(mine || []).length ? `<h3 class="mt">My sell requests</h3><div class="card" style="padding:4px 14px">${mine.map((r) => `<div class="list-item">
+      <div class="grow"><b>#${r.id} · ${esc(r.item_name)} × ${r.quantity}</b><div class="small muted">${fmtDate(r.created_at)}</div>
+        ${r.admin_note ? `<div class="small muted">${esc(r.admin_note)}</div>` : ""}</div>
+      <div style="text-align:right"><b>${money(r.status === "approved" ? r.paid_amount : r.amount)}</b><br>
+        <span class="badge ${label[r.status][0]}">${label[r.status][1]}</span></div></div>`).join("")}</div>` : ""}`;
+  $$("[data-sell]", box).forEach((b) => (b.onclick = () => sellModal(items.find((x) => x.id == b.dataset.sell), box)));
+}
+function sellModal(it, box) {
+  const fields = it.fields || [], proof = it.proof_mode || "optional";
+  openModal(`${it.image_url ? `<img class="hero" src="${esc(it.image_url)}" alt="">` : ""}<h2>Sell: ${esc(it.name)}</h2>
+    <p class="muted small">We pay <b>${money(it.pay_price)}</b> each</p>
+    ${it.description ? `<p class="small" style="white-space:pre-wrap">${esc(it.description)}</p>` : ""}
+    <form id="slf">
+      <label>Quantity <span class="muted">(${it.min_qty}–${it.max_qty})</span></label>
+      <input type="number" name="qty" min="${it.min_qty}" max="${it.max_qty}" step="1" value="${it.min_qty}" required inputmode="numeric">
+      ${fields.map((fd) => fieldInput(fd)).join("")}
+      ${proof === "off" ? "" : `<label>Screenshot ${proof === "required" ? `<span style="color:var(--red)">*</span>` : `<span class="muted">(optional)</span>`}</label>
+      <input type="file" name="proof" accept="image/*" ${proof === "required" ? "required" : ""}>`}
+      <div class="card mt row between" style="box-shadow:none"><span class="muted">You get</span><b id="slTot" style="font-size:1.2rem;color:var(--green)"></b></div>
+      <button class="btn block gold mt">Send to Premvio</button>
+    </form>`, (m) => {
+    const f = $("#slf", m);
+    const calc = () => { $("#slTot", m).textContent = money(Math.max(0, Math.floor(Number(f.qty.value) || 0)) * Number(it.pay_price)); };
+    f.qty.oninput = calc; calc();
+    f.onsubmit = (e) => {
+      e.preventDefault();
+      const qty = Math.floor(Number(f.qty.value));
+      if (!(qty >= it.min_qty && qty <= it.max_qty)) return toast(`Quantity must be ${it.min_qty}–${it.max_qty}.`, "error");
+      const file = f.proof?.files?.[0] || null;
+      if (proof === "required" && !file) return toast("Please add a screenshot.", "error");
+      const form = readForm(f, fields);
+      if (!form) return;
+      busy($("button.btn", f), async () => {
+        let path = null;
+        if (file) {
+          const blob = await compressImage(file);
+          path = `${S.user.id}/sell-${Date.now()}.jpg`;
+          const { error: ue } = await sb.storage.from("proofs").upload(path, blob, { contentType: blob.type || "image/jpeg", upsert: false });
+          if (ue) throw ue;
+        }
+        const { data, error } = await sb.rpc("request_sell", { p_item: it.id, p_quantity: qty, p_form: form, p_proof: path });
+        if (error) throw error;
+        openModal(`<div class="empty"><div class="big">💰</div><h2>Request #${data} sent</h2>
+          <p>We'll check it and add <b>${money(qty * Number(it.pay_price))}</b> to your balance. You'll get a notification.</p>
+          <button class="btn block mt" data-close>OK</button></div>`);
+        sellPage(box);
+      });
+    };
+  });
+}
+
 /* ---------------- SETTINGS: clean menu → each part on its own page (#settings/<page>) ---------------- */
 const SET_PAGES = {
   account: ["👤", "Account"], wallet: ["💰", "Wallet"], kyc: ["🪪", "KYC verification"], rewards: ["🎁", "Invite & rewards"],
-  vouchers: ["🎟️", "Gift vouchers"], prefs: ["🎨", "Preferences"], security: ["🔒", "Security"],
+  vouchers: ["🎟️", "Gift vouchers"], prefs: ["🎨", "Preferences"], security: ["🔒", "Security"], sell: ["💰", "Sell to Premvio"],
 };
 function setItem(href, ic, title, sub, right) {
   return `<a class="set-item" href="${href}"><span class="si-ic">${ic}</span><span class="grow"><b>${title}</b>${sub ? `<small>${sub}</small>` : ""}</span>${right || ""}<em>›</em></a>`;
@@ -3404,6 +3479,7 @@ async function viewSettings(v, sub) {
     ${showRewards ? setItem("#settings/rewards", "🎁", "Invite & rewards", "") : ""}
     ${st.voucher_on !== "false" ? setItem("#settings/vouchers", "🎟️", "Gift vouchers", "") : ""}
   </div>` : ""}
+  <div id="sellEntry"></div>
 
   <div class="set-group">
     ${setItem("#settings/prefs", "🎨", "Preferences", "")}
@@ -3414,6 +3490,11 @@ async function viewSettings(v, sub) {
 
   <button class="btn ghost block mt" id="logout">${ICONS.logout} Log out</button>
   <p class="center small muted mt">Telegram: <a href="${esc(tgLink())}" target="_blank" rel="noopener">${esc(tgHandle())}</a></p>`;
+  // "Sell to Premvio" only shows when the admin has something on the "We buy" list
+  sb.from("sell_items").select("id", { count: "exact", head: true }).eq("active", true).then(({ count }) => {
+    const el = $("#sellEntry");
+    if (el && count) el.innerHTML = `<div class="set-group">${setItem("#settings/sell", "💰", "Sell to Premvio", "")}</div>`;
+  });
   $("#logout").onclick = async () => {
     if (!(await confirmBox("Log out?", "You can log in again any time.", "Log out"))) return;
     await disablePush().catch(() => {});
@@ -3476,6 +3557,7 @@ async function settingsPage(v, sub) {
     return;
   }
 
+  if (sub === "sell") return sellPage(box);
   if (sub === "rewards") { box.innerHTML = `<div class="card rewards-card" id="rewardsCard"><div class="loader"></div></div>`; drawRewards(); return; }
   if (sub === "vouchers") { box.innerHTML = `<div class="card" id="voucherCard"><div class="loader"></div></div>`; drawVouchers(); return; }
 
