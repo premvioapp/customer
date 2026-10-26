@@ -1019,6 +1019,25 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; d
 /* notification ask popup */
 .push-ask-ic { width: 56px; height: 56px; margin: 4px auto 10px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--blue) 15%, transparent); color: var(--blue); }
 .push-ask-ic svg { width: 28px; height: 28px; }
+/* V57 support panel + chat accept */
+.sp-ui { --grad: linear-gradient(135deg, #22c983 0%, #1fa2ff 100%); }
+.sp-tag { background: var(--grad); color: #fff; font-size: .7rem; font-weight: 800; letter-spacing: .08em; padding: 4px 10px; border-radius: 999px; }
+.badge.support { background: rgba(34, 201, 131, .15); color: var(--green); }
+.sp-list { display: grid; gap: 10px; }
+.sp-item { margin: 0; cursor: pointer; }
+.sp-item:hover { border-color: rgba(120, 160, 255, .35); }
+.sp-sub { margin-top: 4px; }
+.sp-last { margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-accept { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; border-radius: 14px; background: var(--card-2); border: 1px dashed var(--line); }
+.sp-bal { margin: 10px 0 4px; padding: 10px 12px; border-radius: 12px; background: var(--card-2); display: flex; justify-content: space-between; }
+.sp-two h4 { margin: 16px 0 6px; font-size: .85rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.sp-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: .9rem; }
+.sp-row:last-child { border-bottom: 0; }
+.chat-sys { align-self: center; font-size: .75rem; color: var(--muted); background: var(--card-2); padding: 4px 10px; border-radius: 999px; }
+.bubble.me.auto { opacity: .75; }
+.bubble.me.auto .who, .bubble.me .who { color: rgba(255,255,255,.85); }
+.wa-sys { align-self: center; margin: 6px auto; font-size: .75rem; color: var(--muted); background: var(--card-2); padding: 4px 10px; border-radius: 999px; text-align: center; }
+@media (max-width: 860px) { .sp-two { grid-template-columns: 1fr; } }
 
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
@@ -1493,6 +1512,13 @@ function copyText(t) {
   navigator.clipboard?.writeText(t).then(() => toast("Copied: " + t, "success"), () => toast(t));
 }
 
+/* ---------- help chat bubbles for staff (admin + support) ---------- */
+function staffBubble(m, custName) {
+  if (m.kind === "system") return `<div class="chat-sys">${esc(m.body)} · ${fmtDate(m.created_at)}</div>`;
+  return `<div class="bubble ${m.from_staff ? "me" : "them"} ${m.kind === "auto" ? "auto" : ""}">${m.from_staff ? (m.kind === "auto" ? `<div class="who">Auto reply</div>` : "")
+    : `<div class="who">${esc(custName || "Customer")}</div>`}<div>${esc(m.body)}</div><div class="t">${fmtDate(m.created_at)}</div></div>`;
+}
+
 </script>
 <script>
 /* ============ PREMVIO — Nepali language (customer app) ============
@@ -1508,7 +1534,7 @@ const PV_NE = {
   "Clear search": "खोज हटाउनुहोस्", "💡 Long-press a product to add it to your cart": "💡 कार्टमा थप्न प्रोडक्टलाई केही बेर थिचिराख्नुहोस्",
   "No products yet. Check back soon!": "अहिले कुनै प्रोडक्ट छैन। छिट्टै फेरि हेर्नुहोस्!",
   "Turn on notifications": "सूचनाहरू खोल्नुहोस्", "Get alerts for orders, loads and withdrawals.": "अर्डर, डिपोजिट र निकासीको सूचना पाउनुहोस्।",
-  "Allow": "अनुमति दिनुहोस्", "Not now": "अहिले होइन", "What's coming next": "छिट्टै आउँदैछ", "New features we're working on.": "हामीले बनाउँदै गरेका नयाँ सुविधाहरू।",
+  "Allow": "अनुमति दिनुहोस्", "Waiting for support": "सपोर्टको पर्खाइमा", "Online": "अनलाइन", "Support joined the chat": "सपोर्ट च्याटमा जोडियो", "Support joined your chat": "सपोर्ट तपाईंको च्याटमा जोडियो", "Not now": "अहिले होइन", "What's coming next": "छिट्टै आउँदैछ", "New features we're working on.": "हामीले बनाउँदै गरेका नयाँ सुविधाहरू।",
   "Nothing announced yet.": "अहिलेसम्म केही घोषणा भएको छैन।", "Nothing here yet": "अहिले यहाँ केही छैन",
   // auth
   "Log in": "लग इन", "Register": "दर्ता", "Email (Gmail)": "इमेल (Gmail)", "Email": "इमेल", "Password": "पासवर्ड",
@@ -3458,7 +3484,7 @@ async function helpThread(v, id) {
   const closed = t.status === "closed";
   v.innerHTML = `<div class="wa">
     <header class="wa-head"><button class="wa-back" id="back" aria-label="Back">←</button><img src="${PV_LOGO}" alt="">
-      <div class="grow"><b>Premvio Support</b><div class="wa-sub">${closed ? "Solved ✅" : "Usually replies in a few minutes"}</div></div>
+      <div class="grow"><b>Premvio Support</b><div class="wa-sub">${closed ? "Solved ✅" : t.accepted_at ? "Online" : "Waiting for support"}</div></div>
       ${closed ? "" : `<button class="wa-solved" id="solved">✅ Solved</button>`}</header>
     <div class="wa-topic">${esc(t.subject)}${t.orders ? ` · Order #${t.order_id} ${esc(t.orders.product_name)}` : ""}</div>
     <div class="wa-body" id="chat"><div class="wa-note">🔒 Messages are only between you and Premvio.</div></div>
@@ -3472,6 +3498,7 @@ async function helpThread(v, id) {
     if (m.id && seen.has(m.id)) return; if (m.id) seen.add(m.id);
     const day = waDay(m.created_at);
     if (day !== lastDay) { chat.insertAdjacentHTML("beforeend", `<div class="wa-day"><span>${day}</span></div>`); lastDay = day; }
+    if (m.kind === "system") { chat.insertAdjacentHTML("beforeend", `<div class="wa-sys">${esc(m.body)}</div>`); chat.scrollTop = chat.scrollHeight; return; }
     chat.insertAdjacentHTML("beforeend", `<div class="wa-msg ${m.from_staff ? "in" : "out"}"><div class="wa-txt">${esc(m.body)}</div>
       <span class="wa-meta">${waTime(m.created_at)}${m.from_staff ? "" : ` <i class="wa-tick ${pending ? "" : "sent"}">${pending ? "🕓" : "✓✓"}</i>`}</span></div>`);
     chat.scrollTop = chat.scrollHeight;
