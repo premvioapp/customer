@@ -990,6 +990,11 @@ button.tile-wide { width: 100%; font: inherit; color: var(--text); text-align: l
 .cat-chip.cc-tag:not(.on) svg { color: var(--green); }
 .cat-chip.cc-bolt:not(.on) svg { color: var(--red); }
 .sell-card .sc-ph svg { width: 40px; height: 40px; color: var(--green); }
+/* V49: "Info to copy" field */
+.info-field { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--bg-2); border: 1px dashed var(--line); }
+.info-field .if-label { font-size: .8rem; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+.info-field .if-row { display: flex; align-items: center; gap: 10px; }
+.info-field .if-val { flex: 1; font-weight: 700; word-break: break-all; white-space: pre-wrap; }
 
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
@@ -2375,7 +2380,14 @@ function productModal(p) {
   });
 }
 
+// "Info to copy": text the admin wrote; the customer can only see and copy it
+function infoField(f) {
+  return `<div class="info-field"><div class="if-label">${esc(f.label)}</div>
+    <div class="if-row"><span class="if-val">${esc(f.value || "")}</span>
+    <button type="button" class="btn sm soft" onclick="copyText(this.dataset.v)" data-v="${esc(f.value || "")}">${ICONS.copy} Copy</button></div></div>`;
+}
 function fieldInput(f, value, p) {
+  if (f.type === "info") return infoField(f);
   const name = `f_${esc(f.id)}`, req = f.required ? "required" : "", ph = esc(f.placeholder || "");
   let saved = "";
   if (REMEMBER_TYPES.includes(f.type || "text")) try { saved = localStorage.getItem("pv_field_" + f.label.toLowerCase()) || ""; } catch (e) {}
@@ -2563,6 +2575,7 @@ const REMEMBER_TYPES = ["text", "number", "phone", "email"];
 function formValues(f, fields) {
   const form = {};
   for (const fd of fields) {
+    if (fd.type === "info") continue;   // shown only, nothing to send
     if (fd.type === "multi") { form[fd.id] = $$(`input[name="f_${fd.id}"]:checked`, f).map((x) => x.value); continue; }
     if (fd.type === "choice") { form[fd.id] = $(`input[name="f_${fd.id}"]:checked`, f)?.value || ""; continue; }
     let v = (f.elements["f_" + fd.id]?.value || "").trim();
