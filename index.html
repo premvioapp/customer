@@ -1702,7 +1702,7 @@ try { const r = new URLSearchParams(location.search).get("ref"); if (r && /^PV\d
 sb.auth.onAuthStateChange((event, session) => {
   if (event === "PASSWORD_RECOVERY") { setTimeout(newPasswordModal, 300); return; }
   if (event === "SIGNED_OUT") {
-    const was = S.user; S.user = null; stopLive();
+    const was = S.user; S.user = null; stopLive(); clearInterval(S.netTimer); window.onhashchange = null;
     if (was || !$(".auth-wrap")) renderAuth();   // already on the login/register screen → don't redraw it (keeps Register + the human check)
     return;
   }
@@ -1994,7 +1994,7 @@ function pinPad(box, o, onOk) {
 let pvHiddenAt = 0;
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) { pvHiddenAt = Date.now(); return; }
-  if (S.profile?.has_pin && pvHiddenAt && Date.now() - pvHiddenAt > 5 * 60e3 && !$(".pin-screen")) {
+  if (S.user && $(".app") && S.profile?.has_pin && pvHiddenAt && Date.now() - pvHiddenAt > 5 * 60e3 && !$(".pin-screen")) {
     try { sessionStorage.removeItem("pv_unlocked"); } catch (e) {}
     pinLockScreen();
   }
@@ -2069,6 +2069,7 @@ function tgHandle() { return (S.settings.telegram_username || "@premvio").trim()
 function tgLink() { return "https://t.me/" + tgHandle().replace(/^@/, ""); }
 
 function route() {
+  if (!S.user || !$("#view")) return;   // logged out / login screen: nothing to draw
   const tab = (location.hash || "#home").slice(1);
   document.body.classList.remove("wa-mode", "on-home");
   if (S.helpCh && !tab.startsWith("help/")) { sb.removeChannel(S.helpCh); S.helpCh = null; }
