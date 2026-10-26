@@ -1016,6 +1016,9 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; d
   background: #2a1218; color: #ffd7dc; border: 1px solid rgba(255, 93, 108, .45); box-shadow: 0 8px 22px rgba(0,0,0,.35); white-space: nowrap; }
 .net-bar .nb-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
 .net-bar { top: auto; bottom: calc(var(--nav-h) + 14px + env(safe-area-inset-bottom, 0px)); }
+/* notification ask popup */
+.push-ask-ic { width: 56px; height: 56px; margin: 4px auto 10px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--blue) 15%, transparent); color: var(--blue); }
+.push-ask-ic svg { width: 28px; height: 28px; }
 
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
@@ -1222,13 +1225,22 @@ async function enablePush(silent = false) {
     if (!silent) toast("Notifications are blocked. Allow them in your browser settings.", "error");
     return false;
   }
-  const reg = await navigator.serviceWorker.ready;
-  let sub = await reg.pushManager.getSubscription();
-  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToUint8(CFG.VAPID_PUBLIC_KEY) });
-  const j = sub.toJSON();
-  const { error } = await sb.rpc("save_push_subscription", { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth });
-  if (error) { if (!silent) toast(errMsg(error), "error"); return false; }
-  return true;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const key = b64ToUint8(CFG.VAPID_PUBLIC_KEY);
+    let sub = await reg.pushManager.getSubscription();
+    let j = sub && sub.toJSON();
+    // broken or old device link → make a fresh one
+    if (sub && !(j && j.endpoint && j.keys && j.keys.p256dh && j.keys.auth)) { await sub.unsubscribe().catch(() => {}); sub = null; }
+    if (!sub) { sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key }); j = sub.toJSON(); }
+    // links THIS phone to the account that is logged in now (moves it away from any old account)
+    const { error } = await sb.rpc("save_push_subscription", { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth });
+    if (error) throw error;
+    return true;
+  } catch (e) {
+    if (!silent) toast(errMsg(e), "error");
+    return false;
+  }
 }
 async function disablePush() {
   if (!pushSupported()) return;
@@ -1496,7 +1508,7 @@ const PV_NE = {
   "Clear search": "खोज हटाउनुहोस्", "💡 Long-press a product to add it to your cart": "💡 कार्टमा थप्न प्रोडक्टलाई केही बेर थिचिराख्नुहोस्",
   "No products yet. Check back soon!": "अहिले कुनै प्रोडक्ट छैन। छिट्टै फेरि हेर्नुहोस्!",
   "Turn on notifications": "सूचनाहरू खोल्नुहोस्", "Get alerts for orders, loads and withdrawals.": "अर्डर, डिपोजिट र निकासीको सूचना पाउनुहोस्।",
-  "Allow": "अनुमति दिनुहोस्", "What's coming next": "छिट्टै आउँदैछ", "New features we're working on.": "हामीले बनाउँदै गरेका नयाँ सुविधाहरू।",
+  "Allow": "अनुमति दिनुहोस्", "Not now": "अहिले होइन", "What's coming next": "छिट्टै आउँदैछ", "New features we're working on.": "हामीले बनाउँदै गरेका नयाँ सुविधाहरू।",
   "Nothing announced yet.": "अहिलेसम्म केही घोषणा भएको छैन।", "Nothing here yet": "अहिले यहाँ केही छैन",
   // auth
   "Log in": "लग इन", "Register": "दर्ता", "Email (Gmail)": "इमेल (Gmail)", "Email": "इमेल", "Password": "पासवर्ड",
@@ -1924,7 +1936,7 @@ async function startApp() {
   route();
   startLive();
   refreshUnread();
-  if (S.profile.notify && pushSupported() && Notification.permission === "granted") enablePush(true);
+  syncPush();
   applySavedInvite();
   registerDevice();
 }
@@ -2036,6 +2048,30 @@ function deviceLabel() {
   const os = /Android/i.test(ua) ? "Android" : /iPhone|iPad|iPod/i.test(ua) ? "iPhone" : /Windows/i.test(ua) ? "Windows" : /Mac OS/i.test(ua) ? "Mac" : /Linux/i.test(ua) ? "Linux" : "device";
   const br = /Edg\//.test(ua) ? "Edge" : /SamsungBrowser/.test(ua) ? "Samsung Internet" : /Chrome\//.test(ua) ? "Chrome" : /Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : "Browser";
   return `${isStandalone() ? "Premvio app" : br} on ${os}`;
+}
+/* push: every account that logs in on this phone gets the notifications */
+async function syncPush() {
+  if (!S.profile.notify || !pushSupported()) return;
+  if (Notification.permission === "granted") {
+    if (!(await enablePush(true))) setTimeout(() => { if (S.user) enablePush(true); }, 8000);
+    return;
+  }
+  if (Notification.permission === "default") setTimeout(askPush, 1500);
+}
+function askPush() {
+  if (!S.user || $("#modal") || $(".pin-screen") || Notification.permission !== "default") return;
+  let last = 0; try { last = +localStorage.getItem("pv_push_ask_" + S.user.id) || 0; } catch (e) {}
+  if (Date.now() - last < 2 * 864e5) return;
+  try { localStorage.setItem("pv_push_ask_" + S.user.id, String(Date.now())); } catch (e) {}
+  openModal(`<div class="center"><div class="push-ask-ic">${ICONS.bell}</div><h2>Turn on notifications</h2></div>
+    <div class="row mt"><button class="btn ghost grow" data-close>Not now</button>
+    <button class="btn grow" id="paOk">Allow</button></div>`, (m) => {
+    $("#paOk", m).onclick = async () => {
+      const ok = await enablePush();     // asks the phone right from the tap (needed on iPhone)
+      closeModal();
+      if (ok) { toast("Notifications on.", "success"); $(".push-card")?.remove(); }
+    };
+  });
 }
 async function registerDevice() {
   let id = null;
@@ -3749,7 +3785,7 @@ async function settingsPage(v, sub) {
       <div class="setting-row"><div><b>Light theme</b></div>
         <label class="switch" style="margin:0"><input type="checkbox" id="thm" ${p.theme === "light" ? "checked" : ""}><span></span></label></div>
       <div class="setting-row"><div><b>Notifications</b></div>
-        <label class="switch" style="margin:0"><input type="checkbox" id="ntf" ${p.notify ? "checked" : ""}><span></span></label></div>
+        <label class="switch" style="margin:0"><input type="checkbox" id="ntf" ${p.notify && pushSupported() && Notification.permission === "granted" ? "checked" : ""}><span></span></label></div>
       <div class="setting-row"><div><b>Language</b></div>
         <div class="lang-seg" data-notr><button type="button" data-lang="en" class="${pvLang() === "en" ? "on" : ""}">English</button><button type="button" data-lang="ne" class="${pvLang() === "ne" ? "on" : ""}">नेपाली</button></div></div>
       <div class="setting-row"><div><b>Install app</b></div><button class="btn sm soft" id="inst">Install</button></div>
