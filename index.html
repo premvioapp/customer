@@ -972,6 +972,24 @@ button.tile-wide { width: 100%; font: inherit; color: var(--text); text-align: l
 .sell-card b { font-size: .9rem; }
 .sell-card small { color: var(--muted); font-size: .78rem; }
 .sell-card small em { font-style: normal; color: var(--green); font-weight: 800; }
+/* V48: line icons instead of emoji (Settings + Home buttons) */
+.set-item .si-ic svg, .sp-title .si-ic svg { width: 20px; height: 20px; }
+.si-ic.si-user { color: #4da3ff; background: rgba(77, 163, 255, .14); }
+.si-ic.si-wallet { color: var(--green); background: rgba(34, 201, 131, .14); }
+.si-ic.si-idcard { color: #a78bfa; background: rgba(167, 139, 250, .15); }
+.si-ic.si-gift { color: #ff7aa2; background: rgba(255, 122, 162, .14); }
+.si-ic.si-ticket { color: var(--orange); background: rgba(255, 159, 67, .14); }
+.si-ic.si-sliders { color: #2dd4bf; background: rgba(45, 212, 191, .14); }
+.si-ic.si-lock { color: var(--gold); background: rgba(255, 200, 61, .14); }
+.si-ic.si-chat { color: var(--blue); background: rgba(31, 162, 255, .14); }
+.si-ic.si-coins { color: var(--green); background: rgba(34, 201, 131, .14); }
+.sp-title { display: flex; align-items: center; gap: 10px; margin: 0; }
+.sp-title .si-ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex: 0 0 auto; }
+.cat-chip.has-ic { display: inline-flex; align-items: center; gap: 6px; }
+.cat-chip.has-ic svg { width: 15px; height: 15px; }
+.cat-chip.cc-tag:not(.on) svg { color: var(--green); }
+.cat-chip.cc-bolt:not(.on) svg { color: var(--red); }
+.sell-card .sc-ph svg { width: 40px; height: 40px; color: var(--green); }
 
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
@@ -1250,6 +1268,16 @@ const ICONS = {
   list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
   search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+  user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>',
+  idcard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 16c.6-1.3 1.7-2 3-2s2.4.7 3 2"/><path d="M15 10h3M15 13h3"/></svg>',
+  gift: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>',
+  ticket: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a2 2 0 0 0 0 6v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3a2 2 0 0 0 0-6V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z"/><path d="M14 4v2M14 11v2M14 18v2"/></svg>',
+  sliders: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>',
+  lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><circle cx="12" cy="16" r="1.2"/></svg>',
+  chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z"/><path d="M8.5 11h.01M12 11h.01M15.5 11h.01"/></svg>',
+  tag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>',
+  bolt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>',
+  coins: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="9" cy="7" rx="6" ry="3"/><path d="M3 7v4c0 1.7 2.7 3 6 3s6-1.3 6-3V7"/><path d="M9 14v3c0 1.7 2.7 3 6 3s6-1.3 6-3v-4c0-1.7-2.7-3-6-3"/></svg>',
   star: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z"/></svg>',
 };
 
@@ -1402,7 +1430,7 @@ const PV_NE = {
   "FREE": "निःशुल्क", "🎁 FREE": "🎁 निःशुल्क", "🎁 Get it free": "🎁 निःशुल्क लिनुहोस्", "from": "सुरु मूल्य",
   "Price depends on the option you choose.": "मूल्य तपाईंले छान्नुभएको विकल्प अनुसार फरक हुन्छ।",
   "It's free — nothing is taken from your balance.": "यो निःशुल्क हो — तपाईंको ब्यालेन्सबाट केही काटिँदैन।",
-  "Choose…": "छान्नुहोस्…", "Sell to Premvio": "Premvio लाई बेच्नुहोस्", "We pay": "हामी तिर्छौं", "Send to Premvio": "Premvio लाई पठाउनुहोस्",
+  "Choose…": "छान्नुहोस्…", "Sell": "बेच्नुहोस्", "Sale": "सेल", "Invite friends": "साथीलाई निमन्त्रणा", "My points": "मेरो पोइन्ट", "Sell to Premvio": "Premvio लाई बेच्नुहोस्", "We pay": "हामी तिर्छौं", "Send to Premvio": "Premvio लाई पठाउनुहोस्",
   "My sell requests": "मेरा बिक्री अनुरोध", "checking": "जाँच हुँदैछ", "not accepted": "स्वीकार भएन", "Sold to Premvio 💰": "Premvio लाई बेचियो 💰",
   "Nothing on the list right now.": "अहिले सूचीमा केही छैन।", "Buy more, pay less": "धेरै किन्नुहोस्, कम तिर्नुहोस्", "🔁 Buy again": "🔁 फेरि किन्नुहोस्", "📷 Delivery proof": "📷 डेलिभरी प्रमाण",
   "Open full size": "पूरा साइजमा खोल्नुहोस्", "This product is not available any more.": "यो प्रोडक्ट अब उपलब्ध छैन।",
@@ -2052,9 +2080,11 @@ async function viewHome(v) {
   loadSettings().then(drawTicker).catch(() => {});   // pick up a new moving message
   drawBanners();
   drawLastOrder();
-  const [{ data, error }, { data: today }, { data: rates }, { data: best }] = await Promise.all([
+  const [{ data, error }, { data: today }, { data: rates }, { data: best }, { count: sellCount }] = await Promise.all([
     sb.from("products").select("*").eq("active", true).order("sort").order("created_at", { ascending: false }),
-    sb.rpc("products_today"), sb.rpc("product_ratings"), sb.rpc("best_sellers", { p_days: 30, p_limit: 6 })]);
+    sb.rpc("products_today"), sb.rpc("product_ratings"), sb.rpc("best_sellers", { p_days: 30, p_limit: 6 }),
+    sb.from("sell_items").select("id", { count: "exact", head: true }).eq("active", true)]);
+  S.sellCount = sellCount || 0;
   S.ratings = Object.fromEntries((rates || []).map((r) => [r.product_id, r]));
   S.best = (best || []).map((r) => r.product_id);
   if (error) { if ($("#plist")) $("#plist").innerHTML = `<div class="empty">${esc(errMsg(error))}</div>`; return; }
@@ -2118,8 +2148,8 @@ function catList() {
   const all = S.products || [];
   const cats = [...new Set(all.map((p) => (p.category || "").trim()).filter(Boolean))];
   const extra = [];
-  if (all.some((p) => p.is_free)) extra.push(["__free", "🎁 Free"]);
-  if (all.some((p) => saleOn(p) && !p.is_free)) extra.push(["__sale", "⚡ Sale"]);
+  if (all.some((p) => saleOn(p) && !p.is_free)) extra.push(["__sale", "Sale", "bolt"]);
+  if (S.sellCount) extra.push(["__sell", "Sell", "tag"]);   // Sell to Premvio ("We buy" list)
   return [["", "All"], ...cats.map((c) => [c, c]), ...extra];
 }
 function inCat(p, c) {
@@ -2148,9 +2178,10 @@ function drawProducts(v) {
   if (!box) return;
   const cats = catList();
   if (!cats.some(([k]) => k === (S.cat || ""))) S.cat = "";
-  $("#catChips").innerHTML = cats.length > 1 ? `<div class="cat-chips">${cats.map(([k, l]) => `<button class="cat-chip ${(S.cat || "") === k ? "on" : ""}" data-cat="${esc(k)}">${esc(l)}</button>`).join("")}</div>` : "";
+  $("#catChips").innerHTML = cats.length > 1 ? `<div class="cat-chips">${cats.map(([k, l, ic]) => `<button class="cat-chip ${(S.cat || "") === k ? "on" : ""} ${ic ? "has-ic cc-" + ic : ""}" data-cat="${esc(k)}">${ic ? ICONS[ic] : ""}<span>${esc(l)}</span></button>`).join("")}</div>` : "";
   $$("[data-cat]", $("#catChips")).forEach((b) => (b.onclick = () => { S.cat = b.dataset.cat; drawProducts(v); }));
   const words = String(S.pq || "").toLowerCase().split(/\s+/).filter(Boolean);
+  if (S.cat === "__sell" && !words.length) { box.innerHTML = `<div class="loader"></div>`; sellPage(box); return; }
   const data = all.filter((p) => inCat(p, S.cat) && words.every((w) => (p.name + " " + (p.description || "") + " " + (p.category || "")).toLowerCase().includes(w)));
   if (!all.length) { box.innerHTML = `<div class="empty"><div class="big">🛍️</div>No products yet. Check back soon!</div>`; return; }
   if (!data.length) { box.innerHTML = `<div class="empty"><div class="big">🔍</div>No products found</div>`; return; }
@@ -3287,7 +3318,7 @@ async function drawVouchers() {
   if (!box) return;
   const amounts = String(S.settings.voucher_amounts || "100,500,1000").split(",").map((x) => Number(x.trim())).filter((x) => x > 0);
   if (!document.body.contains(box)) return;
-  box.innerHTML = `<h3 style="margin-top:0">🎟️ Gift vouchers</h3>
+  box.innerHTML = `
     <div class="v-amounts">${amounts.map((a) => `<button class="v-amt" data-buy="${a}"><b>${money(a)}</b><span>Buy voucher</span></button>`).join("")}</div>
     <form id="redeemF" class="mt"><label>Got a voucher code?</label>
       <div class="promo-box"><input name="code" placeholder="PVG-XXXX-XXXX-XXXX" maxlength="20" autocomplete="off"><button class="btn gold">Redeem</button></div></form>
@@ -3347,7 +3378,7 @@ async function drawRewards() {
   if (!refOn && !showPts) { box.remove(); return; }
   const link = location.origin + location.pathname.replace(/index\.html$/, "") + "?ref=" + r.code;
   box.innerHTML = `
-    ${refOn ? `<h3 style="margin-top:0">🎁 Invite friends</h3>
+    ${refOn ? `<h3 style="margin-top:0">Invite friends</h3>
       ${br || bf ? `<p class="small">${br ? `You get <b>${money(br)}</b>` : ""}${br && bf ? " · " : ""}${bf ? `Friend gets <b>${money(bf)}</b>` : ""}</p>` : ""}
       <div class="id-row"><div><div class="small muted">Your invite code</div><div class="mono id-big">${esc(r.code)}</div></div>
         <button class="btn sm gold" id="shareRef">${ICONS.send} Share</button></div>
@@ -3356,7 +3387,7 @@ async function drawRewards() {
       ${r.can_enter_code ? `<form id="refForm" class="mt"><label>Got an invite code from a friend?</label>
         <div class="promo-box"><input name="code" placeholder="PV123456" maxlength="8" autocapitalize="characters"><button class="btn soft">Use code</button></div></form>`
         : r.referred_by ? `<p class="small muted mt">You were invited by <b class="mono">${esc(r.referred_by)}</b>.</p>` : ""}` : ""}
-    ${showPts ? `<div class="pts-row ${refOn ? "mt" : ""}"><div><div class="small muted">⭐ My points</div><div class="id-big">${Number(r.points).toLocaleString("en-IN")}</div>
+    ${showPts ? `<div class="pts-row ${refOn ? "mt" : ""}"><div><div class="small muted">My points</div><div class="id-big">${Number(r.points).toLocaleString("en-IN")}</div>
         <div class="small muted">${st.cashback_on === "true" ? `Earn ${Number(st.cashback_percent || 0)}% back on every delivered order. ` : ""}1 point = ${money(1)} off at checkout.</div></div>
         <button class="btn sm soft" id="ptsHist">History</button></div><div id="ptsList"></div>` : ""}`;
   if ($("#shareRef")) $("#shareRef").onclick = async () => {
@@ -3395,7 +3426,7 @@ async function sellPage(box) {
   const label = { pending: ["pending", "checking"], approved: ["completed", "paid"], rejected: ["rejected", "not accepted"] };
   box.innerHTML = `${kycOk ? "" : `<div class="card">${kycGate("sell")}</div>`}
     <div class="sell-grid">${(items || []).map((it) => `<button class="sell-card" data-sell="${it.id}" ${kycOk ? "" : "disabled"}>
-        <span class="sc-ph">${it.image_url ? `<img src="${esc(it.image_url)}" alt="" loading="lazy">` : "💰"}</span>
+        <span class="sc-ph">${it.image_url ? `<img src="${esc(it.image_url)}" alt="" loading="lazy">` : ICONS.coins}</span>
         <b>${esc(it.name)}</b><small>We pay <em>${money(it.pay_price)}</em></small></button>`).join("") || `<div class="empty">Nothing on the list right now.</div>`}</div>
     ${(mine || []).length ? `<h3 class="mt">My sell requests</h3><div class="card" style="padding:4px 14px">${mine.map((r) => `<div class="list-item">
       <div class="grow"><b>#${r.id} · ${esc(r.item_name)} × ${r.quantity}</b><div class="small muted">${fmtDate(r.created_at)}</div>
@@ -3450,11 +3481,11 @@ function sellModal(it, box) {
 
 /* ---------------- SETTINGS: clean menu → each part on its own page (#settings/<page>) ---------------- */
 const SET_PAGES = {
-  account: ["👤", "Account"], wallet: ["💰", "Wallet"], kyc: ["🪪", "KYC verification"], rewards: ["🎁", "Invite & rewards"],
-  vouchers: ["🎟️", "Gift vouchers"], prefs: ["🎨", "Preferences"], security: ["🔒", "Security"], sell: ["💰", "Sell to Premvio"],
+  account: ["user", "Account"], wallet: ["wallet", "Wallet"], kyc: ["idcard", "KYC verification"], rewards: ["gift", "Invite & rewards"],
+  vouchers: ["ticket", "Gift vouchers"], prefs: ["sliders", "Preferences"], security: ["lock", "Security"], sell: ["coins", "Sell to Premvio"],
 };
 function setItem(href, ic, title, sub, right) {
-  return `<a class="set-item" href="${href}"><span class="si-ic">${ic}</span><span class="grow"><b>${title}</b>${sub ? `<small>${sub}</small>` : ""}</span>${right || ""}<em>›</em></a>`;
+  return `<a class="set-item" href="${href}"><span class="si-ic si-${ic}">${ICONS[ic] || ""}</span><span class="grow"><b>${title}</b>${sub ? `<small>${sub}</small>` : ""}</span>${right || ""}<em>›</em></a>`;
 }
 async function viewSettings(v, sub) {
   const p = S.profile;
@@ -3470,31 +3501,25 @@ async function viewSettings(v, sub) {
     <span class="grow"><b>${esc(p.full_name)}</b><small class="mono">${esc(p.member_id)}</small></span><em>›</em></a>
 
   <div class="set-group">
-    ${setItem("#settings/account", "👤", "Account", "")}
-    ${setItem("#settings/wallet", "💰", "Wallet", "", `<span class="si-val" data-balance>${money(p.balance)}</span>`)}
-    ${setItem("#settings/kyc", "🪪", "KYC verification", "", `<span class="badge ${p.kyc_status === "none" ? "" : p.kyc_status}">${kycBadge}</span>`)}
+    ${setItem("#settings/account", "user", "Account", "")}
+    ${setItem("#settings/wallet", "wallet", "Wallet", "", `<span class="si-val" data-balance>${money(p.balance)}</span>`)}
+    ${setItem("#settings/kyc", "idcard", "KYC verification", "", `<span class="badge ${p.kyc_status === "none" ? "" : p.kyc_status}">${kycBadge}</span>`)}
   </div>
 
   ${showRewards || st.voucher_on !== "false" ? `<div class="set-group">
-    ${showRewards ? setItem("#settings/rewards", "🎁", "Invite & rewards", "") : ""}
-    ${st.voucher_on !== "false" ? setItem("#settings/vouchers", "🎟️", "Gift vouchers", "") : ""}
+    ${showRewards ? setItem("#settings/rewards", "gift", "Invite & rewards", "") : ""}
+    ${st.voucher_on !== "false" ? setItem("#settings/vouchers", "ticket", "Gift vouchers", "") : ""}
   </div>` : ""}
-  <div id="sellEntry"></div>
 
   <div class="set-group">
-    ${setItem("#settings/prefs", "🎨", "Preferences", "")}
-    ${setItem("#settings/security", "🔒", "Security", "", p.has_pin ? `<span class="badge completed">PIN on</span>` : "")}
+    ${setItem("#settings/prefs", "sliders", "Preferences", "")}
+    ${setItem("#settings/security", "lock", "Security", "", p.has_pin ? `<span class="badge completed">PIN on</span>` : "")}
   </div>
 
-  ${st.help_on !== "false" ? `<div class="set-group">${setItem("#help", "💬", "Help chat", "")}</div>` : ""}
+  ${st.help_on !== "false" ? `<div class="set-group">${setItem("#help", "chat", "Help chat", "")}</div>` : ""}
 
   <button class="btn ghost block mt" id="logout">${ICONS.logout} Log out</button>
   <p class="center small muted mt">Telegram: <a href="${esc(tgLink())}" target="_blank" rel="noopener">${esc(tgHandle())}</a></p>`;
-  // "Sell to Premvio" only shows when the admin has something on the "We buy" list
-  sb.from("sell_items").select("id", { count: "exact", head: true }).eq("active", true).then(({ count }) => {
-    const el = $("#sellEntry");
-    if (el && count) el.innerHTML = `<div class="set-group">${setItem("#settings/sell", "💰", "Sell to Premvio", "")}</div>`;
-  });
   $("#logout").onclick = async () => {
     if (!(await confirmBox("Log out?", "You can log in again any time.", "Log out"))) return;
     await disablePush().catch(() => {});
@@ -3506,7 +3531,7 @@ async function viewSettings(v, sub) {
 async function settingsPage(v, sub) {
   const p = S.profile;
   const [ic, title] = SET_PAGES[sub];
-  v.innerHTML = `<div class="screen-head"><button class="back-btn" id="back" aria-label="Back">←</button><h2 style="margin:0">${ic} ${title}</h2></div><div id="sp"></div>`;
+  v.innerHTML = `<div class="screen-head"><button class="back-btn" id="back" aria-label="Back">←</button><h2 class="sp-title"><span class="si-ic si-${ic}">${ICONS[ic] || ""}</span>${title}</h2></div><div id="sp"></div>`;
   $("#back").onclick = () => { location.hash = "#settings"; };
   const box = $("#sp");
 
