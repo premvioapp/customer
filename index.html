@@ -2012,7 +2012,41 @@ function heroStars(cv) {
   const size = () => { W = cv.clientWidth; H = cv.clientHeight; cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); };
   size(); addEventListener("resize", size);
   const R = (a, b) => a + Math.random() * (b - a);
-  const mk = (y) => ({ x: R(0, W), y: y ?? R(0, H), r: R(4, 11), vx: R(-0.25, 0.25), vy: R(-0.9, -0.35), rot: R(0, 6.3), vr: R(-0.03, 0.03), tw: R(0, 6.3), trail: [] });
+  const mk = (y) => ({ x: R(0, W), y: y ?? R(0, H), r: R(4, 11), vx: R(-0.25, 0.25), vy: R(-0.9, -0.35), rot: R(0, 6.3), vr: R(-0.03, 0.03), tw: R(0, 6.3), trail: [], a: 0.95 });
+  // wandering stars: fly any direction, turn now and then, fade in and out
+  const mkW = () => { const an = R(0, 6.3), sp = R(0.6, 1.6); return { x: R(20, W - 20), y: R(40, H - 40), r: R(9, 15), vx: Math.cos(an) * sp, vy: Math.sin(an) * sp,
+    rot: R(0, 6.3), vr: R(-0.05, 0.05), tw: 0, trail: [], life: 0, max: R(260, 520), wander: true, a: 0 }; };
+  const wand = Array.from({ length: 5 }, () => Object.assign(mkW(), { life: R(0, 200) }));
+  const fx = [];   // explosion sparks + smiley faces
+  const smile = (x, y, r, rot, a) => {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.globalAlpha = a;
+    const g = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.1, 0, 0, r);
+    g.addColorStop(0, "#fff6a8"); g.addColorStop(1, "#ffc21a");
+    ctx.fillStyle = g; ctx.shadowColor = "rgba(255,200,60,.8)"; ctx.shadowBlur = r; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.3); ctx.fill(); ctx.shadowBlur = 0;
+    ctx.fillStyle = "#5a3500"; ctx.beginPath(); ctx.arc(-r * 0.35, -r * 0.2, r * 0.13, 0, 6.3); ctx.arc(r * 0.35, -r * 0.2, r * 0.13, 0, 6.3); ctx.fill();
+    ctx.strokeStyle = "#5a3500"; ctx.lineWidth = Math.max(1.2, r * 0.12); ctx.lineCap = "round"; ctx.beginPath(); ctx.arc(0, r * 0.05, r * 0.5, 0.2 * Math.PI, 0.8 * Math.PI); ctx.stroke();
+    ctx.fillStyle = "rgba(255,120,120,.45)"; ctx.beginPath(); ctx.arc(-r * 0.6, r * 0.2, r * 0.14, 0, 6.3); ctx.arc(r * 0.6, r * 0.2, r * 0.14, 0, 6.3); ctx.fill();
+    ctx.restore();
+  };
+  const boom = (s) => {
+    for (let i = 0; i < 22; i++) { const an = R(0, 6.3), sp = R(1.5, 5); fx.push({ k: "spark", x: s.x, y: s.y, vx: Math.cos(an) * sp, vy: Math.sin(an) * sp, life: 0, max: R(25, 45), r: R(1.5, 3.2) }); }
+    const n = Math.round(R(4, 7));
+    for (let i = 0; i < n; i++) { const an = (6.3 / n) * i + R(-0.3, 0.3), sp = R(1.4, 3); fx.push({ k: "smile", x: s.x, y: s.y, vx: Math.cos(an) * sp, vy: Math.sin(an) * sp - 1, rot: R(-0.5, 0.5), vr: R(-0.06, 0.06), life: 0, max: R(70, 110), r: R(8, 12) }); }
+    fx.push({ k: "ring", x: s.x, y: s.y, life: 0, max: 22, r: s.r });
+    if (navigator.vibrate) try { navigator.vibrate(15); } catch (e) {}
+  };
+  // tap a star (anywhere outside the login box) → it explodes into little smiley faces
+  cv.starList = () => [...wand, ...stars];
+  const hero = cv.closest(".auth-hero") || document;
+  hero.addEventListener("pointerdown", (e) => {
+    if (e.target.closest(".card, button, input, select, textarea, a, .auth-logo")) return;
+    const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
+    let best = null, bd = 1e9;
+    for (const s of [...wand, ...stars]) { const d = Math.hypot(s.x - x, s.y - y); if (d < Math.max(34, s.r * 3) && d < bd) { bd = d; best = s; } }
+    if (!best) return;
+    boom(best);
+    if (best.wander) Object.assign(best, mkW()); else Object.assign(best, mk(H + 20));
+  });
   const stars = Array.from({ length: Math.round(Math.min(26, Math.max(12, W / 22))) }, () => mk());
   const dust = Array.from({ length: 50 }, () => ({ x: R(0, W), y: R(0, H), r: R(0.6, 1.8), tw: R(0, 6.3), s: R(0.02, 0.06) }));
   const star = (x, y, r, rot, a) => {
@@ -2043,6 +2077,30 @@ function heroStars(cv) {
       }
       star(s.x, s.y, s.r * (0.9 + 0.12 * Math.sin(s.tw)), s.rot, 0.95);
       if (s.y < -20 || s.x < -20 || s.x > W + 20) Object.assign(s, mk(H + 20));
+    }
+    for (const s of wand) {
+      s.life += k;
+      if (Math.random() < 0.012 * k) { const an = Math.atan2(s.vy, s.vx) + R(-1.2, 1.2), sp = Math.hypot(s.vx, s.vy); s.vx = Math.cos(an) * sp; s.vy = Math.sin(an) * sp; }
+      if (s.x < 15 || s.x > W - 15) s.vx *= -1;
+      if (s.y < 30 || s.y > H - 30) s.vy *= -1;
+      s.trail.push({ x: s.x, y: s.y }); if (s.trail.length > 24) s.trail.shift();
+      s.x += s.vx * k; s.y += s.vy * k; s.rot += s.vr * k; s.tw += 0.08 * k;
+      s.a = Math.min(1, s.life / 40, (s.max - s.life) / 50);   // fade in → fade out
+      if (s.life >= s.max) { Object.assign(s, mkW()); continue; }
+      for (let i = 1; i < s.trail.length; i++) {
+        const p0 = s.trail[i - 1], p1 = s.trail[i], f = i / s.trail.length;
+        ctx.strokeStyle = `rgba(255,224,120,${0.45 * f * s.a})`; ctx.lineWidth = s.r * 0.6 * f;
+        ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+      }
+      star(s.x, s.y, s.r * (0.92 + 0.15 * Math.sin(s.tw)), s.rot, Math.max(0, s.a));
+    }
+    for (let i = fx.length - 1; i >= 0; i--) {
+      const f = fx[i]; f.life += k; const t = f.life / f.max;
+      if (t >= 1) { fx.splice(i, 1); continue; }
+      if (f.k === "ring") { ctx.strokeStyle = `rgba(255,230,140,${1 - t})`; ctx.lineWidth = 3 * (1 - t); ctx.beginPath(); ctx.arc(f.x, f.y, f.r + t * 46, 0, 6.3); ctx.stroke(); continue; }
+      f.x += f.vx * k; f.y += f.vy * k;
+      if (f.k === "spark") { f.vx *= 0.94; f.vy = f.vy * 0.94 + 0.05; ctx.fillStyle = `rgba(255,${200 + Math.round(55 * (1 - t))},120,${1 - t})`; ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (1 - t * 0.5), 0, 6.3); ctx.fill(); }
+      else { f.vx *= 0.985; f.vy = f.vy * 0.985 + 0.03; f.rot += f.vr * k; smile(f.x, f.y, f.r * (t < 0.15 ? t / 0.15 : 1), f.rot, t > 0.7 ? (1 - t) / 0.3 : 1); }
     }
     requestAnimationFrame(tick);
   };
