@@ -2680,21 +2680,6 @@ async function checkPromo(code, items) {
 
 /* ---------- 🚚 delivery (product has a delivery charge) ---------- */
 const dCharge = (p) => Number(p?.delivery_charge || 0);
-function deliveryBlock() {
-  const d = S.profile.delivery_address || {};
-  return `<div class="dl-box"><div class="dl-title">${ICONS.bag}<b>Delivery</b></div>
-    <label>Full name</label><input name="d_name" maxlength="80" autocomplete="name" value="${esc(d.name || S.profile.full_name || "")}">
-    <label>Phone</label><input name="d_phone" type="tel" maxlength="20" inputmode="tel" autocomplete="tel" value="${esc(d.phone || S.profile.phone || "")}">
-    <label>Address</label><textarea name="d_addr" rows="2" maxlength="300" autocomplete="street-address">${esc(d.address || "")}</textarea>
-    <label class="dl-save"><input type="checkbox" name="d_save" ${d.address ? "" : "checked"}><span>Save for next time</span></label></div>`;
-}
-function readDelivery(f) {
-  const name = f.d_name.value.trim(), phone = f.d_phone.value.trim(), address = f.d_addr.value.trim();
-  if (!name) { toast("Write the name of who receives it.", "error"); f.d_name.focus(); return false; }
-  if (!/^\+?[0-9][0-9 -]{5,19}$/.test(phone)) { toast("Write a valid phone number.", "error"); f.d_phone.focus(); return false; }
-  if (!address) { toast("Write the delivery address.", "error"); f.d_addr.focus(); return false; }
-  return { name, phone, address, save: !!f.d_save.checked };
-}
 const DL_STEPS = [["packed", "Packed"], ["on_the_way", "On the way"], ["delivered", "Delivered"]];
 function deliverySteps(o) {
   if (!(Number(o.delivery_charge) > 0) || ["cancelled", "refunded"].includes(o.status)) return "";
@@ -2717,7 +2702,6 @@ function buyModal(p, pre) {
       ${tierHtml(p)}
       ${fields.map((fd) => fieldInput(fd, pre?.form?.[fd.id], p)).join("")}
       ${giftBlock(null)}
-      ${dCharge(p) ? deliveryBlock() : ""}
       ${free ? "" : `<label>Promo code <span class="muted">(optional)</span></label>${promoBox("")}
       ${pointsToggle()}`}
       <div class="card mt" style="box-shadow:none">
@@ -2794,8 +2778,6 @@ function buyModal(p, pre) {
       if (!form) return;
       const gift = readGift(f);
       if (gift === false) return;
-      const dl = dCharge(p) ? readDelivery(f) : null;
-      if (dl === false) return;
       if (calc() > Number(S.profile.balance)) { toast("Not enough balance.", "error"); return; }
       busy($('button.btn:not([type="button"])', f), async () => {
         if (calc() > 0 && !(await requirePin(`Pay ${money(calc())}`))) return;
@@ -2803,10 +2785,8 @@ function buyModal(p, pre) {
         if (promo) args.p_promo = promo.code;
         if (gift) args.p_gift = gift;
         if (f.usePts?.checked) args.p_points = true;
-        if (dl) args.p_delivery = dl;
         const { data, error } = await sb.rpc("place_order", args);
         if (error) throw error;
-        if (dl?.save) S.profile.delivery_address = { name: dl.name, phone: dl.phone, address: dl.address };
         if (!gift) rememberFields(fields, form);
         await loadProfile();
         openModal(`<div class="empty"><div class="big">${gift ? "🎁" : "✅"}</div><h2>${gift ? "Gift" : "Order"} #${data} placed</h2>
@@ -2988,7 +2968,7 @@ async function viewCart(v) {
   box.innerHTML = `<div class="card cart-list">${rows.join("")}</div>
     <a class="add-more" href="#home">＋ Add more products</a>
     <div class="card cart-sum">
-      <form id="pcf" onsubmit="return false">${dsum ? deliveryBlock() : ""}<label style="${dsum ? "" : "margin-top:0"}">Promo code</label>${promoBox(S.cartPromo?.code || "")}${pointsToggle()}</form>
+      <form id="pcf" onsubmit="return false"><label style="margin-top:0">Promo code</label>${promoBox(S.cartPromo?.code || "")}${pointsToggle()}</form>
       <div class="row between mt"><span class="muted">Items</span><b>${cart.length}</b></div>
       <div class="row between"><span class="muted">Your balance</span><b data-balance>${money(bal)}</b></div>
       <div class="row between hidden" id="cDiscRow"><span class="muted">Promo discount</span><b style="color:var(--green)" id="cDisc"></b></div>
@@ -3048,18 +3028,14 @@ async function viewCart(v) {
     setCart([]); viewCart(v);
   };
   $("#payAll").onclick = async () => {
-    const dl = dsum ? readDelivery(pf) : null;
-    if (dl === false) return;
     if (!(await confirmBox("Pay for everything?", `<b>${money(pay())}</b> will be deducted from your balance for <b>${cart.length}</b> item${cart.length === 1 ? "" : "s"}.${disc ? ` You save <b>${money(disc)}</b> with ${esc(S.cartPromo.code)}.` : ""}`, "Pay now"))) return;
     busy($("#payAll"), async () => {
       if (pay() > 0 && !(await requirePin(`Pay ${money(pay())}`))) return;
       const args = { p_items: cart.map((it) => ({ product: it.product, quantity: it.quantity, form: it.form || {}, ...(it.gift ? { gift: it.gift } : {}) })) };
       if (S.cartPromo) args.p_promo = S.cartPromo.code;
       if (pf.usePts?.checked) args.p_points = true;
-      if (dl) args.p_delivery = dl;
       const { data, error } = await sb.rpc("place_cart", args);
       if (error) throw error;
-      if (dl?.save) S.profile.delivery_address = { name: dl.name, phone: dl.phone, address: dl.address };
       setCart([]); S.cartPromo = null;
       await loadProfile();
       $$("[data-balance]").forEach((el) => (el.textContent = money(S.profile.balance)));
@@ -3372,7 +3348,7 @@ async function viewHistory(v) {
       <div class="grow"><b>#${o.id} ${esc(o.product_name)} × ${o.quantity}</b>
       ${o.is_gift ? `<div class="small gift-tag">🎁 Gift to ${esc(o.gift?.to_name || "a friend")}${o.gift?.message ? ` — “${esc(o.gift.message)}”` : ""}</div>` : ""}
       ${Number(o.discount) > 0 ? `<div class="small" style="color:var(--green)">🏷️ ${esc(o.promo_code || "Promo")} −${money(o.discount)}</div>` : ""}
-      ${Number(o.delivery_charge) > 0 ? `<div class="small muted">Delivery ${money(o.delivery_charge)}${o.delivery?.address ? " · " + esc(o.delivery.address) : ""}</div>` : ""}
+      ${Number(o.delivery_charge) > 0 ? `<div class="small muted">Delivery ${money(o.delivery_charge)}</div>` : ""}
       ${deliverySteps(o)}
       <div class="small muted">${esc((o.form_data || []).filter((x) => x.value).map((x) => x.value).join(" · "))}</div>
       <div class="small muted">${fmtDate(o.created_at)}</div>
