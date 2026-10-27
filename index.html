@@ -1038,6 +1038,18 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; d
 .bubble.me.auto .who, .bubble.me .who { color: rgba(255,255,255,.85); }
 .wa-sys { align-self: center; margin: 6px auto; font-size: .75rem; color: var(--muted); background: var(--card-2); padding: 4px 10px; border-radius: 999px; text-align: center; }
 @media (max-width: 860px) { .sp-two { grid-template-columns: 1fr; } }
+/* V58 delivery */
+.dl-box { margin-top: 14px; padding: 12px; border-radius: 14px; background: var(--card-2); border: 1px solid var(--line); }
+.dl-box label:first-of-type { margin-top: 6px; }
+.dl-title { display: flex; align-items: center; gap: 8px; }
+.dl-title svg { width: 18px; height: 18px; color: var(--blue); }
+.dl-save { display: flex !important; align-items: center; gap: 8px; color: var(--text) !important; margin-top: 10px; }
+.dl-save input { width: auto; margin: 0; }
+.dl-steps { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+.dl-steps span { font-size: .72rem; padding: 3px 8px; border-radius: 999px; background: var(--card-2); color: var(--muted); }
+.dl-steps span.on { background: rgba(34, 201, 131, .16); color: var(--green); font-weight: 700; }
+.dl-admin { margin-top: 6px; padding: 8px; border-radius: 10px; background: var(--card-2); line-height: 1.45; }
+.dl-btns { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
 
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
@@ -1534,7 +1546,7 @@ const PV_NE = {
   "Clear search": "खोज हटाउनुहोस्", "💡 Long-press a product to add it to your cart": "💡 कार्टमा थप्न प्रोडक्टलाई केही बेर थिचिराख्नुहोस्",
   "No products yet. Check back soon!": "अहिले कुनै प्रोडक्ट छैन। छिट्टै फेरि हेर्नुहोस्!",
   "Turn on notifications": "सूचनाहरू खोल्नुहोस्", "Get alerts for orders, loads and withdrawals.": "अर्डर, डिपोजिट र निकासीको सूचना पाउनुहोस्।",
-  "Allow": "अनुमति दिनुहोस्", "Waiting for support": "सपोर्टको पर्खाइमा", "Online": "अनलाइन", "Support joined the chat": "सपोर्ट च्याटमा जोडियो", "Support joined your chat": "सपोर्ट तपाईंको च्याटमा जोडियो", "Not now": "अहिले होइन", "What's coming next": "छिट्टै आउँदैछ", "New features we're working on.": "हामीले बनाउँदै गरेका नयाँ सुविधाहरू।",
+  "Allow": "अनुमति दिनुहोस्", "Address": "ठेगाना", "Delivery": "डेलिभरी", "Save for next time": "अर्को पटकको लागि सेभ गर्नुहोस्", "Packed": "प्याक भयो", "On the way": "बाटोमा", "Delivered": "डेलिभर भयो", "Waiting for support": "सपोर्टको पर्खाइमा", "Online": "अनलाइन", "Support joined the chat": "सपोर्ट च्याटमा जोडियो", "Support joined your chat": "सपोर्ट तपाईंको च्याटमा जोडियो", "Not now": "अहिले होइन", "What's coming next": "छिट्टै आउँदैछ", "New features we're working on.": "हामीले बनाउँदै गरेका नयाँ सुविधाहरू।",
   "Nothing announced yet.": "अहिलेसम्म केही घोषणा भएको छैन।", "Nothing here yet": "अहिले यहाँ केही छैन",
   // auth
   "Log in": "लग इन", "Register": "दर्ता", "Email (Gmail)": "इमेल (Gmail)", "Email": "इमेल", "Password": "पासवर्ड",
@@ -2666,6 +2678,30 @@ async function checkPromo(code, items) {
   return data;
 }
 
+/* ---------- 🚚 delivery (product has a delivery charge) ---------- */
+const dCharge = (p) => Number(p?.delivery_charge || 0);
+function deliveryBlock() {
+  const d = S.profile.delivery_address || {};
+  return `<div class="dl-box"><div class="dl-title">${ICONS.bag}<b>Delivery</b></div>
+    <label>Full name</label><input name="d_name" maxlength="80" autocomplete="name" value="${esc(d.name || S.profile.full_name || "")}">
+    <label>Phone</label><input name="d_phone" type="tel" maxlength="20" inputmode="tel" autocomplete="tel" value="${esc(d.phone || S.profile.phone || "")}">
+    <label>Address</label><textarea name="d_addr" rows="2" maxlength="300" autocomplete="street-address">${esc(d.address || "")}</textarea>
+    <label class="dl-save"><input type="checkbox" name="d_save" ${d.address ? "" : "checked"}><span>Save for next time</span></label></div>`;
+}
+function readDelivery(f) {
+  const name = f.d_name.value.trim(), phone = f.d_phone.value.trim(), address = f.d_addr.value.trim();
+  if (!name) { toast("Write the name of who receives it.", "error"); f.d_name.focus(); return false; }
+  if (!/^\+?[0-9][0-9 -]{5,19}$/.test(phone)) { toast("Write a valid phone number.", "error"); f.d_phone.focus(); return false; }
+  if (!address) { toast("Write the delivery address.", "error"); f.d_addr.focus(); return false; }
+  return { name, phone, address, save: !!f.d_save.checked };
+}
+const DL_STEPS = [["packed", "Packed"], ["on_the_way", "On the way"], ["delivered", "Delivered"]];
+function deliverySteps(o) {
+  if (!(Number(o.delivery_charge) > 0) || ["cancelled", "refunded"].includes(o.status)) return "";
+  const at = DL_STEPS.findIndex(([k]) => k === (o.status === "completed" ? "delivered" : o.delivery_status));
+  return `<div class="dl-steps">${DL_STEPS.map(([k, l], i) => `<span class="${i <= at ? "on" : ""}">${l}</span>`).join("")}</div>`;
+}
+
 function buyModal(p, pre) {
   const fields = p.fields || [];
   const free = !!p.is_free;
@@ -2681,14 +2717,16 @@ function buyModal(p, pre) {
       ${tierHtml(p)}
       ${fields.map((fd) => fieldInput(fd, pre?.form?.[fd.id], p)).join("")}
       ${giftBlock(null)}
+      ${dCharge(p) ? deliveryBlock() : ""}
       ${free ? "" : `<label>Promo code <span class="muted">(optional)</span></label>${promoBox("")}
       ${pointsToggle()}`}
       <div class="card mt" style="box-shadow:none">
         <div class="row between hidden" id="discRow"><span class="muted">Promo discount</span><b style="color:var(--green)" id="disc"></b></div>
         <div class="row between hidden" id="ptsRow"><span class="muted">Points used</span><b style="color:var(--green)" id="ptsUsed"></b></div>
+        ${dCharge(p) ? `<div class="row between"><span class="muted">Delivery</span><b>${money(dCharge(p))}</b></div>` : ""}
         <div class="row between"><span class="muted">Total</span><b id="tot" style="font-size:1.2rem;color:var(--gold)"></b></div></div>
       <p class="small muted mt" id="warn"></p>
-      <button class="btn block gold mt">${free ? "🎁 Get it free" : "Confirm purchase"}</button>
+      <button class="btn block gold mt">${free && !dCharge(p) ? "🎁 Get it free" : "Confirm purchase"}</button>
     </form>`, (m) => {
     const f = $("#bf", m);
     let promo = null;   // {code, discount} after the server says the code works
@@ -2702,7 +2740,7 @@ function buyModal(p, pre) {
       m.dataset.notPicked = notPicked ? "1" : "";
       const gross = q * unit;
       const d = promo ? Math.min(promo.discount, gross) : 0;
-      const pts = pointsFor(f, gross - d), t = gross - d - pts;
+      const pts = pointsFor(f, gross - d), t = gross - d - pts + dCharge(p);
       $("#discRow", m).classList.toggle("hidden", !d);
       $("#disc", m).textContent = "−" + money(d);
       $("#ptsRow", m).classList.toggle("hidden", !pts);
@@ -2711,7 +2749,7 @@ function buyModal(p, pre) {
       const earn = cashbackFor(t);
       $("#warn", m).dataset.earn = earn ? ` You'll earn ⭐ ${earn} points.` : "";
       const low = t > Number(S.profile.balance);
-      $("#warn", m).innerHTML = free ? ""
+      $("#warn", m).innerHTML = free && !dCharge(p) ? ""
         : low ? `⚠️ Not enough balance. <a href="#deposit" data-close>Deposit money</a>` : ($("#warn", m).dataset.earn || "").trim();
       return t;
     };
@@ -2743,7 +2781,7 @@ function buyModal(p, pre) {
     bindGift(f, fields, m);
     let qt;
     const changed = (e) => {
-      if (e && e.target && /^(promo|g_|isGift|usePts)/.test(e.target.name || "")) return;
+      if (e && e.target && /^(promo|g_|isGift|usePts|d_)/.test(e.target.name || "")) return;
       calc(); if (promo) { clearTimeout(qt); qt = setTimeout(() => applyPromo(true), 400); }
     };
     f.addEventListener("input", changed); f.addEventListener("change", changed);   // quantity + options → live price
@@ -2756,6 +2794,8 @@ function buyModal(p, pre) {
       if (!form) return;
       const gift = readGift(f);
       if (gift === false) return;
+      const dl = dCharge(p) ? readDelivery(f) : null;
+      if (dl === false) return;
       if (calc() > Number(S.profile.balance)) { toast("Not enough balance.", "error"); return; }
       busy($('button.btn:not([type="button"])', f), async () => {
         if (calc() > 0 && !(await requirePin(`Pay ${money(calc())}`))) return;
@@ -2763,8 +2803,10 @@ function buyModal(p, pre) {
         if (promo) args.p_promo = promo.code;
         if (gift) args.p_gift = gift;
         if (f.usePts?.checked) args.p_points = true;
+        if (dl) args.p_delivery = dl;
         const { data, error } = await sb.rpc("place_order", args);
         if (error) throw error;
+        if (dl?.save) S.profile.delivery_address = { name: dl.name, phone: dl.phone, address: dl.address };
         if (!gift) rememberFields(fields, form);
         await loadProfile();
         openModal(`<div class="empty"><div class="big">${gift ? "🎁" : "✅"}</div><h2>${gift ? "Gift" : "Order"} #${data} placed</h2>
@@ -2921,7 +2963,7 @@ async function viewCart(v) {
       <a class="btn mt" href="#home">Browse products</a></div>`;
     return;
   }
-  let total = 0, bad = 0;
+  let total = 0, bad = 0, dsum = 0;
   await loadProfile().catch(() => {});
   const rows = cart.map((it) => {
     const p = S.products.find((x) => x.id == it.product);
@@ -2929,7 +2971,7 @@ async function viewCart(v) {
     if (!p) { bad++; return `<div class="cart-item bad"><div class="grow"><b>Product removed</b>
       <div class="small" style="color:var(--red)">No longer available — please delete it.</div></div>
       <button class="icon-btn" data-del="${it.uid}" title="Delete">🗑</button></div>`; }
-    const unit = unitPrice(p, it.form, it.quantity), sub = unit * it.quantity; total += sub;
+    const unit = unitPrice(p, it.form, it.quantity), sub = unit * it.quantity; total += sub; dsum += dCharge(p);
     const info = formText(p, it.form);
     return `<div class="cart-item">
       <div class="cart-ph">${p.image_url ? `<img src="${esc(p.image_url)}" alt="">` : `<span style="color:var(--gold);width:26px">${ICONS.star}</span>`}</div>
@@ -2946,11 +2988,12 @@ async function viewCart(v) {
   box.innerHTML = `<div class="card cart-list">${rows.join("")}</div>
     <a class="add-more" href="#home">＋ Add more products</a>
     <div class="card cart-sum">
-      <form id="pcf" onsubmit="return false"><label style="margin-top:0">Promo code</label>${promoBox(S.cartPromo?.code || "")}${pointsToggle()}</form>
+      <form id="pcf" onsubmit="return false">${dsum ? deliveryBlock() : ""}<label style="${dsum ? "" : "margin-top:0"}">Promo code</label>${promoBox(S.cartPromo?.code || "")}${pointsToggle()}</form>
       <div class="row between mt"><span class="muted">Items</span><b>${cart.length}</b></div>
       <div class="row between"><span class="muted">Your balance</span><b data-balance>${money(bal)}</b></div>
       <div class="row between hidden" id="cDiscRow"><span class="muted">Promo discount</span><b style="color:var(--green)" id="cDisc"></b></div>
       <div class="row between hidden" id="cPtsRow"><span class="muted">Points used</span><b style="color:var(--green)" id="cPts"></b></div>
+      ${dsum ? `<div class="row between"><span class="muted">Delivery</span><b>${money(dsum)}</b></div>` : ""}
       <div class="row between total-row"><span>Total</span><b id="cTot"></b></div>
       <p class="small muted hidden" id="cEarn"></p>
       <div class="row between"><span class="muted">Balance after paying</span><b id="cAfter"></b></div>
@@ -2960,9 +3003,9 @@ async function viewCart(v) {
       <button class="link-btn small mt" id="clearCart" style="display:block;margin:10px auto 0">Empty cart</button>
     </div>`;
   let disc = 0;
-  const pay = () => total - disc - pointsFor($("#pcf"), total - disc);
+  const pay = () => total - disc - pointsFor($("#pcf"), total - disc) + dsum;
   const paint = () => {
-    const t = pay(), after = bal - t, low = after < 0, pts = total - disc - t, earn = cashbackFor(t);
+    const t = pay(), after = bal - t, low = after < 0, pts = total - disc - (t - dsum), earn = cashbackFor(t);
     $("#cPtsRow").classList.toggle("hidden", !pts); $("#cPts").textContent = "−" + money(pts);
     $("#cEarn").classList.toggle("hidden", !earn); $("#cEarn").textContent = `You'll earn ⭐ ${earn} points when your orders are delivered.`;
     $("#cDiscRow").classList.toggle("hidden", !disc); $("#cDisc").textContent = "−" + money(disc);
@@ -3005,14 +3048,18 @@ async function viewCart(v) {
     setCart([]); viewCart(v);
   };
   $("#payAll").onclick = async () => {
+    const dl = dsum ? readDelivery(pf) : null;
+    if (dl === false) return;
     if (!(await confirmBox("Pay for everything?", `<b>${money(pay())}</b> will be deducted from your balance for <b>${cart.length}</b> item${cart.length === 1 ? "" : "s"}.${disc ? ` You save <b>${money(disc)}</b> with ${esc(S.cartPromo.code)}.` : ""}`, "Pay now"))) return;
     busy($("#payAll"), async () => {
       if (pay() > 0 && !(await requirePin(`Pay ${money(pay())}`))) return;
       const args = { p_items: cart.map((it) => ({ product: it.product, quantity: it.quantity, form: it.form || {}, ...(it.gift ? { gift: it.gift } : {}) })) };
       if (S.cartPromo) args.p_promo = S.cartPromo.code;
       if (pf.usePts?.checked) args.p_points = true;
+      if (dl) args.p_delivery = dl;
       const { data, error } = await sb.rpc("place_cart", args);
       if (error) throw error;
+      if (dl?.save) S.profile.delivery_address = { name: dl.name, phone: dl.phone, address: dl.address };
       setCart([]); S.cartPromo = null;
       await loadProfile();
       $$("[data-balance]").forEach((el) => (el.textContent = money(S.profile.balance)));
@@ -3325,6 +3372,8 @@ async function viewHistory(v) {
       <div class="grow"><b>#${o.id} ${esc(o.product_name)} × ${o.quantity}</b>
       ${o.is_gift ? `<div class="small gift-tag">🎁 Gift to ${esc(o.gift?.to_name || "a friend")}${o.gift?.message ? ` — “${esc(o.gift.message)}”` : ""}</div>` : ""}
       ${Number(o.discount) > 0 ? `<div class="small" style="color:var(--green)">🏷️ ${esc(o.promo_code || "Promo")} −${money(o.discount)}</div>` : ""}
+      ${Number(o.delivery_charge) > 0 ? `<div class="small muted">Delivery ${money(o.delivery_charge)}${o.delivery?.address ? " · " + esc(o.delivery.address) : ""}</div>` : ""}
+      ${deliverySteps(o)}
       <div class="small muted">${esc((o.form_data || []).filter((x) => x.value).map((x) => x.value).join(" · "))}</div>
       <div class="small muted">${fmtDate(o.created_at)}</div>
       ${o.admin_note ? `<div class="small muted">Note: ${esc(o.admin_note)}</div>` : ""}
