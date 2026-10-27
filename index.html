@@ -3087,8 +3087,8 @@ function buyModal(p, pre) {
         if (error) throw error;
         if (!gift) rememberFields(fields, form);
         await loadProfile();
-        openModal(`<div class="empty"><div class="big">${gift ? "🎁" : "✅"}</div><h2>${gift ? "Gift" : "Order"} #${data} placed</h2>
-          <p>${gift ? `We'll deliver <b>${esc(p.name)}</b> to <b>${esc(gift.to_name)}</b> soon.${gift.to_member ? " They'll get a notification." : ""}` : `We'll deliver <b>${esc(p.name)}</b> soon.`} You'll get a notification when it's done.</p>
+        openModal(`<div class="empty"><div class="big">${gift ? "🎁" : "✅"}</div><h2>${gift ? "Gift sent" : "Order placed"}</h2>
+          <p>${gift ? `We'll deliver <b>${esc(p.name)}</b> to <b>${esc(gift.to_name)}</b> soon.` : `We'll deliver <b>${esc(p.name)}</b> soon.`}</p>
           ${promo ? `<p class="small" style="color:var(--green)">You saved ${money(promo.discount)} with ${esc(promo.code)}.</p>` : ""}
           <button class="btn block mt" data-close>OK</button></div>`);
         $$("[data-balance]").forEach((el) => (el.textContent = money(S.profile.balance)));
@@ -3337,11 +3337,10 @@ async function viewCart(v) {
       setCart([]); S.cartPromo = null;
       await loadProfile();
       $$("[data-balance]").forEach((el) => (el.textContent = money(S.profile.balance)));
-      const ids = (data?.orders || []).map((x) => "#" + x).join(", ");
       openModal(`<div class="empty"><div class="big">✅</div><h2>Paid ${money(data?.total ?? pay())}</h2>
         ${Number(data?.discount) > 0 ? `<p class="small" style="color:var(--green)">You saved ${money(data.discount)} with ${esc(data.code)}.</p>` : ""}
         ${Number(data?.points) > 0 ? `<p class="small" style="color:var(--green)">⭐ ${data.points} points used.</p>` : ""}
-        <p>${(data?.orders || []).length} orders placed: <b>${esc(ids)}</b>. You'll get a notification when each one is delivered.</p>
+        <p>We'll deliver your order${(data?.orders || []).length === 1 ? "" : "s"} soon.</p>
         <a class="btn block mt" href="#history" data-close>See my orders</a></div>`);
       viewCart(v);
     });
