@@ -1773,7 +1773,7 @@ const PV_NE = {
   "Clear search": "खोज हटाउनुहोस्", "💡 Long-press a product to add it to your cart": "💡 कार्टमा थप्न प्रोडक्टलाई केही बेर थिचिराख्नुहोस्",
   "No products yet. Check back soon!": "अहिले कुनै प्रोडक्ट छैन। छिट्टै फेरि हेर्नुहोस्!",
   "Turn on notifications": "सूचनाहरू खोल्नुहोस्", "Get alerts for orders, loads and withdrawals.": "अर्डर, डिपोजिट र निकासीको सूचना पाउनुहोस्।",
-  "Allow": "अनुमति दिनुहोस्", "Address": "ठेगाना", "Delivery": "डेलिभरी", "Save for next time": "अर्को पटकको लागि सेभ गर्नुहोस्", "Packed": "प्याक भयो", "On the way": "बाटोमा", "Delivered": "डेलिभर भयो", "Waiting for support": "सपोर्टको पर्खाइमा", "Online": "अनलाइन", "Support joined the chat": "सपोर्ट च्याटमा जोडियो", "Support joined your chat": "सपोर्ट तपाईंको च्याटमा जोडियो", "Not now": "अहिले होइन", "What's coming next": "छिट्टै आउँदैछ", "New features we're working on.": "हामीले बनाउँदै गरेका नयाँ सुविधाहरू।",
+  "Allow": "अनुमति दिनुहोस्", "Did you get paid?": "तपाईंले पैसा पाउनुभयो?", "Yes": "हो", "No": "होइन", "Address": "ठेगाना", "Delivery": "डेलिभरी", "Save for next time": "अर्को पटकको लागि सेभ गर्नुहोस्", "Packed": "प्याक भयो", "On the way": "बाटोमा", "Delivered": "डेलिभर भयो", "Waiting for support": "सपोर्टको पर्खाइमा", "Online": "अनलाइन", "Support joined the chat": "सपोर्ट च्याटमा जोडियो", "Support joined your chat": "सपोर्ट तपाईंको च्याटमा जोडियो", "Not now": "अहिले होइन", "What's coming next": "छिट्टै आउँदैछ", "New features we're working on.": "हामीले बनाउँदै गरेका नयाँ सुविधाहरू।",
   "Nothing announced yet.": "अहिलेसम्म केही घोषणा भएको छैन।", "Nothing here yet": "अहिले यहाँ केही छैन",
   // auth
   "Log in": "लग इन", "Register": "दर्ता", "Email (Gmail)": "इमेल (Gmail)", "Email": "इमेल", "Password": "पासवर्ड",
@@ -2283,6 +2283,7 @@ async function startApp() {
     ignore: ".card, .product, button, input, select, textarea, a, label, img, video, .modal-bg, .bottom-nav, .topbar, .chip, .list-item, .ticker, .banner, .search-box, .wa, .pin-screen, [role=button], [onclick]" });
   startLive();
   refreshUnread();
+  setTimeout(askPaid, 800);
   syncPush();
   applySavedInvite();
   registerDevice();
@@ -2390,6 +2391,27 @@ async function removePin() {
 }
 
 /* ---------------- 🔐 new login alert ---------------- */
+/* after an agent pays out a withdrawal code: "Did you get paid?" (answer is kept for Premvio) */
+async function askPaid() {
+  if (!S.user || $("#modal") || $(".pin-screen")) return;
+  S.paidBusy = true; setTimeout(() => (S.paidBusy = false), 3000);
+  const { data } = await sb.from("withdrawals").select("id, amount, completed_at").eq("ask_paid", true).is("customer_paid", null)
+    .eq("status", "completed").order("completed_at", { ascending: true }).limit(1);
+  const w = data && data[0];
+  if (!w || $("#modal")) return;
+  openModal(`<div class="center paid-ask"><div class="push-ask-ic">${ICONS.cash}</div><h2>Did you get paid?</h2>
+    <p class="muted"><b style="color:var(--text)">${money(w.amount)}</b> · ${fmtDate(w.completed_at)}</p></div>
+    <div class="row mt"><button class="btn danger grow" data-pa="0">No</button><button class="btn success grow" data-pa="1">Yes</button></div>`, (m) => {
+    $$("[data-pa]", m).forEach((b) => (b.onclick = () => busy(b, async () => {
+      const yes = b.dataset.pa === "1";
+      const { error } = await sb.rpc("answer_payout", { p_id: w.id, p_paid: yes });
+      if (error) throw error;
+      closeModal();
+      if (!yes) toast("Thank you. We will check this right away.", "success");
+      setTimeout(askPaid, 400);   // another payout waiting? ask that one too
+    })));
+  });
+}
 /* push: every account that logs in on this phone gets the notifications */
 async function syncPush() {
   if (!S.profile.notify || !pushSupported()) return;
@@ -2400,7 +2422,7 @@ async function syncPush() {
   if (Notification.permission === "default") setTimeout(askPush, 1500);
 }
 function askPush() {
-  if (!S.user || $("#modal") || $(".pin-screen") || Notification.permission !== "default") return;
+  if (!S.user || S.paidBusy || $("#modal") || $(".pin-screen") || Notification.permission !== "default") return;
   let last = 0; try { last = +localStorage.getItem("pv_push_ask_" + S.user.id) || 0; } catch (e) {}
   if (Date.now() - last < 2 * 864e5) return;
   try { localStorage.setItem("pv_push_ask_" + S.user.id, String(Date.now())); } catch (e) {}
@@ -2498,6 +2520,7 @@ function startLive() {
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${S.user.id}` }, (p) => {
       toast(p.new.title + (p.new.body ? " — " + p.new.body : ""), "success");
       refreshUnread();
+      if (p.new.title === "Withdrawal completed") setTimeout(askPaid, 1500);
       const tab = (location.hash || "#home").slice(1);
       if (["wallet", "deposit", "withdraw", "history", "settings"].includes(tab)) route();
     })
