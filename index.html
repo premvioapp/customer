@@ -1188,6 +1188,8 @@ body.ag-chat-on .ag-nav { display: none; }
 .dr-row { display: grid; grid-template-columns: 1fr 1.4fr auto; gap: 6px; align-items: center; margin-top: 6px; }
 .dr-row input { margin: 0; }
 @media (max-width: 420px) { .dr-row { grid-template-columns: 1fr auto; } .dr-row .dr-v { grid-column: 1 / 2; grid-row: 2; } }
+.pm-conv { margin-top: 6px; font-size: .9rem; padding: 8px 12px; border-radius: 10px; background: rgba(31, 162, 255, .1); border: 1px solid rgba(31, 162, 255, .3); }
+.pm-conv b { color: var(--blue); font-size: 1rem; }
 
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
@@ -1674,6 +1676,26 @@ function pmRowsHtml(m) {
   return `<div class="pm-rows mt">${rows.map((r) => `<div class="pm-row">
     <div class="grow"><div class="pm-row-l">${esc(r.label)}</div><div class="pm-row-v">${esc(r.value)}</div></div>
     ${r.value ? `<button type="button" class="btn sm soft" onclick="copyText(this.dataset.v)" data-v="${esc(r.value)}">${ICONS.copy} Copy</button>` : ""}</div>`).join("")}</div>`;
+}
+// V70: deposit method in another currency (admin sets e.g. USD, 1 USD = 151 NPR)
+function pmCur(m) {
+  const c = String((m && m.pay_currency) || "").trim(), r = Number(m && m.pay_rate);
+  return c && r > 0 ? { cur: c, rate: r } : null;
+}
+function pmPayAmt(npr, rate) {   // same as the server: NPR ÷ rate, rounded UP to 2 decimals
+  const n = Number(npr), r = Number(rate);
+  if (!(n > 0) || !(r > 0)) return null;
+  return Math.ceil(Math.round((n / r) * 100 * 1e6) / 1e6) / 100;
+}
+function fmtCur(v, cur) {
+  return Number(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " " + cur;
+}
+function pmRateText(c) { return `1 ${c.cur} = ${CFG.CURRENCY} ${Number(c.rate).toLocaleString("en-US", { maximumFractionDigits: 4 })}`; }
+// small live line under an NPR amount box: "You pay 33.12 USD"
+function pmConvBind(input, out, c) {
+  const paint = () => { const p = pmPayAmt(input.value, c.rate);
+    out.innerHTML = p ? `You pay <b>${esc(fmtCur(p, c.cur))}</b> <span class="muted">· ${esc(pmRateText(c))}</span>` : `<span class="muted">${esc(pmRateText(c))}</span>`; };
+  input.addEventListener("input", paint); paint();
 }
 // V69: red notice the admin writes per deposit method
 function pmNoticeHtml(m) {
@@ -3563,7 +3585,7 @@ function limitsText(m, fallbackMin, fallbackMax) {
 // (amount and screenshot are switched on/off per method by the admin)
 function depositPanel(body, m) {
   const fields = m.fields || [];
-  const askAmt = m.ask_amount !== false, proof = m.proof_mode || "required";
+  const cur = pmCur(m), askAmt = m.ask_amount !== false || !!cur, proof = m.proof_mode || "required";
   body.innerHTML = `<div class="card pm-panel">
     ${pmNoticeHtml(m)}
     ${methodHead(m, "")}
@@ -3574,8 +3596,9 @@ function depositPanel(body, m) {
       <button class="btn sm soft" onclick="copyText('${esc(S.profile.member_id)}')">${ICONS.copy} My ID ${esc(S.profile.member_id)}</button>
     </div>
     <form id="depf" class="mt">
-      ${askAmt ? `<label>Amount you paid (${CFG.CURRENCY}) <span class="muted">${esc(limitsText(m))}</span></label>
-      <input type="number" name="amount" min="${m.min_amount ?? 1}" ${m.max_amount != null ? `max="${m.max_amount}"` : ""} step="0.01" required inputmode="decimal">` : ""}
+      ${askAmt ? `<label>${cur ? "Amount" : "Amount you paid"} (${CFG.CURRENCY}) <span class="muted">${esc(limitsText(m))}</span></label>
+      <input type="number" name="amount" min="${m.min_amount ?? 1}" ${m.max_amount != null ? `max="${m.max_amount}"` : ""} step="0.01" required inputmode="decimal">
+      ${cur ? `<div class="pm-conv" id="pmConv"></div>` : ""}` : ""}
       ${fields.map((fd) => fieldInput(fd)).join("")}
       ${proof === "off" ? "" : `<label>Payment screenshot ${proof === "required" ? `<span style="color:var(--red)">*</span>` : `<span class="muted">(optional)</span>`}</label>
       <input type="file" name="proof" accept="image/*" ${proof === "required" ? "required" : ""}>
@@ -3584,6 +3607,7 @@ function depositPanel(body, m) {
     </form></div>`;
   if ($("#cpDet")) $("#cpDet").onclick = () => copyText(m.details);
   const f = $("#depf");
+  if (cur) pmConvBind(f.amount, $("#pmConv"), cur);
   if (f.proof) f.proof.onchange = () => { const fl = f.proof.files[0]; if (fl) { $("#proofPrev").src = URL.createObjectURL(fl); $("#proofPrev").classList.remove("hidden"); } };
   f.onsubmit = (e) => {
     e.preventDefault();
@@ -3606,7 +3630,7 @@ function depositPanel(body, m) {
       if (error) throw error;
       rememberFields(fields, form);
       openModal(`<div class="empty"><div class="big">🧾</div><h2>Deposit #${data} sent</h2>
-        <p>We're checking your payment${amt ? ` of <b>${money(amt)}</b>` : ""} via <b>${esc(m.name)}</b>. You'll get a notification when it's added to your balance.</p>
+        <p>We're checking your payment${amt ? ` of <b>${money(amt)}</b>${cur ? ` (${esc(fmtCur(pmPayAmt(amt, cur.rate), cur.cur))})` : ""}` : ""} via <b>${esc(m.name)}</b>. You'll get a notification when it's added to your balance.</p>
         <button class="btn block mt" data-close>OK</button></div>`);
       depositPanel(body, m);
     });
@@ -3665,7 +3689,7 @@ async function drawRecent(kind) {
   box.innerHTML = data && data.length ? `<h3 class="mt">My ${kind === "deposit" ? "deposits" : "withdrawal requests"}</h3><div class="card" style="padding:4px 14px">
     ${data.map((r) => `<div class="list-item"><div class="grow"><b>#${r.id} · ${esc(r.method_name)}</b>
       <div class="small muted">${fmtDate(r.created_at)}</div>${r.admin_note ? `<div class="small muted">${esc(r.admin_note)}</div>` : ""}</div>
-      <div style="text-align:right"><b>${r.amount != null ? money(r.amount) : "—"}</b><br><span class="badge ${cls[r.status]}">${label[r.status] || r.status}</span></div></div>`).join("")}</div>` : "";
+      <div style="text-align:right"><b>${r.amount != null ? money(r.amount) : "—"}</b>${r.pay_currency && r.pay_amount != null ? `<div class="small muted">${esc(fmtCur(r.pay_amount, r.pay_currency))}</div>` : "<br>"}<span class="badge ${cls[r.status]}">${label[r.status] || r.status}</span></div></div>`).join("")}</div>` : "";
 }
 
 // PremvioCash: city + street + 24-hour code paid by an agent
