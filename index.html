@@ -1164,6 +1164,18 @@ body.ag-chat-on .ag-nav { display: none; }
 /* stars + smileys behind the app (V61) */
 .app-stars { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: .75; }
 .app.cust-app { position: relative; z-index: 1; }
+/* V67 jobs */
+.job-list { display: grid; gap: 10px; }
+.job-card { width: 100%; text-align: left; font: inherit; color: var(--text); cursor: pointer; margin: 0; }
+.job-t { font-size: 1.02rem; }
+.job-go { color: var(--blue); font-weight: 700; font-size: .85rem; white-space: nowrap; }
+.job-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 6px; font-size: .85rem; color: var(--muted); }
+.job-meta span { display: inline-flex; align-items: center; gap: 5px; }
+.job-meta svg { width: 15px; height: 15px; }
+.job-d { margin: 6px 0 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.si-ic.si-brief { color: var(--orange); background: rgba(255, 159, 67, .14); }
+.cat-chip.cc-brief:not(.on) svg { color: var(--orange); }
+.jrad { display: inline-flex !important; align-items: center; gap: 6px; margin: 6px 0 0 !important; color: var(--text) !important; } .jrad input { width: auto !important; margin: 0 !important; }
 
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
@@ -1488,6 +1500,7 @@ const ICONS = {
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
   search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
   user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>',
+  brief: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M3 12h18"/></svg>',
   idcard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 16c.6-1.3 1.7-2 3-2s2.4.7 3 2"/><path d="M15 10h3M15 13h3"/></svg>',
   gift: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>',
   ticket: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a2 2 0 0 0 0 6v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3a2 2 0 0 0 0-6V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z"/><path d="M14 4v2M14 11v2M14 18v2"/></svg>',
@@ -1773,7 +1786,7 @@ const PV_NE = {
   "Clear search": "खोज हटाउनुहोस्", "💡 Long-press a product to add it to your cart": "💡 कार्टमा थप्न प्रोडक्टलाई केही बेर थिचिराख्नुहोस्",
   "No products yet. Check back soon!": "अहिले कुनै प्रोडक्ट छैन। छिट्टै फेरि हेर्नुहोस्!",
   "Turn on notifications": "सूचनाहरू खोल्नुहोस्", "Get alerts for orders, loads and withdrawals.": "अर्डर, डिपोजिट र निकासीको सूचना पाउनुहोस्।",
-  "Allow": "अनुमति दिनुहोस्", "Did you get paid?": "तपाईंले पैसा पाउनुभयो?", "Not yet": "अहिलेसम्म पाएको छैन", "Yes": "हो", "No": "होइन", "Address": "ठेगाना", "Delivery": "डेलिभरी", "Save for next time": "अर्को पटकको लागि सेभ गर्नुहोस्", "Packed": "प्याक भयो", "On the way": "बाटोमा", "Delivered": "डेलिभर भयो", "Waiting for support": "सपोर्टको पर्खाइमा", "Online": "अनलाइन", "Support joined the chat": "सपोर्ट च्याटमा जोडियो", "Support joined your chat": "सपोर्ट तपाईंको च्याटमा जोडियो", "Not now": "अहिले होइन", "What's coming next": "छिट्टै आउँदैछ", "New features we're working on.": "हामीले बनाउँदै गरेका नयाँ सुविधाहरू।",
+  "Allow": "अनुमति दिनुहोस्", "Did you get paid?": "तपाईंले पैसा पाउनुभयो?", "Not yet": "अहिलेसम्म पाएको छैन", "Jobs": "जागिर", "Send application": "आवेदन पठाउनुहोस्", "Application sent": "आवेदन पठाइयो", "We will contact you soon.": "हामी तपाईंलाई चाँडै सम्पर्क गर्नेछौं।", "My applications": "मेरा आवेदनहरू", "Yes": "हो", "No": "होइन", "Address": "ठेगाना", "Delivery": "डेलिभरी", "Save for next time": "अर्को पटकको लागि सेभ गर्नुहोस्", "Packed": "प्याक भयो", "On the way": "बाटोमा", "Delivered": "डेलिभर भयो", "Waiting for support": "सपोर्टको पर्खाइमा", "Online": "अनलाइन", "Support joined the chat": "सपोर्ट च्याटमा जोडियो", "Support joined your chat": "सपोर्ट तपाईंको च्याटमा जोडियो", "Not now": "अहिले होइन", "What's coming next": "छिट्टै आउँदैछ", "New features we're working on.": "हामीले बनाउँदै गरेका नयाँ सुविधाहरू।",
   "Nothing announced yet.": "अहिलेसम्म केही घोषणा भएको छैन।", "Nothing here yet": "अहिले यहाँ केही छैन",
   // auth
   "Log in": "लग इन", "Register": "दर्ता", "Email (Gmail)": "इमेल (Gmail)", "Email": "इमेल", "Password": "पासवर्ड",
@@ -2659,6 +2672,10 @@ async function viewHome(v) {
   if (!offNow && sellItems) pvCacheSet("sell_items", sellItems);
   S.sellItems = sellItems || [];
   S.sellCount = S.sellItems.length;
+  if (!offNow) sb.from("jobs").select("id", { count: "exact", head: true }).eq("active", true).then(({ count }) => {
+    const had = !!S.jobCount; S.jobCount = count || 0;
+    if (had !== !!S.jobCount && $("#catChips")) drawProducts(v);   // show / hide the Jobs chip
+  }, () => {});
   S.ratings = Object.fromEntries((rates || []).map((r) => [r.product_id, r]));
   S.best = (best || []).map((r) => r.product_id);
   if (error && isNetErr(error) && pvCacheGet("products")) { data = pvCacheGet("products"); pvNetBar(true); }   // offline: last list
@@ -2726,6 +2743,7 @@ function catList() {
   const extra = [];
   if (all.some((p) => saleOn(p) && !p.is_free)) extra.push(["__sale", "Sale", "bolt"]);
   if (S.sellCount) extra.push(["__sell", "Sell", "tag"]);   // Sell to Premvio ("We buy" list)
+  if (S.jobCount) extra.push(["__jobs", "Jobs", "brief"]);
   return [["", "All"], ...cats.map((c) => [c, c]), ...extra];
 }
 function inCat(p, c) {
@@ -2758,6 +2776,7 @@ function drawProducts(v) {
   $$("[data-cat]", $("#catChips")).forEach((b) => (b.onclick = () => { S.cat = b.dataset.cat; drawProducts(v); }));
   const words = String(S.pq || "").toLowerCase().split(/\s+/).filter(Boolean);
   if (S.cat === "__sell" && !words.length) { box.innerHTML = `<div class="loader"></div>`; sellPage(box); return; }
+  if (S.cat === "__jobs") { box.innerHTML = `<div class="loader"></div>`; jobsPage(box); return; }
   // searching also looks through the "We buy" list
   const sellHits = words.length && (!S.cat || S.cat === "__sell")
     ? (S.sellItems || []).filter((it) => words.every((w) => (it.name + " " + (it.description || "")).toLowerCase().includes(w))) : [];
@@ -4045,6 +4064,66 @@ async function drawRewards() {
 }
 
 /* ---------------- 💰 SELL TO PREMVIO ("We buy" list made by admin) ---------------- */
+/* ---------------- 🧑‍💼 JOBS (applications go to Premvio's Telegram) ---------------- */
+async function jobsPage(box) {
+  const [{ data: list, error }, { data: mine }] = await Promise.all([
+    sb.from("jobs").select("*").eq("active", true).order("sort").order("id", { ascending: false }),
+    sb.from("job_applications").select("job_id, job_title, created_at").order("created_at", { ascending: false }).limit(20)]);
+  if (!box.isConnected) return;
+  if (error) { box.innerHTML = `<div class="empty">${esc(errMsg(error))}</div>`; return; }
+  const applied = (id) => (mine || []).some((a) => a.job_id === id && Date.now() - new Date(a.created_at) < 7 * 864e5);
+  box.innerHTML = `<div class="job-list">${(list || []).map((j) => `<button class="card job-card" data-job="${j.id}">
+      <div class="row between" style="gap:8px"><b class="job-t">${esc(j.title)}</b>${applied(j.id) ? `<span class="badge completed">Applied</span>` : `<span class="job-go">Apply ›</span>`}</div>
+      ${j.salary || j.location ? `<div class="job-meta">${j.salary ? `<span>${ICONS.cash}${esc(j.salary)}</span>` : ""}${j.location ? `<span>${ICONS.home}${esc(j.location)}</span>` : ""}</div>` : ""}
+      ${j.details ? `<p class="small muted job-d">${esc(j.details)}</p>` : ""}</button>`).join("") || `<div class="empty">No jobs right now</div>`}</div>
+    ${(mine || []).length ? `<h3 class="mt">My applications</h3><div class="card" style="padding:4px 14px">${mine.map((a) => `<div class="list-item"><div class="grow"><b>${esc(a.job_title)}</b>
+      <div class="small muted">${fmtDate(a.created_at)}</div></div><span class="badge completed">sent</span></div>`).join("")}</div>` : ""}`;
+  $$("[data-job]", box).forEach((b) => (b.onclick = () => {
+    const j = list.find((x) => x.id == b.dataset.job);
+    if (applied(j.id)) return toast("You already applied for this job. We will contact you.", "success");
+    jobModal(j, box);
+  }));
+}
+function jobModal(j, box) {
+  const fields = j.fields || [], fm = j.file_mode || "optional";
+  openModal(`<h2>${esc(j.title)}</h2>
+    ${j.salary || j.location ? `<div class="job-meta">${j.salary ? `<span>${ICONS.cash}${esc(j.salary)}</span>` : ""}${j.location ? `<span>${ICONS.home}${esc(j.location)}</span>` : ""}</div>` : ""}
+    ${j.details ? `<p class="small" style="white-space:pre-wrap">${esc(j.details)}</p>` : ""}
+    <form id="jaf">
+      ${fields.map((fd) => fieldInput(fd)).join("")}
+      ${fm === "off" ? "" : `<label>Photo or CV (PDF) ${fm === "required" ? `<span style="color:var(--red)">*</span>` : `<span class="muted">(optional)</span>`}</label>
+      <input type="file" name="file" accept="image/*,application/pdf" ${fm === "required" ? "required" : ""}>`}
+      <button class="btn block gold mt">Send application</button>
+    </form>`, (m) => {
+    const f = $("#jaf", m);
+    f.onsubmit = (e) => {
+      e.preventDefault();
+      const form = readForm(f, fields);
+      if (!form) return;
+      const file = f.file?.files?.[0] || null;
+      if (fm === "required" && !file) return toast("Please add your photo or CV.", "error");
+      const pdf = file && (file.type === "application/pdf" || /\.pdf$/i.test(file.name));
+      if (file && !pdf && !/^image\//.test(file.type)) return toast("Please choose a photo or a PDF file.", "error");
+      if (pdf && file.size > 5 * 1024 * 1024) return toast("The PDF is too big (max 5 MB).", "error");
+      busy($("button.btn", f), async () => {
+        let url = null;
+        if (file) {
+          const blob = pdf ? file : await compressImage(file, 1600, 0.85);
+          const path = `jobs/${S.user.id}-${Date.now()}${Math.random().toString(36).slice(2, 8)}.${pdf ? "pdf" : "jpg"}`;
+          const { error: ue } = await sb.storage.from("media").upload(path, blob, { contentType: pdf ? "application/pdf" : "image/jpeg", upsert: false });
+          if (ue) throw ue;
+          url = sb.storage.from("media").getPublicUrl(path).data.publicUrl;
+        }
+        const { error } = await sb.rpc("apply_job", { p_job: j.id, p_answers: form, p_file: url });
+        if (error) throw error;
+        openModal(`<div class="empty"><div class="big">✅</div><h2>Application sent</h2><p>We will contact you soon.</p>
+          <button class="btn block mt" data-close>OK</button></div>`);
+        if (box && box.isConnected) jobsPage(box);
+      });
+    };
+  });
+}
+
 async function sellPage(box) {
   const [{ data: items }, { data: mine }] = await Promise.all([
     sb.from("sell_items").select("*").eq("active", true).order("sort").order("id"),
@@ -4110,7 +4189,7 @@ function sellModal(it, box) {
 /* ---------------- SETTINGS: clean menu → each part on its own page (#settings/<page>) ---------------- */
 const SET_PAGES = {
   account: ["user", "Account"], wallet: ["wallet", "Wallet"], kyc: ["idcard", "KYC verification"], rewards: ["gift", "Invite & rewards"],
-  vouchers: ["ticket", "Gift vouchers"], prefs: ["sliders", "Preferences"], security: ["lock", "Security"], sell: ["coins", "Sell to Premvio"],
+  vouchers: ["ticket", "Gift vouchers"], prefs: ["sliders", "Preferences"], security: ["lock", "Security"], sell: ["coins", "Sell to Premvio"], jobs: ["brief", "Jobs"],
 };
 function setItem(href, ic, title, sub, right) {
   return `<a class="set-item" href="${href}"><span class="si-ic si-${ic}">${ICONS[ic] || ""}</span><span class="grow"><b>${title}</b>${sub ? `<small>${sub}</small>` : ""}</span>${right || ""}<em>›</em></a>`;
@@ -4143,6 +4222,8 @@ async function viewSettings(v, sub) {
     ${setItem("#settings/prefs", "sliders", "Preferences", "")}
     ${setItem("#settings/security", "lock", "Security", "", p.has_pin ? `<span class="badge completed">PIN on</span>` : "")}
   </div>
+
+  <div class="set-group">${setItem("#settings/jobs", "brief", "Jobs", "")}</div>
 
   ${st.help_on !== "false" ? `<div class="set-group">${setItem("#help", "chat", "Help chat", "")}</div>` : ""}
 
@@ -4211,6 +4292,7 @@ async function settingsPage(v, sub) {
   }
 
   if (sub === "sell") return sellPage(box);
+  if (sub === "jobs") return jobsPage(box);
   if (sub === "rewards") { box.innerHTML = `<div class="card rewards-card" id="rewardsCard"><div class="loader"></div></div>`; drawRewards(); return; }
   if (sub === "vouchers") { box.innerHTML = `<div class="card" id="voucherCard"><div class="loader"></div></div>`; drawVouchers(); return; }
 
