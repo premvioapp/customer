@@ -1773,7 +1773,7 @@ const PV_NE = {
   "Clear search": "खोज हटाउनुहोस्", "💡 Long-press a product to add it to your cart": "💡 कार्टमा थप्न प्रोडक्टलाई केही बेर थिचिराख्नुहोस्",
   "No products yet. Check back soon!": "अहिले कुनै प्रोडक्ट छैन। छिट्टै फेरि हेर्नुहोस्!",
   "Turn on notifications": "सूचनाहरू खोल्नुहोस्", "Get alerts for orders, loads and withdrawals.": "अर्डर, डिपोजिट र निकासीको सूचना पाउनुहोस्।",
-  "Allow": "अनुमति दिनुहोस्", "Did you get paid?": "तपाईंले पैसा पाउनुभयो?", "Yes": "हो", "No": "होइन", "Address": "ठेगाना", "Delivery": "डेलिभरी", "Save for next time": "अर्को पटकको लागि सेभ गर्नुहोस्", "Packed": "प्याक भयो", "On the way": "बाटोमा", "Delivered": "डेलिभर भयो", "Waiting for support": "सपोर्टको पर्खाइमा", "Online": "अनलाइन", "Support joined the chat": "सपोर्ट च्याटमा जोडियो", "Support joined your chat": "सपोर्ट तपाईंको च्याटमा जोडियो", "Not now": "अहिले होइन", "What's coming next": "छिट्टै आउँदैछ", "New features we're working on.": "हामीले बनाउँदै गरेका नयाँ सुविधाहरू।",
+  "Allow": "अनुमति दिनुहोस्", "Did you get paid?": "तपाईंले पैसा पाउनुभयो?", "Not yet": "अहिलेसम्म पाएको छैन", "Yes": "हो", "No": "होइन", "Address": "ठेगाना", "Delivery": "डेलिभरी", "Save for next time": "अर्को पटकको लागि सेभ गर्नुहोस्", "Packed": "प्याक भयो", "On the way": "बाटोमा", "Delivered": "डेलिभर भयो", "Waiting for support": "सपोर्टको पर्खाइमा", "Online": "अनलाइन", "Support joined the chat": "सपोर्ट च्याटमा जोडियो", "Support joined your chat": "सपोर्ट तपाईंको च्याटमा जोडियो", "Not now": "अहिले होइन", "What's coming next": "छिट्टै आउँदैछ", "New features we're working on.": "हामीले बनाउँदै गरेका नयाँ सुविधाहरू।",
   "Nothing announced yet.": "अहिलेसम्म केही घोषणा भएको छैन।", "Nothing here yet": "अहिले यहाँ केही छैन",
   // auth
   "Log in": "लग इन", "Register": "दर्ता", "Email (Gmail)": "इमेल (Gmail)", "Email": "इमेल", "Password": "पासवर्ड",
@@ -2016,10 +2016,41 @@ function heroStars(cv, opt = {}) {
   size(); addEventListener("resize", size);
   const R = (a, b) => a + Math.random() * (b - a);
   const mk = (y) => ({ x: R(0, W), y: y ?? R(0, H), r: R(4, 11), vx: R(-0.25, 0.25), vy: R(-0.9, -0.35), rot: R(0, 6.3), vr: R(-0.03, 0.03), tw: R(0, 6.3), trail: [], a: 0.95 });
+  const WL = [];   // wandering items (filled below)
   // wandering stars: fly any direction, turn now and then, fade in and out
   const mkW = () => { const an = R(0, 6.3), sp = R(0.6, 1.6); return { x: R(20, W - 20), y: R(40, H - 40), r: R(9, 15), vx: Math.cos(an) * sp, vy: Math.sin(an) * sp,
-    rot: R(0, 6.3), vr: R(-0.05, 0.05), tw: 0, trail: [], life: 0, max: R(260, 520), wander: true, a: 0 }; };
-  const wand = Array.from({ length: opt.wander ?? 5 }, () => Object.assign(mkW(), { life: R(0, 200) }));
+    rot: R(0, 6.3), vr: R(-0.05, 0.05), tw: 0, trail: [], life: 0, max: R(260, 520), wander: true, a: 0, kind: pickKind() }; };
+  // mostly stars; now and then one heart or one gift (never more than one of each at a time)
+  function pickKind() {
+    const have = (k) => WL.some((w) => w.kind === k);
+    const x = Math.random();
+    if (x < 0.22 && !have("heart")) return "heart";
+    if (x < 0.42 && !have("gift")) return "gift";
+    return "star";
+  }
+  const heart = (x, y, r, rot, a) => {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(rot) * 0.18); ctx.scale(r / 10, r / 10); ctx.globalAlpha = a;   // stays upright, small sway
+    ctx.beginPath(); ctx.moveTo(0, 9);
+    ctx.bezierCurveTo(-3, 6, -10, 1, -10, -4); ctx.bezierCurveTo(-10, -9, -4, -11, 0, -6);
+    ctx.bezierCurveTo(4, -11, 10, -9, 10, -4); ctx.bezierCurveTo(10, 1, 3, 6, 0, 9); ctx.closePath();
+    const g = ctx.createLinearGradient(0, -10, 0, 9); g.addColorStop(0, "#ff8fb8"); g.addColorStop(1, "#ff2e6e");
+    ctx.fillStyle = g; ctx.shadowColor = "rgba(255,70,130,.8)"; ctx.shadowBlur = 12; ctx.fill();
+    ctx.shadowBlur = 0; ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.beginPath(); ctx.ellipse(-5, -5, 2.2, 1.3, -0.6, 0, 6.3); ctx.fill();
+    ctx.restore();
+  };
+  const gift = (x, y, r, rot, a) => {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(rot) * 0.3); ctx.scale(r / 10, r / 10); ctx.globalAlpha = a;
+    ctx.shadowColor = "rgba(80,150,255,.8)"; ctx.shadowBlur = 12;
+    const g = ctx.createLinearGradient(0, -6, 0, 9); g.addColorStop(0, "#5aa8ff"); g.addColorStop(1, "#2f5bff");
+    ctx.fillStyle = g; ctx.fillRect(-8, -3, 16, 12);                 // box
+    ctx.fillStyle = "#7cc0ff"; ctx.fillRect(-9.5, -7, 19, 5);        // lid
+    ctx.shadowBlur = 0; ctx.fillStyle = "#ffd34d";
+    ctx.fillRect(-1.6, -7, 3.2, 16);                                 // ribbon
+    ctx.beginPath(); ctx.ellipse(-3.6, -8.6, 3.6, 2, -0.5, 0, 6.3); ctx.ellipse(3.6, -8.6, 3.6, 2, 0.5, 0, 6.3); ctx.fill();   // bow
+    ctx.restore();
+  };
+  const wand = WL;
+  for (let i = 0; i < (opt.wander ?? 5); i++) WL.push(Object.assign(mkW(), { life: R(0, 200) }));
   const fx = [];   // explosion sparks + smiley faces
   const smile = (x, y, r, rot, a) => {
     ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.globalAlpha = a;
@@ -2093,10 +2124,14 @@ function heroStars(cv, opt = {}) {
       if (s.life >= s.max) { Object.assign(s, mkW()); continue; }
       for (let i = 1; i < s.trail.length; i++) {
         const p0 = s.trail[i - 1], p1 = s.trail[i], f = i / s.trail.length;
-        ctx.strokeStyle = `rgba(255,224,120,${0.45 * f * s.a})`; ctx.lineWidth = s.r * 0.6 * f;
+        ctx.strokeStyle = s.kind === "heart" ? `rgba(255,120,170,${0.4 * f * s.a})` : s.kind === "gift" ? `rgba(120,180,255,${0.4 * f * s.a})` : `rgba(255,224,120,${0.45 * f * s.a})`;
+        ctx.lineWidth = s.r * 0.6 * f;
         ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
       }
-      star(s.x, s.y, s.r * (0.92 + 0.15 * Math.sin(s.tw)), s.rot, Math.max(0, s.a));
+      const sz = s.r * (0.92 + 0.15 * Math.sin(s.tw)), al = Math.max(0, s.a);
+      if (s.kind === "heart") heart(s.x, s.y, sz * 1.05, s.rot, al);
+      else if (s.kind === "gift") gift(s.x, s.y, sz * 1.05, s.rot, al);
+      else star(s.x, s.y, sz, s.rot, al);
     }
     for (let i = fx.length - 1; i >= 0; i--) {
       const f = fx[i]; f.life += k; const t = f.life / f.max;
@@ -2401,12 +2436,14 @@ async function askPaid() {
   if (!w || $("#modal")) return;
   openModal(`<div class="center paid-ask"><div class="push-ask-ic">${ICONS.cash}</div><h2>Did you get paid?</h2>
     <p class="muted"><b style="color:var(--text)">${money(w.amount)}</b> · ${fmtDate(w.completed_at)}</p></div>
-    <div class="row mt"><button class="btn danger grow" data-pa="0">No</button><button class="btn success grow" data-pa="1">Yes</button></div>`, (m) => {
+    <div class="row mt"><button class="btn danger grow" data-pa="0">No</button><button class="btn success grow" data-pa="1">Yes</button></div>
+    <button class="btn ghost block mt" data-pa="later">Not yet</button>`, (m) => {
     $$("[data-pa]", m).forEach((b) => (b.onclick = () => busy(b, async () => {
-      const yes = b.dataset.pa === "1";
-      const { error } = await sb.rpc("answer_payout", { p_id: w.id, p_paid: yes });
+      const later = b.dataset.pa === "later", yes = b.dataset.pa === "1";
+      const { error } = await sb.rpc("answer_payout", { p_id: w.id, p_paid: later ? null : yes });
       if (error) throw error;
       closeModal();
+      if (later) { clearTimeout(S.paidTimer); S.paidTimer = setTimeout(askPaid, 5 * 60000); return; }   // ask again in 5 minutes (and every app start)
       if (!yes) toast("Thank you. We will check this right away.", "success");
       setTimeout(askPaid, 400);   // another payout waiting? ask that one too
     })));
