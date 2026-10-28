@@ -2038,6 +2038,17 @@ function heroStars(cv, opt = {}) {
     ctx.shadowBlur = 0; ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.beginPath(); ctx.ellipse(-5, -5, 2.2, 1.3, -0.6, 0, 6.3); ctx.fill();
     ctx.restore();
   };
+  const planet = (x, y, r, rot, a) => {
+    ctx.save(); ctx.translate(x, y); ctx.globalAlpha = a;
+    const g = ctx.createRadialGradient(-r * 0.35, -r * 0.35, r * 0.1, 0, 0, r);
+    g.addColorStop(0, "#d8c4ff"); g.addColorStop(1, "#6d4bff");
+    ctx.shadowColor = "rgba(150,120,255,.8)"; ctx.shadowBlur = r;
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.3); ctx.fill(); ctx.shadowBlur = 0;
+    ctx.rotate(-0.4 + rot * 0.2); ctx.strokeStyle = "rgba(255,214,120,.9)"; ctx.lineWidth = Math.max(1.2, r * 0.22);
+    ctx.beginPath(); ctx.ellipse(0, 0, r * 1.7, r * 0.5, 0, 0, 6.3); ctx.stroke();
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r, Math.PI, 2 * Math.PI); ctx.fill();   // ring goes behind the top half
+    ctx.restore();
+  };
   const gift = (x, y, r, rot, a) => {
     ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(rot) * 0.3); ctx.scale(r / 10, r / 10); ctx.globalAlpha = a;
     ctx.shadowColor = "rgba(80,150,255,.8)"; ctx.shadowBlur = 12;
@@ -2065,7 +2076,9 @@ function heroStars(cv, opt = {}) {
   const boom = (s) => {
     for (let i = 0; i < 22; i++) { const an = R(0, 6.3), sp = R(1.5, 5); fx.push({ k: "spark", x: s.x, y: s.y, vx: Math.cos(an) * sp, vy: Math.sin(an) * sp, life: 0, max: R(25, 45), r: R(1.5, 3.2) }); }
     const n = Math.round(R(4, 7));
-    for (let i = 0; i < n; i++) { const an = (6.3 / n) * i + R(-0.3, 0.3), sp = R(1.4, 3); fx.push({ k: "smile", x: s.x, y: s.y, vx: Math.cos(an) * sp, vy: Math.sin(an) * sp - 1, rot: R(-0.5, 0.5), vr: R(-0.06, 0.06), life: 0, max: R(70, 110), r: R(8, 12) }); }
+    // what flies out: gift → small gifts, heart → small hearts, star → shining stars + little planets
+    const pick = () => s.kind === "gift" ? "gift" : s.kind === "heart" ? "heart" : Math.random() < 0.35 ? "planet" : "star";
+    for (let i = 0; i < n; i++) { const an = (6.3 / n) * i + R(-0.3, 0.3), sp = R(1.4, 3); fx.push({ k: "icon", ic: pick(), x: s.x, y: s.y, vx: Math.cos(an) * sp, vy: Math.sin(an) * sp - 1, rot: R(-0.5, 0.5), vr: R(-0.06, 0.06), life: 0, max: R(70, 110), r: R(8, 12) }); }
     fx.push({ k: "ring", x: s.x, y: s.y, life: 0, max: 22, r: s.r });
     if (navigator.vibrate) try { navigator.vibrate(15); } catch (e) {}
   };
@@ -2139,7 +2152,14 @@ function heroStars(cv, opt = {}) {
       if (f.k === "ring") { ctx.strokeStyle = `rgba(255,230,140,${1 - t})`; ctx.lineWidth = 3 * (1 - t); ctx.beginPath(); ctx.arc(f.x, f.y, f.r + t * 46, 0, 6.3); ctx.stroke(); continue; }
       f.x += f.vx * k; f.y += f.vy * k;
       if (f.k === "spark") { f.vx *= 0.94; f.vy = f.vy * 0.94 + 0.05; ctx.fillStyle = `rgba(255,${200 + Math.round(55 * (1 - t))},120,${1 - t})`; ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (1 - t * 0.5), 0, 6.3); ctx.fill(); }
-      else { f.vx *= 0.985; f.vy = f.vy * 0.985 + 0.03; f.rot += f.vr * k; smile(f.x, f.y, f.r * (t < 0.15 ? t / 0.15 : 1), f.rot, t > 0.7 ? (1 - t) / 0.3 : 1); }
+      else {
+        f.vx *= 0.985; f.vy = f.vy * 0.985 + 0.03; f.rot += f.vr * k;
+        const rr = f.r * (t < 0.15 ? t / 0.15 : 1), aa = t > 0.7 ? (1 - t) / 0.3 : 1;
+        if (f.ic === "gift") gift(f.x, f.y, rr * 0.9, f.rot * 3, aa);
+        else if (f.ic === "heart") heart(f.x, f.y, rr * 0.9, f.rot * 3, aa);
+        else if (f.ic === "planet") planet(f.x, f.y, rr * 0.8, f.rot, aa);
+        else star(f.x, f.y, rr * 0.85, f.rot * 2, aa * (0.75 + 0.25 * Math.sin(f.life * 0.4)));   // twinkling
+      }
     }
     requestAnimationFrame(tick);
   };
