@@ -1224,6 +1224,17 @@ body.ag-chat-on .ag-nav { display: none; }
 .side-search input { margin: 0; padding: 9px 12px; font-size: .9rem; }
 .pc-list { max-height: 46vh; overflow-y: auto; border: 1px solid var(--line); border-radius: 12px; padding: 4px 8px; }
 .pc-all { display: flex !important; margin: 6px 0 !important; }
+/* V79 guest chat + floating help */
+.guest-help-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin: 12px 0 0; padding: 12px 14px; border-radius: 14px;
+  background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .22); color: #fff; font: inherit; font-weight: 700; cursor: pointer; backdrop-filter: blur(8px); }
+.guest-help-btn svg { width: 20px; height: 20px; }
+#guestOv { position: fixed; inset: 0; z-index: 60; background: var(--bg); }
+.guest-form { margin: 12px; }
+.fab-help { position: fixed; right: 16px; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 25; width: 52px; height: 52px; border-radius: 50%;
+  display: grid; place-items: center; background: linear-gradient(135deg, #22c983, #1fa2ff); color: #fff; box-shadow: 0 8px 24px rgba(0, 0, 0, .35); }
+.fab-help svg { width: 26px; height: 26px; }
+body.wa-mode .fab-help { display: none; }
+.badge.guest-chat { background: rgba(255, 176, 32, .18); color: #ffb020; }
 
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
@@ -1959,6 +1970,9 @@ async function pwRequestsView(v, opts = {}) {
    To add or fix a translation: "English text exactly as shown": "नेपाली", */
 const PV_NE = {
   // V74 error screen
+  "Need help? Chat with us": "मद्दत चाहियो? हामीसँग च्याट गर्नुहोस्", "Chat with us": "हामीसँग च्याट गर्नुहोस्", "Your name": "तपाईंको नाम",
+  "Gmail or Telegram username": "Gmail वा Telegram username", "Your message": "तपाईंको सन्देश", "Start chat": "च्याट सुरु गर्नुहोस्",
+  "We usually reply in a few minutes": "हामी प्रायः केही मिनेटमै जवाफ दिन्छौं",
   "Forgot password": "पासवर्ड बिर्सनुभयो", "Send reset link": "रिसेट लिंक पठाउनुहोस्", "Request a password change": "पासवर्ड परिवर्तन अनुरोध गर्नुहोस्",
   "Gmail of your account": "तपाईंको खाताको Gmail", "Your Telegram username": "तपाईंको Telegram username", "Phone number of your account": "तपाईंको खाताको फोन नम्बर",
   "Send request": "अनुरोध पठाउनुहोस्", "Request sent": "अनुरोध पठाइयो", "Back to login": "लगइनमा फर्कनुहोस्",
@@ -2381,8 +2395,10 @@ function renderAuth(mode) {
         <img src="${PV_LOGO}" class="auth-logo hero-logo" alt="Premvio">
         <p class="center hero-tag">Telegram Stars &amp; Premium</p>
         <div class="card glass" id="authCard"></div>
+        <button type="button" class="guest-help-btn" id="guestHelp">${ICONS.chat}<span>Need help? Chat with us</span></button>
       </div></div>`;
     heroStars($("#heroStars"));
+    $("#guestHelp").onclick = () => guestChat();
   }
   const card = $("#authCard");
   card.innerHTML = `<div class="tabs"><button data-m="login" class="${mode === "login" ? "on" : ""}">Log in</button>
@@ -2494,6 +2510,85 @@ function renderAuth(mode) {
   }
 }
 
+/* ---------------- V79 guest help chat (login page, no account needed) ----------------
+   The chat id + a secret key are kept in this browser (localStorage pv_guest_chat). Messages are checked every 4 seconds. */
+function guestKey() { try { return JSON.parse(localStorage.getItem("pv_guest_chat") || "null"); } catch (e) { return null; } }
+function guestChat() {
+  const key = guestKey();
+  const ov = document.createElement("div");
+  ov.id = "guestOv";
+  document.body.appendChild(ov);
+  const close = () => { clearInterval(S.gTimer); ov.remove(); };
+  const head = (sub) => `<header class="wa-head"><button class="wa-back" id="gBack" aria-label="Back">←</button><img src="${PV_LOGO}" alt="">
+      <div class="grow"><b>Premvio Support</b><div class="wa-sub" id="gSub">${sub}</div></div></header>`;
+  if (!key) {
+    ov.innerHTML = `<div class="wa">${head("We usually reply in a few minutes")}
+      <div class="wa-body"><div class="card guest-form"><h3 style="margin-top:0">Chat with us</h3>
+        <form id="gf"><label>Your name</label><input name="n" required maxlength="60" autocomplete="name">
+          <label>Gmail or Telegram username</label><input name="c" required maxlength="80" placeholder="you@gmail.com or @yourname" autocomplete="off">
+          <label>Your message</label><textarea name="b" required maxlength="1000" rows="3" placeholder="e.g. I can't log in"></textarea>
+          <label>Security check</label><div id="gCap"></div>
+          <button class="btn block mt">Start chat</button></form>
+        <p class="small muted mt">Premvio staff will never ask for your password or PIN.</p></div></div></div>`;
+    $("#gBack", ov).onclick = close;
+    const cap = mountCaptcha($("#gCap", ov));
+    $("#gf", ov).onsubmit = (e) => {
+      e.preventDefault();
+      if (!cap.ok()) { toast("Wrong captcha answer.", "error"); cap.reset(); return; }
+      const f = e.target;
+      busy($("button.btn", f), async () => {
+        const { data, error } = await sb.rpc("guest_open_chat", { p_name: f.n.value.trim(), p_contact: f.c.value.trim(), p_body: f.b.value.trim() });
+        if (error) { cap.reset(); throw error; }
+        try { localStorage.setItem("pv_guest_chat", JSON.stringify({ id: data.id, token: data.token })); } catch (er) {}
+        close(); guestChat();
+      });
+    };
+    return;
+  }
+  ov.innerHTML = `<div class="wa">${head("Waiting for support")}
+    <div class="wa-body" id="gChat"><div class="wa-note">🔒 Messages are only between you and Premvio.</div></div>
+    <div class="wa-closed hidden" id="gClosed">This chat is closed. Write again to reopen it, or <button class="link-btn" id="gNew">start a new chat</button>.</div>
+    <form id="gmf" class="wa-input"><textarea name="m" rows="1" maxlength="1000" placeholder="Message" required></textarea>
+      <button class="wa-send" aria-label="Send">${ICONS.send}</button></form></div>`;
+  $("#gBack", ov).onclick = close;
+  $("#gNew", ov).onclick = () => { try { localStorage.removeItem("pv_guest_chat"); } catch (e) {} close(); guestChat(); };
+  const chat = $("#gChat", ov), seen = new Set();
+  let last = 0, lastDay = "";
+  const add = (m) => {
+    if (seen.has(m.id)) return; seen.add(m.id); last = Math.max(last, m.id);
+    const day = waDay(m.created_at);
+    if (day !== lastDay) { chat.insertAdjacentHTML("beforeend", `<div class="wa-day"><span>${day}</span></div>`); lastDay = day; }
+    if (m.kind === "system") chat.insertAdjacentHTML("beforeend", `<div class="wa-sys">${esc(m.body)}</div>`);
+    else chat.insertAdjacentHTML("beforeend", `<div class="wa-msg ${m.from_staff ? "in" : "out"}"><div class="wa-txt">${esc(m.body)}</div>
+      <span class="wa-meta">${waTime(m.created_at)}${m.from_staff ? "" : ` <i class="wa-tick sent">✓✓</i>`}</span></div>`);
+    chat.scrollTop = chat.scrollHeight;
+  };
+  const poll = async () => {
+    if (!document.body.contains(ov)) return clearInterval(S.gTimer);
+    const { data, error } = await sb.rpc("guest_chat", { p_id: key.id, p_token: key.token, p_after: last });
+    if (error) {
+      if (/Chat not found/i.test(error.message || "")) { try { localStorage.removeItem("pv_guest_chat"); } catch (e) {} close(); guestChat(); }
+      return;
+    }
+    (data.messages || []).forEach(add);
+    $("#gSub", ov).textContent = data.status === "closed" ? "Closed" : data.accepted ? "Online" : "Waiting for support";
+    $("#gClosed", ov).classList.toggle("hidden", data.status !== "closed");
+  };
+  clearInterval(S.gTimer);
+  poll(); S.gTimer = setInterval(poll, 4000);
+  const f = $("#gmf", ov), ta = f.m;
+  ta.oninput = () => { ta.style.height = "auto"; ta.style.height = Math.min(120, ta.scrollHeight) + "px"; };
+  ta.onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey && !/Android|iPhone/i.test(navigator.userAgent)) { e.preventDefault(); f.requestSubmit(); } };
+  f.onsubmit = async (e) => {
+    e.preventDefault();
+    const body = ta.value.trim(); if (!body) return;
+    ta.value = ""; ta.style.height = "auto";
+    const { error } = await sb.rpc("guest_send", { p_id: key.id, p_token: key.token, p_body: body });
+    if (error) { ta.value = body; return toast(errMsg(error), "error"); }
+    poll();
+  };
+}
+
 // V78: a manager changed the password → the customer must choose their own before using the app
 function forceNewPassword() {
   return new Promise((resolve) => {
@@ -2579,6 +2674,7 @@ async function startApp() {
     <main id="view"></main>
   </div>
   <canvas class="app-stars" id="appStars"></canvas>
+  <a class="fab-help hidden" id="fabHelp" href="#help" aria-label="Help chat">${ICONS.chat}</a>
   <nav class="bottom-nav"><div class="inner">${TABS.map((t) =>
     `<button class="nav-item" data-tab="${t.id}">${t.icon}<span>${t.label}</span>${t.id === "cart" ? `<i class="nav-badge hidden" id="cartBadge"></i>` : ""}</button>`).join("")}</div></nav>`;
   $("#hello").textContent = "Hi, " + (S.profile.full_name || "there").split(" ")[0];
@@ -2784,6 +2880,8 @@ function route() {
   if (!S.user || !$("#view")) return;   // logged out / login screen: nothing to draw
   const tab = (location.hash || "#home").slice(1);
   document.body.classList.remove("wa-mode", "on-home");
+  const fh = $("#fabHelp");   // V79 floating help button: everywhere except the help screens and when help chat is off
+  if (fh) fh.classList.toggle("hidden", tab === "help" || tab.startsWith("help/") || S.settings.help_on === "false");
   if (S.helpCh && !tab.startsWith("help/")) { sb.removeChannel(S.helpCh); S.helpCh = null; }
   // Help chat opens as its own screen
   if (tab === "help" || tab.startsWith("help/")) {
