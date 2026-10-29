@@ -1208,6 +1208,22 @@ body.ag-chat-on .ag-nav { display: none; }
 .maint-bar { margin: 0 0 12px; padding: 12px 14px; border-radius: 14px; background: rgba(255, 159, 67, .14); border: 1px solid rgba(255, 159, 67, .55); color: #ff9f43; font-weight: 700; display: flex; gap: 10px; align-items: center; line-height: 1.4; }
 .maint-bar svg { width: 22px; height: 22px; flex: none; }
 .ga-img.full { max-height: none; object-fit: contain; }
+/* V77 marketing */
+.mk-aud { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: rgba(255, 79, 216, .1); border: 1px solid rgba(255, 79, 216, .35); font-size: .9rem; }
+.mk-res { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 6px; font-size: .82rem; color: var(--muted); }
+.mk-res b { color: var(--text); }
+/* V78 account managers */
+.mg-ui { --grad: linear-gradient(135deg, #ffb020 0%, #ff6a3d 100%); }
+.mg-tag { background: var(--grad); color: #fff; font-size: .7rem; font-weight: 800; letter-spacing: .08em; padding: 4px 10px; border-radius: 999px; }
+.pw-steps ol { margin: 8px 0 0; padding-left: 18px; line-height: 1.6; }
+.pw-req.sus { border-color: rgba(239, 68, 68, .55); }
+.pw-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.pw-grid > div { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border-radius: 12px; background: var(--bg-2); border: 1px solid var(--line); }
+.pw-new { font-size: 1.8rem; font-weight: 800; letter-spacing: .12em; padding: 14px; margin: 12px 0; border-radius: 14px; background: var(--bg-2); border: 1px dashed var(--line); user-select: all; }
+.side-search { margin: 4px 0 10px; }
+.side-search input { margin: 0; padding: 9px 12px; font-size: .9rem; }
+.pc-list { max-height: 46vh; overflow-y: auto; border: 1px solid var(--line); border-radius: 12px; padding: 4px 8px; }
+.pc-all { display: flex !important; margin: 6px 0 !important; }
 
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
@@ -1261,7 +1277,7 @@ const CFG = window.PV_CONFIG;
 // Each panel keeps its own login, so logging out of one never logs out the others.
 // agent.html and agent-deposit.html share the agent login (log in once, use both).
 const PV_PANEL = /admin\.html/i.test(location.pathname) ? "admin" : /agent(-deposit)?\.html/i.test(location.pathname) ? "agent"
-  : /marketing\.html/i.test(location.pathname) ? "marketing" : "customer";
+  : /marketing\.html/i.test(location.pathname) ? "marketing" : /manager\.html/i.test(location.pathname) ? "manager" : "customer";
 const sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: "premvio-" + PV_PANEL + "-login" },
 });
@@ -1842,6 +1858,98 @@ function bindOutOthers(scope) {
   };
 }
 
+
+/* ============ V78 password change requests (manager panel + admin) ============
+   The manager may change a password ONLY when: KYC is approved, and the ID card was checked on Telegram
+   (photo of the person holding the KYC ID card, or a video call). Phone not matching = video call only (server checks too). */
+async function pwRequestsView(v, opts = {}) {
+  const st = opts.status || "pending";
+  const { data, error } = await sb.rpc("manager_requests", { p_status: st });
+  if (error) { v.innerHTML = `<div class="card">${/manager_requests/.test(error.message || "") ? "Run update 53 (53-update-account-managers.sql) in Supabase." : esc(errMsg(error))}</div>`; return; }
+  const tgUser = (t) => String(t || "").replace(/^@/, "");
+  const chipsHtml = [["pending", "Waiting"], ["done", "Changed"], ["rejected", "Rejected"], ["all", "All"]]
+    .map(([k, l]) => `<button class="chip ${st === k ? "on" : ""}" data-pwst="${k}">${l}</button>`).join("");
+  v.innerHTML = `<div class="chips">${chipsHtml}</div>
+    ${st === "pending" ? `<div class="card pw-steps"><b>Before you change a password</b><ol class="small">
+      <li>Message the customer on Telegram (button below).</li>
+      <li>Ask for a <b>photo of them holding their ID card</b> — or a <b>video call</b> showing the card if the request has ⚠️.</li>
+      <li>Compare the name and number on the card with the KYC details shown here.</li>
+      <li>Only then press <b>Change password</b> and send the new password on Telegram.</li></ol></div>` : ""}
+    ${(data || []).length ? data.map((r) => {
+      const kycOk = r.kyc_status === "approved";
+      return `<div class="card pw-req ${r.phone_match ? "" : "sus"}">
+        <div class="row between" style="gap:8px;flex-wrap:wrap"><div><b>${esc(r.full_name || "")}</b> <span class="mono small muted">${esc(r.member_id || "")}</span>
+          ${opts.admin ? `<span class="small muted"> · manager ${esc(r.manager || "none")}</span>` : ""}</div>
+          <span class="small muted">#${r.id} · ${fmtDate(r.created_at)}</span></div>
+        <div class="pw-grid mt">
+          <div><span class="muted small">Telegram</span><b>${esc(r.telegram)}</b></div>
+          <div><span class="muted small">Gmail</span><b>${esc(r.email)}</b></div>
+          <div><span class="muted small">Phone given</span><b>${esc(r.phone_given || "—")}</b> ${r.phone_match ? `<span class="badge completed">matches account</span>` : `<span class="badge rejected">⚠️ does NOT match</span>`}</div>
+          <div><span class="muted small">KYC</span>${kycOk ? `<b>${esc(r.kyc_name || "")}</b> · ${esc(r.kyc_doc_type || "")} <span class="mono">${esc(r.kyc_doc_number || "")}</span>
+            ${r.kyc_photo ? `<button class="link-btn small" data-kycph="${esc(r.kyc_photo)}">View KYC photo</button>` : ""}` : `<span class="badge rejected">not approved</span>`}</div>
+        </div>
+        ${r.status === "pending" ? (kycOk ? `${r.phone_match ? "" : `<div class="dup-box">⚠️ Suspicious: the phone number does not match. Only a <b>video call</b> with the ID card is allowed.</div>`}
+            <div class="row mt" style="gap:8px;flex-wrap:wrap"><a class="btn sm soft" href="https://t.me/${encodeURIComponent(tgUser(r.telegram))}" target="_blank" rel="noopener">${ICONS.send} Open Telegram</a>
+              <button class="btn sm" data-pwgo="${r.id}">🔐 Change password</button><button class="btn sm ghost" data-pwno="${r.id}">Reject</button></div>`
+          : `<div class="dup-box">KYC is not approved — the password cannot be changed here. Tell the customer to use the email reset link, or to finish KYC first.</div>
+            <div class="row mt" style="gap:8px"><a class="btn sm soft" href="https://t.me/${encodeURIComponent(tgUser(r.telegram))}" target="_blank" rel="noopener">${ICONS.send} Open Telegram</a>
+              <button class="btn sm ghost" data-pwno="${r.id}">Reject</button></div>`)
+        : `<div class="small mt"><span class="badge ${r.status === "done" ? "completed" : "rejected"}">${r.status === "done" ? "password changed" : "rejected"}</span>
+            ${r.verify_method ? ` · checked by ${r.verify_method === "video" ? "video call" : "photo with ID card"}` : ""}
+            ${r.handled_by ? ` · by ${esc(r.handled_by)}` : ""} ${r.handled_at ? ` · ${fmtDate(r.handled_at)}` : ""}${r.note ? `<div class="muted">${esc(r.note)}</div>` : ""}</div>`}
+      </div>`; }).join("") : `<div class="empty"><div class="big">🔐</div>${st === "pending" ? "No password requests waiting" : "Nothing here"}</div>`}`;
+  const again = () => (opts.onChange ? opts.onChange() : pwRequestsView(v, opts));
+  $$("[data-pwst]", v).forEach((c) => (c.onclick = () => { opts.status = c.dataset.pwst; pwRequestsView(v, opts); }));
+  $$("[data-kycph]", v).forEach((b) => (b.onclick = async () => {
+    const { data: u, error: e } = await sb.storage.from("kyc").createSignedUrl(b.dataset.kycph, 600);
+    if (e) return toast(errMsg(e), "error");
+    openModal(`<h2>KYC photo</h2><img src="${esc(u.signedUrl)}" alt="" style="width:100%;border-radius:12px;background:#000">`);
+  }));
+  $$("[data-pwgo]", v).forEach((b) => (b.onclick = () => {
+    const r = data.find((x) => x.id == b.dataset.pwgo);
+    openModal(`<h2>Change password · ${esc(r.member_id)}</h2>
+      <p class="small">Customer: <b>${esc(r.full_name || "")}</b> · KYC: <b>${esc(r.kyc_name || "")}</b> ${esc(r.kyc_doc_type || "")} <span class="mono">${esc(r.kyc_doc_number || "")}</span></p>
+      <form id="pwgf"><label>How did you check the ID card?</label>
+        <div class="seg"><label><input type="radio" name="m" value="photo" ${r.phone_match ? "" : "disabled"}> Photo with ID card</label>
+          <label><input type="radio" name="m" value="video" ${r.phone_match ? "" : "checked"}> Video call</label></div>
+        ${r.phone_match ? "" : `<p class="small" style="color:var(--red)">Phone does not match — video call only.</p>`}
+        <label class="jrad" style="display:flex !important;margin-top:12px !important"><input type="checkbox" name="ok"> The name and number on the ID card match the KYC details above</label>
+        <p class="small muted mt">The customer is logged out everywhere, must choose their own password at next login, and cannot withdraw for 24 hours.</p>
+        <button class="btn block mt">Make new password</button></form>`, (m) => {
+      $("#pwgf", m).onsubmit = (e) => {
+        e.preventDefault();
+        const f = e.target, method = (f.querySelector('[name="m"]:checked') || {}).value;
+        if (!method) return toast("Choose how you checked the ID card.", "error");
+        if (!f.ok.checked) return toast("Tick the box only after you compared the ID card with the KYC details.", "error");
+        busy($("button.btn", f), async () => {
+          const { data: res, error: er } = await sb.rpc("manager_reset_password", { p_request: r.id, p_method: method });
+          if (er) throw er;
+          const msg = `Your new Premvio password is: ${res.password}\nLog in with your Gmail and this password, then choose your own new password.`;
+          openModal(`<div class="center"><div class="big" style="font-size:2.4rem">🔐</div><h2>New password for ${esc(res.member_id)}</h2>
+            <div class="pw-new mono">${esc(res.password)}</div>
+            <p class="small muted">Send it ONLY to <b>${esc(res.telegram)}</b> on Telegram. It is shown once.</p>
+            <div class="row" style="gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn sm soft" id="cpPw">${ICONS.copy} Copy message</button>
+              <a class="btn sm" href="https://t.me/${encodeURIComponent(tgUser(res.telegram))}" target="_blank" rel="noopener">${ICONS.send} Open Telegram</a></div>
+            <button class="btn ghost block mt" data-close>Done</button></div>`, (m2) => { $("#cpPw", m2).onclick = () => copyText(msg); });
+          again();
+        });
+      };
+    });
+  }));
+  $$("[data-pwno]", v).forEach((b) => (b.onclick = () => openModal(`<h2>Reject request #${b.dataset.pwno}</h2><form id="pwnf">
+      <label>Reason <span class="muted">(only staff see it)</span></label><input name="note" maxlength="200" placeholder="e.g. Could not confirm ID card">
+      <button class="btn danger block mt">Reject</button></form>`, (m) => {
+    $("#pwnf", m).onsubmit = (e) => {
+      e.preventDefault();
+      busy($("button", e.target), async () => {
+        const { error: er } = await sb.rpc("manager_reject_request", { p_request: Number(b.dataset.pwno), p_note: e.target.note.value.trim() || null });
+        if (er) throw er;
+        closeModal(); toast("Rejected.", "success"); again();
+      });
+    };
+  })));
+}
+
 </script>
 <script>
 /* ============ PREMVIO — Nepali language (customer app) ============
@@ -1851,6 +1959,11 @@ function bindOutOthers(scope) {
    To add or fix a translation: "English text exactly as shown": "नेपाली", */
 const PV_NE = {
   // V74 error screen
+  "Forgot password": "पासवर्ड बिर्सनुभयो", "Send reset link": "रिसेट लिंक पठाउनुहोस्", "Request a password change": "पासवर्ड परिवर्तन अनुरोध गर्नुहोस्",
+  "Gmail of your account": "तपाईंको खाताको Gmail", "Your Telegram username": "तपाईंको Telegram username", "Phone number of your account": "तपाईंको खाताको फोन नम्बर",
+  "Send request": "अनुरोध पठाउनुहोस्", "Request sent": "अनुरोध पठाइयो", "Back to login": "लगइनमा फर्कनुहोस्",
+  "Choose your own password": "आफ्नै पासवर्ड छान्नुहोस्", "Repeat new password": "नयाँ पासवर्ड फेरि लेख्नुहोस्", "Save password": "पासवर्ड सेभ गर्नुहोस्",
+  "For your safety, withdrawals are paused for 24 hours after a password change by Premvio.": "तपाईंको सुरक्षाका लागि, Premvio ले पासवर्ड परिवर्तन गरेपछि २४ घण्टासम्म निकासी रोकिन्छ।",
   "Premvio is under maintenance. Orders, deposits and withdrawals are paused. Please try again a little later.": "Premvio मर्मत भइरहेको छ। अर्डर, डिपोजिट र निकासी केही समयका लागि रोकिएको छ। कृपया केही बेरपछि फेरि प्रयास गर्नुहोस्।",
   "Premvio is under maintenance. Please try again a little later.": "Premvio मर्मत भइरहेको छ। कृपया केही बेरपछि फेरि प्रयास गर्नुहोस्।",
   "This transaction ID was already used for another deposit. Please check it.": "यो ट्रान्जेक्सन ID अर्को डिपोजिटमा पहिले नै प्रयोग भइसकेको छ। कृपया जाँच गर्नुहोस्।",
@@ -2336,15 +2449,40 @@ function renderAuth(mode) {
       });
     };
   } else {
-    body.innerHTML = `<form id="f"><h3>Reset password</h3>
+    const how = S.resetHow || "link";
+    body.innerHTML = `<h3>Forgot password</h3>
+      <div class="seg reset-seg"><label><input type="radio" name="how" value="link" ${how === "link" ? "checked" : ""}> Send reset link</label>
+        <label><input type="radio" name="how" value="ask" ${how === "ask" ? "checked" : ""}> Request a password change</label></div>
+      ${how === "link" ? `<form id="f">
       <p class="muted small">Enter your email and we'll send a reset link.</p>
       <label>Email</label><input type="email" name="email" required>
       <label>Security check</label><div id="cap"></div>
-      <button class="btn block mt">Send reset link</button>
-      <p class="center mt small"><button type="button" class="link-btn" id="back">Back to login</button></p></form>`;
+      <button class="btn block mt">Send reset link</button></form>` : `<form id="fr">
+      <p class="muted small">Email not arriving? Your account manager will help you on Telegram. You will be asked for a photo of you holding the ID card from your KYC (or a video call).</p>
+      <label>Gmail of your account</label><input type="email" name="email" required autocomplete="email">
+      <label>Your Telegram username</label><input name="tg" required maxlength="40" placeholder="@yourname" autocomplete="off">
+      <label>Phone number of your account</label><input type="tel" name="phone" required maxlength="20" inputmode="tel" placeholder="98XXXXXXXX">
+      <label>Security check</label><div id="cap"></div>
+      <button class="btn block mt">Send request</button></form>`}
+      <p class="center mt small"><button type="button" class="link-btn" id="back">Back to login</button></p>`;
     const cap = mountCaptcha($("#cap"));
-    $("#back").onclick = () => renderAuth("login");
-    $("#f").onsubmit = (e) => {
+    $("#back").onclick = () => { S.resetHow = "link"; renderAuth("login"); };
+    $$('[name="how"]', body).forEach((r) => (r.onchange = () => { S.resetHow = r.value; renderAuth("forgot"); }));
+    if ($("#fr")) $("#fr").onsubmit = (e) => {
+      e.preventDefault();
+      if (!cap.ok()) { toast("Wrong captcha answer.", "error"); cap.reset(); return; }
+      const f = e.target;
+      busy($("button.btn", f), async () => {
+        const { error } = await sb.rpc("request_password_help", { p_email: f.email.value.trim(), p_telegram: f.tg.value.trim(), p_phone: f.phone.value.trim() });
+        if (error) { cap.reset(); throw error; }
+        body.innerHTML = `<div class="empty"><div class="big">📨</div><h3>Request sent</h3>
+          <p class="small">If this Gmail has a Premvio account, your account manager will message <b>${esc(f.tg.value.trim())}</b> on Telegram.
+            Premvio staff will never ask for your password or PIN.</p>
+          <button type="button" class="btn block mt" id="back2">Back to login</button></div>`;
+        $("#back2").onclick = () => { S.resetHow = "link"; renderAuth("login"); };
+      });
+    };
+    if ($("#f")) $("#f").onsubmit = (e) => {
       e.preventDefault();
       if (!cap.ok()) { toast("Wrong captcha answer.", "error"); cap.reset(); return; }
       busy($("button.btn", e.target), async () => {
@@ -2356,6 +2494,32 @@ function renderAuth(mode) {
   }
 }
 
+// V78: a manager changed the password → the customer must choose their own before using the app
+function forceNewPassword() {
+  return new Promise((resolve) => {
+    const bg = document.createElement("div");
+    bg.className = "modal-bg"; bg.id = "forcePw";
+    bg.innerHTML = `<div class="modal"><h2>Choose your own password</h2>
+      <p class="small muted">Premvio support gave you a temporary password. Please set your own now.</p>
+      <form id="fpw"><label>New password</label><input type="password" name="p1" minlength="6" required autocomplete="new-password">
+        <label>Repeat new password</label><input type="password" name="p2" minlength="6" required autocomplete="new-password">
+        <button class="btn block mt">Save password</button></form></div>`;
+    document.body.appendChild(bg);
+    $("#fpw", bg).onsubmit = (e) => {
+      e.preventDefault();
+      const f = e.target;
+      if (f.p1.value.length < 6) return toast("Password must be at least 6 characters.", "error");
+      if (f.p1.value !== f.p2.value) return toast("Passwords don't match.", "error");
+      busy($("button", f), async () => {
+        const { error } = await sb.auth.updateUser({ password: f.p1.value });
+        if (error) throw error;
+        await sb.rpc("clear_must_change_pw");
+        S.profile.must_change_pw = false;
+        bg.remove(); toast("Password saved.", "success"); resolve();
+      });
+    };
+  });
+}
 function newPasswordModal() {
   openModal(`<h2>Set a new password</h2><form id="np">
     <label>New password</label><input type="password" name="p" minlength="6" required>
@@ -2403,6 +2567,7 @@ async function startApp() {
   }
   applyTheme(S.profile.theme);
   if (S.profile.has_pin && !isUnlocked()) await pinLockScreen();
+  if (S.profile.must_change_pw) await forceNewPassword();   // V78: after a manager changed the password
   root.innerHTML = `
   <div class="app cust-app">
     <header class="topbar">
