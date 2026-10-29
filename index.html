@@ -12,7 +12,8 @@
 <style>body{background:#060b1a;color:#eef3ff}</style>
 <script>
 function pvOffline(){var r=document.getElementById('root');if(!r)return;r.innerHTML='<div class="offline-screen" style="min-height:80vh;display:grid;place-items:center;text-align:center;font-family:system-ui,sans-serif;color:#eef3ff"><div><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#8d9bbd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l20 20"/><path d="M8.5 16.4a5 5 0 0 1 7 0"/><path d="M5 12.9a10 10 0 0 1 5.2-2.8"/><path d="M19 12.9a10 10 0 0 0-2.6-1.8"/><path d="M2 8.8a15 15 0 0 1 4.2-2.7"/><path d="M22 8.8A15 15 0 0 0 11 4.4"/><circle cx="12" cy="20" r="1"/></svg><p style="margin:12px 0 0;font-weight:700">No internet connection</p></div></div>';window.pvDead=true;window.addEventListener('online',function(){location.reload();});}
-function pvFatal(m){var r=document.getElementById('root');if(!r)return;var lg=window.PV_LOGO||'img/logo.png';r.innerHTML='<div class="oops-screen" style="min-height:85vh;display:grid;place-items:center;padding:24px 16px;text-align:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#eef3ff"><div style="width:100%;max-width:400px;padding:30px 22px 24px;border-radius:22px;background:#0f1a33;border:1px solid rgba(255,255,255,.08);box-shadow:0 20px 60px rgba(0,0,0,.3)"><img src="'+lg+'" alt="" style="display:block;margin:0 auto;width:76px;height:76px;object-fit:contain" onerror="this.remove()"><h2 style="margin:14px 0 8px;font-size:1.25rem">Oops! Something went wrong</h2><p style="margin:0 0 20px;color:#8d9bbd;line-height:1.5">Please try again. If it keeps happening, contact Premvio support.</p><button type="button" onclick="location.reload()" style="width:100%;padding:14px;border:0;border-radius:14px;background:linear-gradient(135deg,#1fa2ff,#2b6dff);color:#fff;font-weight:800;font-size:1rem;cursor:pointer">Try again</button><details style="margin-top:16px;text-align:left;color:#8d9bbd;font-size:.8rem"><summary style="cursor:pointer;text-align:center">Details</summary><p style="margin:8px 0 0;word-break:break-word;font-family:ui-monospace,Menlo,monospace">'+String(m).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</p></details></div></div>';window.pvDead=true;}
+function pvFatal(m){var r=document.getElementById('root');if(!r)return;var lg=window.PV_LOGO||'img/logo.png';r.innerHTML='<div class="oops-screen" style="min-height:85vh;display:grid;place-items:center;padding:24px 16px;text-align:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#eef3ff"><div style="width:100%;max-width:400px;padding:30px 22px 24px;border-radius:22px;background:#0f1a33;border:1px solid rgba(255,255,255,.08);box-shadow:0 20px 60px rgba(0,0,0,.3)"><img src="'+lg+'" alt="" style="display:block;margin:0 auto;width:76px;height:76px;object-fit:contain" onerror="this.remove()"><h2 style="margin:14px 0 8px;font-size:1.25rem">Oops! Something went wrong</h2><p style="margin:0 0 20px;color:#8d9bbd;line-height:1.5">Please try again. If it keeps happening, contact Premvio support.</p><button type="button" onclick="location.reload()" style="width:100%;padding:14px;border:0;border-radius:14px;background:linear-gradient(135deg,#1fa2ff,#2b6dff);color:#fff;font-weight:800;font-size:1rem;cursor:pointer">Try again</button><details style="margin-top:16px;text-align:left;color:#8d9bbd;font-size:.8rem"><summary style="cursor:pointer;text-align:center">Details</summary><p style="margin:8px 0 0;word-break:break-word;font-family:ui-monospace,Menlo,monospace">'+String(m).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</p></details></div></div>';window.pvDead=true;pvLogErr(m);}
+function pvLogErr(m){try{var c=window.PV_CONFIG;if(!c||!c.SUPABASE_URL||!window.fetch)return;var k=c.SUPABASE_ANON_KEY,t=k;try{var j=JSON.parse(localStorage.getItem('premvio-customer-login')||'null');if(j&&j.access_token&&(!j.expires_at||j.expires_at*1000>Date.now()))t=j.access_token;}catch(e){}fetch(c.SUPABASE_URL+'/rest/v1/rpc/log_client_error',{method:'POST',headers:{'Content-Type':'application/json',apikey:k,Authorization:'Bearer '+t},body:JSON.stringify({p_page:'customer',p_message:String(m).slice(0,1000),p_url:String(location.href).slice(0,300),p_device:String(navigator.userAgent).slice(0,300)})}).catch(function(){});}catch(e){}}
 window.addEventListener('error',function(e){if(e.message&&!window.pvDead)pvFatal(e.message+' — '+String(e.filename||'').split('/').pop()+' line '+e.lineno);},true);
 window.addEventListener('unhandledrejection',function(e){var m=(e.reason&&e.reason.message)||String(e.reason);var net=!navigator.onLine||/fetch|network|load failed/i.test(m);if(net){if(!document.querySelector('#root .card, #root .app, #root .panel, #root .auth-wrap'))pvOffline();return;}if(!document.querySelector('#root .card, #root .app, #root .panel'))pvFatal(m);});
 </script>
@@ -1199,6 +1200,13 @@ body.ag-chat-on .ag-nav { display: none; }
 .ga-prize { color: var(--gold, #f5b800); font-weight: 800; }
 .si-ic.si-trophy { color: #f5b800; background: rgba(245, 184, 0, .14); }
 .cat-chip.cc-trophy:not(.on) svg { color: #f5b800; }
+/* V75 */
+.dup-box { margin: 8px 0; padding: 10px 12px; border-radius: 12px; background: rgba(239, 68, 68, .12); border: 1px solid rgba(239, 68, 68, .5); color: #ef4444; font-weight: 700; font-size: .85rem; line-height: 1.45; }
+.dup-warn .dup-box { margin: 6px 0 0; padding: 6px 8px; font-size: .78rem; }
+.card.maint-on { border: 1px solid rgba(255, 159, 67, .7); box-shadow: 0 0 0 3px rgba(255, 159, 67, .15); }
+.stat.big .v { font-size: 1.5rem; }
+.maint-bar { margin: 0 0 12px; padding: 12px 14px; border-radius: 14px; background: rgba(255, 159, 67, .14); border: 1px solid rgba(255, 159, 67, .55); color: #ff9f43; font-weight: 700; display: flex; gap: 10px; align-items: center; line-height: 1.4; }
+.maint-bar svg { width: 22px; height: 22px; flex: none; }
 
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
@@ -1842,6 +1850,9 @@ function bindOutOthers(scope) {
    To add or fix a translation: "English text exactly as shown": "नेपाली", */
 const PV_NE = {
   // V74 error screen
+  "Premvio is under maintenance. Orders, deposits and withdrawals are paused. Please try again a little later.": "Premvio मर्मत भइरहेको छ। अर्डर, डिपोजिट र निकासी केही समयका लागि रोकिएको छ। कृपया केही बेरपछि फेरि प्रयास गर्नुहोस्।",
+  "Premvio is under maintenance. Please try again a little later.": "Premvio मर्मत भइरहेको छ। कृपया केही बेरपछि फेरि प्रयास गर्नुहोस्।",
+  "This transaction ID was already used for another deposit. Please check it.": "यो ट्रान्जेक्सन ID अर्को डिपोजिटमा पहिले नै प्रयोग भइसकेको छ। कृपया जाँच गर्नुहोस्।",
   "Oops! Something went wrong": "माफ गर्नुहोस्! केही गडबड भयो", "Please try again. If it keeps happening, contact Premvio support.": "फेरि प्रयास गर्नुहोस्। बारम्बार भएमा Premvio सपोर्टलाई सम्पर्क गर्नुहोस्।",
   // tabs & main screens
   "Home": "होम", "New": "नयाँ", "Cart": "कार्ट", "History": "इतिहास", "Settings": "सेटिङ",
@@ -2593,6 +2604,13 @@ async function loadSettings(fast) {
   if (error && isNetErr(error)) throw error;
   S.settings = Object.fromEntries((data || []).map((r) => [r.key, r.value]));
 }
+// V75 maintenance: orange bar on Home + Deposit/Withdraw (the server blocks money actions anyway)
+function maintHtml() {
+  if (S.settings.maintenance_on !== "true") return "";
+  return `<div class="maint-bar">${ICONS.gear}<span>${esc((S.settings.maintenance_msg || "").trim() || "Premvio is under maintenance. Orders, deposits and withdrawals are paused. Please try again a little later.")}</span></div>`;
+}
+function paintMaint() { $$("[data-maint]").forEach((el) => (el.innerHTML = maintHtml())); }
+function refreshMaint() { loadSettings(true).then(paintMaint, () => {}); }
 function tgHandle() { return (S.settings.telegram_username || "@premvio").trim(); }
 function tgLink() { return "https://t.me/" + tgHandle().replace(/^@/, ""); }
 
@@ -2711,6 +2729,7 @@ async function viewHome(v) {
   v.innerHTML = `
     ${showPush ? `<div class="card row push-card"><div class="grow"><b>Turn on notifications</b></div>
       <button class="btn sm" id="pushOn">Allow</button></div>` : ""}
+    <div data-maint>${maintHtml()}</div>
     <div id="tickerBox"></div>
     <div id="bannerBox"></div>
     <div id="lastOrder"></div>
@@ -2725,6 +2744,7 @@ async function viewHome(v) {
   loadSettings().then(drawTicker).catch(() => {});   // pick up a new moving message
   drawBanners();
   drawLastOrder();
+  if (navigator.onLine) refreshMaint();
   const quick = (q) => (q.retry ? q.retry(false) : q);
   const offNow = !navigator.onLine || !!$("#netBar");
   let [{ data, error }, { data: today }, { data: rates }, { data: best }, { data: sellItems }] = await Promise.all([
@@ -3541,6 +3561,7 @@ async function viewWallet(v, mode) {
   v.innerHTML = `<div class="screen-head"><button class="back-btn" id="back" aria-label="Back">←</button>
     <h2 style="margin:0;color:${color}">${kind === "deposit" ? "Deposit" : "Withdraw"}</h2><span class="grow"></span>
     <span class="small muted">Balance <b data-balance>${money(S.profile.balance)}</b></span></div>
+    <div data-maint>${maintHtml()}</div>
     <span id="pmHint" class="hidden"></span>
     <div id="pmGrid" class="pm-grid"><div class="loader"></div></div>
     <div id="pmBody"></div>
@@ -3548,6 +3569,7 @@ async function viewWallet(v, mode) {
   let sel = null;
   // back: from a method → the method buttons; from the buttons → previous screen
   $("#back").onclick = () => { if (sel) { sel = null; clearInterval(S.timer); showGrid(); } else goBack(); };
+  if (navigator.onLine) refreshMaint();
   const { data } = await sb.from("payment_methods").select("*").eq("kind", kind).eq("active", true).order("sort").order("id");
   const methods = (data || []).filter((m) => kind !== "deposit" || m.audience !== "agents");
   if (!$("#pmGrid")) return;
