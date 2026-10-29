@@ -1207,6 +1207,7 @@ body.ag-chat-on .ag-nav { display: none; }
 .stat.big .v { font-size: 1.5rem; }
 .maint-bar { margin: 0 0 12px; padding: 12px 14px; border-radius: 14px; background: rgba(255, 159, 67, .14); border: 1px solid rgba(255, 159, 67, .55); color: #ff9f43; font-weight: 700; display: flex; gap: 10px; align-items: center; line-height: 1.4; }
 .maint-bar svg { width: 22px; height: 22px; flex: none; }
+.ga-img.full { max-height: none; object-fit: contain; }
 
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
@@ -4247,8 +4248,8 @@ async function giveawayPage(box) {
 }
 function giveawayModal(g, box) {
   const fields = g.fields || [];
-  const rows = [{ label: "Your ID", value: S.profile.member_id }, ...pmRows(g)];
-  openModal(`${g.image_url ? `<img class="ga-img" src="${esc(g.image_url)}" alt="">` : ""}<h2>${esc(g.title)}</h2>
+  const rows = pmRows(g);   // only the details the admin wrote (e.g. special code) — no "Your ID" (owner asked, V76)
+  openModal(`${g.image_url ? `<a href="${esc(g.image_url)}" target="_blank" rel="noopener"><img class="ga-img full" src="${esc(g.image_url)}" alt=""></a>` : ""}<h2>${esc(g.title)}</h2>
     ${g.prize || g.ends_at ? `<div class="job-meta">${g.prize ? `<span class="ga-prize">${ICONS.trophy}${esc(g.prize)}</span>` : ""}${g.ends_at ? `<span>${ICONS.clock}Ends ${esc(fmtDate(g.ends_at))}</span>` : ""}</div>` : ""}
     ${g.details ? `<p class="small" style="white-space:pre-wrap">${esc(g.details)}</p>` : ""}
     ${pmRowsHtml({ detail_rows: rows })}
