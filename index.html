@@ -1255,13 +1255,24 @@ body.wa-mode .fab-help { display: none; }
 .topbar > .grow { min-width: 0; }
 .topbar .title, .topbar #hello { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .topbar .icon-btn, .topbar .bal-pill { flex: none; }
-@media (max-width: 400px) {
-  .topbar { gap: 8px; }
-  .topbar .get-app { width: 36px; height: 36px; border-radius: 10px; }
-  .topbar .get-app svg { width: 20px; height: 20px; }
-}
-@media (max-width: 370px) { .topbar:has(.get-app) > .grow { display: none; } .topbar:has(.get-app) .bal-pill { margin-left: auto; } }
-@media (max-width: 430px) { .topbar:has(.get-app) .title { display: none; } .topbar:has(.get-app) #hello { font-size: .95rem; font-weight: 700; color: var(--text); } }
+@media (max-width: 400px) { .topbar { gap: 8px; } }
+
+/* V86: full-width "Get the Premvio App" strip at the top (website only) */
+.app-strip { display: flex; align-items: center; gap: 10px; width: 100%; margin: 10px 0 0; padding: 8px 8px 8px 14px; border-radius: 14px; cursor: pointer;
+  border: 1px solid color-mix(in srgb, #7cb342 45%, var(--line)); color: var(--text); font: inherit; text-align: left;
+  background: linear-gradient(90deg, color-mix(in srgb, #7cb342 16%, var(--bg-2)), var(--bg-2) 60%, color-mix(in srgb, var(--gold) 10%, var(--bg-2))); }
+.app-strip .get-app { animation: none; box-shadow: 0 4px 14px rgba(124, 179, 66, .45); }
+.as-text { position: relative; flex: 1; min-width: 0; display: flex; justify-content: center; padding: 4px 22px; }
+.as-breath { display: flex; flex-direction: column; align-items: center; line-height: 1.15; animation: asBreath 2s ease-in-out infinite; transform-origin: center; }
+.as-breath b { font-size: 1.02rem; font-weight: 800; letter-spacing: .2px; white-space: nowrap;
+  background: linear-gradient(90deg, #a5d66f, var(--gold), #a5d66f); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.as-breath small { font-size: .74rem; color: var(--muted); font-weight: 600; white-space: nowrap; }
+.as-sp { position: absolute; font-style: normal; font-size: .8rem; pointer-events: none; animation: asTwinkle 2s ease-in-out infinite; }
+.as-sp.s1 { left: 2px; top: -2px; } .as-sp.s2 { left: 0; bottom: -2px; font-size: .9rem; animation-delay: .5s; } .as-sp.s3 { left: 18%; top: -6px; font-size: .62rem; animation-delay: 1s; }
+.as-sp.s4 { right: 0; top: -2px; font-size: .9rem; animation-delay: .25s; } .as-sp.s5 { right: 4px; bottom: -4px; animation-delay: .75s; } .as-sp.s6 { right: 20%; bottom: -6px; font-size: .62rem; animation-delay: 1.25s; }
+@keyframes asBreath { 0%, 100% { transform: scale(1); opacity: .88; } 50% { transform: scale(1.08); opacity: 1; } }
+@keyframes asTwinkle { 0%, 100% { transform: scale(.6) rotate(0); opacity: .35; } 50% { transform: scale(1.15) rotate(15deg); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .as-breath, .as-sp { animation: none; } }
 
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
@@ -2849,11 +2860,15 @@ async function startApp() {
   if (S.profile.must_change_pw) await forceNewPassword();   // V78: after a manager changed the password
   root.innerHTML = `
   <div class="app cust-app">
+    ${isStandalone() ? "" : `<button class="app-strip" id="getApp" aria-label="Get the Premvio app">
+      <span class="as-text"><i class="as-sp s1">✨</i><i class="as-sp s2">🎁</i><i class="as-sp s3">⭐</i>
+        <span class="as-breath"><b>Get the Premvio App</b><small>up to 50% bonus 🔥</small></span>
+        <i class="as-sp s4">🎁</i><i class="as-sp s5">✨</i><i class="as-sp s6">⭐</i></span>
+      <span class="get-app"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10"/><path d="m7.5 9 4.5 4.5L16.5 9"/><rect x="3.5" y="15.5" width="17" height="5" rx="1.5"/><path d="M15.5 18h.01M18 18h.01"/></svg></span></button>`}
     <header class="topbar">
       <img src="${PV_LOGO}" alt="">
       <div class="grow"><div class="title">Premvio</div><div class="small muted" id="hello"></div></div>
       <a class="bal-pill" href="#deposit" title="Add money"><span data-balance>${money(S.profile.balance)}</span><i>+</i></a>
-      ${isStandalone() ? "" : `<button class="get-app" id="getApp" aria-label="Get the app"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10"/><path d="m7.5 9 4.5 4.5L16.5 9"/><rect x="3.5" y="15.5" width="17" height="5" rx="1.5"/><path d="M15.5 18h.01M18 18h.01"/></svg></button>`}
       <button class="icon-btn" id="bell" aria-label="Notifications">${ICONS.bell}<span class="dot hidden" id="bellDot"></span></button>
     </header>
     <main id="view"></main>
