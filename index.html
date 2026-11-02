@@ -1293,7 +1293,7 @@ else if(!PV_CONFIG.SUPABASE_ANON_KEY||/PASTE/.test(PV_CONFIG.SUPABASE_ANON_KEY))
 /* ============ PREMVIO — shared helpers ============ */
 if (window.pvDead) throw new Error("stopped");
 const CFG = window.PV_CONFIG;
-const PV_BUILD = "V84";   // shown in every staff menu so the owner can see which version is loaded
+const PV_BUILD = "V85";   // shown in every staff menu so the owner can see which version is loaded
 // Each panel keeps its own login, so logging out of one never logs out the others.
 // agent.html and agent-deposit.html share the agent login (log in once, use both).
 const PV_PANEL = /admin\.html/i.test(location.pathname) ? "admin" : /agent(-deposit)?\.html/i.test(location.pathname) ? "agent"
@@ -3354,6 +3354,14 @@ function basePrice(p, qty) {
   return b;
 }
 function unitPrice(p, form, qty) { return p.is_free ? 0 : Math.round((basePrice(p, qty) + extraPrice(p, form)) * 100) / 100; }
+// V85: min = max quantity → fixed pack, no quantity box (customer only picks an option)
+function fixedQty(p) { return Number(p.min_qty) === Number(p.max_qty); }
+function qtyField(p, val, buttons) {
+  if (fixedQty(p)) return `<input type="hidden" name="qty" value="${Number(p.min_qty)}">${Number(p.min_qty) > 1 ? `<p class="small muted">Quantity: <b>${Number(p.min_qty)}</b></p>` : ""}`;
+  const inp = `<input type="number" name="qty" min="${p.min_qty}" max="${p.max_qty}" step="1" value="${val}" required inputmode="numeric">`;
+  return `<label>Quantity <span class="muted">(${p.min_qty}–${p.max_qty})</span></label>`
+    + (buttons ? `<div class="qty-row"><button type="button" class="qbtn" data-q="-1">−</button>${inp}<button type="button" class="qbtn" data-q="1">+</button></div>` : inp);
+}
 function tierHtml(p) {
   const t = tiersOf(p);
   if (p.is_free || !t.length) return "";
@@ -3602,8 +3610,7 @@ function buyModal(p, pre) {
     <p class="muted small">${free ? `<b style="color:var(--green)">FREE</b>${p.free_per_user ? ` · limit ${p.free_per_user} per customer` : ""}`
       : `Price: <span id="each">${money(unitPrice(p, pre?.form || {}, pre?.quantity || p.min_qty))}</span>${saleOn(p) ? ` <span class="sale-pct">sale</span>` : ""} · Your balance: <b data-balance>${money(S.profile.balance)}</b>`}</p>
     <form id="bf">
-      <label>Quantity <span class="muted">(${p.min_qty}–${p.max_qty})</span></label>
-      <input type="number" name="qty" min="${p.min_qty}" max="${p.max_qty}" step="1" value="${pre ? Math.min(p.max_qty, Math.max(p.min_qty, pre.quantity)) : p.min_qty}" required inputmode="numeric">
+      ${qtyField(p, pre ? Math.min(p.max_qty, Math.max(p.min_qty, pre.quantity)) : p.min_qty, false)}
       ${tierHtml(p)}
       ${fields.map((fd) => fieldInput(fd, pre?.form?.[fd.id], p)).join("")}
       ${giftBlock(null)}
@@ -3635,7 +3642,7 @@ function buyModal(p, pre) {
       $("#disc", m).textContent = "−" + money(d);
       $("#ptsRow", m).classList.toggle("hidden", !pts);
       $("#ptsUsed", m).textContent = "−" + money(pts);
-      $("#tot", m).textContent = missing ? "Choose quantity" : money(t);
+      $("#tot", m).textContent = missing ? (fixedQty(p) ? "Choose a pack" : "Choose quantity") : money(t);
       $("#tot", m).classList.toggle("tot-hint", !!missing);
       const earn = cashbackFor(t);
       $("#warn", m).dataset.earn = earn ? ` You'll earn ⭐ ${earn} points.` : "";
@@ -3789,10 +3796,7 @@ function cartModal(p, item) {
     <p class="muted small">${p.is_free ? `<b style="color:var(--green)">FREE</b>${p.free_per_user ? ` · limit ${p.free_per_user} per customer` : ""}`
       : `Price: <span id="each">${money(unitPrice(p, item?.form || {}, item?.quantity || p.min_qty))}</span> each${saleOn(p) ? ` <span class="sale-pct">sale</span>` : ""}`}</p>
     <form id="cf">
-      <label>Quantity <span class="muted">(${p.min_qty}–${p.max_qty})</span></label>
-      <div class="qty-row"><button type="button" class="qbtn" data-q="-1">−</button>
-        <input type="number" name="qty" min="${p.min_qty}" max="${p.max_qty}" step="1" value="${qty0}" required inputmode="numeric">
-        <button type="button" class="qbtn" data-q="1">+</button></div>
+      ${qtyField(p, qty0, true)}
       ${tierHtml(p)}
       ${fields.map((fd) => fieldInput(fd, item ? item.form?.[fd.id] : undefined, p)).join("")}
       ${giftBlock(item?.gift || null)}
