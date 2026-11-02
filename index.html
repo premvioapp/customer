@@ -1244,6 +1244,25 @@ body.wa-mode .fab-help { display: none; }
 
 #tot.tot-hint { font-size: .9rem !important; color: var(--muted) !important; font-weight: 600; }
 
+/* V86: green "get the app" button (website only) */
+.get-app { flex: none; width: 40px; height: 40px; border: 0; border-radius: 11px; background: #7cb342; color: #fff; display: grid; place-items: center;
+  cursor: pointer; box-shadow: 0 4px 12px rgba(124, 179, 66, .35); animation: getAppPulse 2.4s ease-in-out infinite; }
+.get-app svg { width: 22px; height: 22px; }
+.get-app.big { width: 64px; height: 64px; border-radius: 16px; animation: none; }
+.get-app.big svg { width: 34px; height: 34px; }
+@keyframes getAppPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+@media (prefers-reduced-motion: reduce) { .get-app { animation: none; } }
+.topbar > .grow { min-width: 0; }
+.topbar .title, .topbar #hello { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar .icon-btn, .topbar .bal-pill { flex: none; }
+@media (max-width: 400px) {
+  .topbar { gap: 8px; }
+  .topbar .get-app { width: 36px; height: 36px; border-radius: 10px; }
+  .topbar .get-app svg { width: 20px; height: 20px; }
+}
+@media (max-width: 370px) { .topbar:has(.get-app) > .grow { display: none; } .topbar:has(.get-app) .bal-pill { margin-left: auto; } }
+@media (max-width: 430px) { .topbar:has(.get-app) .title { display: none; } .topbar:has(.get-app) #hello { font-size: .95rem; font-weight: 700; color: var(--text); } }
+
 </style>
 <title>Premvio — Telegram Stars &amp; Premium</title>
 <meta name="description" content="Buy Telegram Stars and Telegram Premium with Premvio.">
@@ -1293,7 +1312,7 @@ else if(!PV_CONFIG.SUPABASE_ANON_KEY||/PASTE/.test(PV_CONFIG.SUPABASE_ANON_KEY))
 /* ============ PREMVIO — shared helpers ============ */
 if (window.pvDead) throw new Error("stopped");
 const CFG = window.PV_CONFIG;
-const PV_BUILD = "V85";   // shown in every staff menu so the owner can see which version is loaded
+const PV_BUILD = "V86";   // shown in every staff menu so the owner can see which version is loaded
 // Each panel keeps its own login, so logging out of one never logs out the others.
 // agent.html and agent-deposit.html share the agent login (log in once, use both).
 const PV_PANEL = /admin\.html/i.test(location.pathname) ? "admin" : /agent(-deposit)?\.html/i.test(location.pathname) ? "agent"
@@ -2332,6 +2351,26 @@ const S = { user: null, profile: null, settings: {}, products: [], features: [],
 const root = $("#root");
 let installEvt = null;
 window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvt = e; });
+window.addEventListener("appinstalled", () => { installEvt = null; document.getElementById("getApp")?.remove(); });
+// install: Android/Chrome shows its own "Install" box; iPhone and others get the steps
+function installApp() {
+  if (isStandalone()) return toast("Premvio is already installed.", "success");
+  if (installEvt) { installEvt.prompt(); installEvt.userChoice?.then((c) => { if (c && c.outcome === "accepted") document.getElementById("getApp")?.remove(); }); installEvt = null; return; }
+  openModal(`<h2>Install Premvio</h2>
+    <p><b>iPhone (Safari):</b> tap the Share button, then <b>Add to Home Screen</b>.</p>
+    <p><b>Android (Chrome):</b> tap the ⋮ menu, then <b>Add to Home screen</b> or <b>Install app</b>.</p>
+    <button class="btn block mt" data-close>Got it</button>`);
+}
+// V86: green "get the app" button in the top bar (website only, hidden inside the installed app)
+function getAppModal() {
+  openModal(`<div class="center"><div class="get-app big" style="margin:0 auto">${document.querySelector("#getApp svg")?.outerHTML || ""}</div>
+    <h2 style="margin:14px 0 6px">Get the Premvio app</h2>
+    <p class="muted" style="margin:0">Get the app here and get up to <b style="color:var(--gold)">50% bonus</b> 🔥</p>
+    <button class="btn block gold mt" id="getAppGo">⬇️ Download app</button>
+    <button class="btn block ghost mt" data-close>Later</button></div>`, (m) => {
+    $("#getAppGo", m).onclick = () => { closeModal(); installApp(); };
+  });
+}
 
 /* ---------------- start ---------------- */
 // Invite link: premvio.app/?ref=PV123456 → remembered until the new customer registers
@@ -2814,6 +2853,7 @@ async function startApp() {
       <img src="${PV_LOGO}" alt="">
       <div class="grow"><div class="title">Premvio</div><div class="small muted" id="hello"></div></div>
       <a class="bal-pill" href="#deposit" title="Add money"><span data-balance>${money(S.profile.balance)}</span><i>+</i></a>
+      ${isStandalone() ? "" : `<button class="get-app" id="getApp" aria-label="Get the app"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10"/><path d="m7.5 9 4.5 4.5L16.5 9"/><rect x="3.5" y="15.5" width="17" height="5" rx="1.5"/><path d="M15.5 18h.01M18 18h.01"/></svg></button>`}
       <button class="icon-btn" id="bell" aria-label="Notifications">${ICONS.bell}<span class="dot hidden" id="bellDot"></span></button>
     </header>
     <main id="view"></main>
@@ -2823,6 +2863,7 @@ async function startApp() {
   <nav class="bottom-nav"><div class="inner">${TABS.map((t) =>
     `<button class="nav-item" data-tab="${t.id}">${t.icon}<span>${t.label}</span>${t.id === "cart" ? `<i class="nav-badge hidden" id="cartBadge"></i>` : ""}</button>`).join("")}</div></nav>`;
   $("#hello").textContent = "Hi, " + (S.profile.full_name || "there").split(" ")[0];
+  if ($("#getApp")) $("#getApp").onclick = getAppModal;
   $$(".nav-item").forEach((b) => (b.onclick = () => (location.hash = b.dataset.tab)));
   updateCartBadge();
   $("#bell").onclick = showNotifications;
@@ -4911,14 +4952,7 @@ async function settingsPage(v, sub) {
       S.profile.notify = on;
       toast(on ? "Notifications on." : "Notifications off.", "success");
     };
-    $("#inst").onclick = async () => {
-      if (isStandalone()) return toast("Premvio is already installed.", "success");
-      if (installEvt) { installEvt.prompt(); installEvt = null; return; }
-      openModal(`<h2>Install Premvio</h2>
-        <p><b>iPhone (Safari):</b> tap the Share button, then <b>Add to Home Screen</b>.</p>
-        <p><b>Android (Chrome):</b> tap the ⋮ menu, then <b>Add to Home screen</b> or <b>Install app</b>.</p>
-        <button class="btn block mt" data-close>Got it</button>`);
-    };
+    $("#inst").onclick = () => installApp();
     return;
   }
 
