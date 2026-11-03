@@ -534,6 +534,12 @@ td .btn + .btn { margin-left: 6px; }
 .pm-tile:active { transform: scale(.97); }
 .pm-tile.on { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(31, 162, 255, .15); }
 .pm-tile .pm-logo { width: 54px; height: 54px; }
+/* V92: Telegram-direct method (tap opens Telegram) */
+a.pm-tile { text-decoration: none; position: relative; }
+.pm-tile .pm-tg { position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; border-radius: 50%; background: #229ed9; color: #fff;
+  display: grid; place-items: center; padding: 4px; box-sizing: border-box; }
+.pm-tile .pm-tg svg { width: 100%; height: 100%; }
+#tgBox { padding: 2px 0 6px; }
 .pm-name { font-size: .82rem; font-weight: 700; text-align: center; line-height: 1.2; word-break: break-word; }
 .pm-panel .pm-logo { width: 46px; height: 46px; }
 .pm-info { white-space: pre-wrap; padding: 12px; border-radius: 12px; background: var(--card-2); font-weight: 600; border-left: 3px solid var(--blue); }
@@ -1349,7 +1355,7 @@ else if(!PV_CONFIG.SUPABASE_ANON_KEY||/PASTE/.test(PV_CONFIG.SUPABASE_ANON_KEY))
 /* ============ PREMVIO — shared helpers ============ */
 if (window.pvDead) throw new Error("stopped");
 const CFG = window.PV_CONFIG;
-const PV_BUILD = "V91";   // shown in every staff menu so the owner can see which version is loaded
+const PV_BUILD = "V92";   // shown in every staff menu so the owner can see which version is loaded
 // Each panel keeps its own login, so logging out of one never logs out the others.
 // agent.html and agent-deposit.html share the agent login (log in once, use both).
 const PV_PANEL = /admin\.html/i.test(location.pathname) ? "admin" : /agent(-deposit)?\.html/i.test(location.pathname) ? "agent"
@@ -4093,15 +4099,25 @@ async function viewWallet(v, mode) {
   $("#back").onclick = () => { if (sel) { sel = null; clearInterval(S.timer); showGrid(); } else goBack(); };
   if (navigator.onLine) refreshMaint();
   const { data } = await sb.from("payment_methods").select("*").eq("kind", kind).eq("active", true).order("sort").order("id");
-  const methods = (data || []).filter((m) => kind !== "deposit" || m.audience !== "agents");
+  let methods = (data || []).filter((m) => kind !== "deposit" || m.audience !== "agents");
+  // V92: Telegram-direct methods need a link; withdraw only with the method used to deposit
+  methods = methods.filter((m) => !m.open_direct || pvLink(m.link));
+  let wdLimited = false;
+  if (kind === "withdraw") {
+    const { data: ok, error: okErr } = await sb.rpc("my_withdraw_methods");
+    if (!okErr && Array.isArray(ok)) { const n = methods.length; methods = methods.filter((m) => ok.includes(m.id)); wdLimited = methods.length < n; }
+  }
   if (!$("#pmGrid")) return;
   if (!methods.length) {
-    $("#pmGrid").outerHTML = `<div class="empty"><div class="big">💳</div>No ${kind} methods available yet. Please contact <a href="${esc(tgLink())}" target="_blank" rel="noopener">${esc(tgHandle())}</a>.</div>`;
+    $("#pmGrid").outerHTML = `<div class="empty"><div class="big">💳</div>${wdLimited ? "You can withdraw only with the method you deposited with." : `No ${kind} methods available yet.`} Please contact <a href="${esc(tgLink())}" target="_blank" rel="noopener">${esc(tgHandle())}</a>.</div>`;
     return;
   }
   const drawGrid = () => {
-    $("#pmGrid").innerHTML = methods.map((m) => `<button class="pm-tile" data-pm="${m.id}">
-      <span class="pm-logo">${m.logo_url ? `<img src="${esc(m.logo_url)}" alt="">` : `<b>${esc(m.name.slice(0, 2).toUpperCase())}</b>`}</span>
+    const logo = (m) => `<span class="pm-logo">${m.logo_url ? `<img src="${esc(m.logo_url)}" alt="">` : `<b>${esc(m.name.slice(0, 2).toUpperCase())}</b>`}</span>`;
+    $("#pmGrid").innerHTML = methods.map((m) => kind === "deposit" && m.open_direct
+      ? `<a class="pm-tile pm-direct" href="${esc(pvLink(m.link))}" target="_blank" rel="noopener">${logo(m)}
+        <span class="pm-name">${esc(m.name)}</span><span class="pm-tg">${ICONS.send}</span></a>`
+      : `<button class="pm-tile" data-pm="${m.id}">${logo(m)}
       <span class="pm-name">${esc(m.name)}</span></button>`).join("");
     $$("[data-pm]", v).forEach((b) => (b.onclick = () => {
       sel = methods.find((m) => m.id == b.dataset.pm);
@@ -4129,7 +4145,7 @@ async function viewWallet(v, mode) {
   };
   drawGrid();
   // stay on the open method when the screen refreshes (e.g. after creating a PremvioCash code)
-  const keep = S.pmOpen && S.pmOpen.kind === kind && methods.find((m) => m.id === S.pmOpen.id);
+  const keep = S.pmOpen && S.pmOpen.kind === kind && methods.find((m) => m.id === S.pmOpen.id && !m.open_direct);
   if (keep) { sel = keep; showMethod(); } else showGrid();
 }
 
