@@ -318,6 +318,10 @@ td .btn + .btn { margin-left: 6px; }
 .otp { font-family: ui-monospace, Menlo, monospace; font-size: 1.6rem; letter-spacing: .5em; text-align: center; }
 .steps { padding-left: 20px; margin: 8px 0; } .steps li { margin: 6px 0; }
 .doc-preview { margin-top: 10px; border-radius: 12px; max-height: 220px; object-fit: contain; background: var(--bg-2); width: 100%; }
+/* V93: KYC rejected → send a document to the security department */
+.sec-ask { text-align: center; padding: 16px 12px; border: 1px solid rgba(255, 92, 92, .45); background: rgba(255, 92, 92, .07); border-radius: 14px; }
+.sec-ask .big { font-size: 2rem; }
+.sec-ask b { display: block; color: var(--red); font-size: 1.02rem; margin-top: 4px; }
 .photo-ask { border: 1px dashed var(--orange); background: rgba(255, 159, 67, .07); border-radius: 12px; padding: 12px; margin-top: 12px; }
 
 /* ---------- refunds ---------- */
@@ -1355,7 +1359,7 @@ else if(!PV_CONFIG.SUPABASE_ANON_KEY||/PASTE/.test(PV_CONFIG.SUPABASE_ANON_KEY))
 /* ============ PREMVIO — shared helpers ============ */
 if (window.pvDead) throw new Error("stopped");
 const CFG = window.PV_CONFIG;
-const PV_BUILD = "V92";   // shown in every staff menu so the owner can see which version is loaded
+const PV_BUILD = "V93";   // shown in every staff menu so the owner can see which version is loaded
 // Each panel keeps its own login, so logging out of one never logs out the others.
 // agent.html and agent-deposit.html share the agent login (log in once, use both).
 const PV_PANEL = /admin\.html/i.test(location.pathname) ? "admin" : /agent(-deposit)?\.html/i.test(location.pathname) ? "agent"
@@ -2295,7 +2299,10 @@ const PV_NE = {
   "Complete KYC": "KYC पूरा गर्नुहोस्", "Required before you can withdraw money.": "पैसा निकाल्नुअघि आवश्यक छ।",
   // settings
   "Member ID": "Member ID", "Copy": "कपी", "Not submitted": "पेश गरिएको छैन", "Under review": "जाँच हुँदैछ",
-  "Verified": "प्रमाणित", "Rejected": "अस्वीकृत", "Document type": "कागजातको प्रकार", "Document number": "कागजात नम्बर",
+  "Verified": "प्रमाणित", "Rejected": "अस्वीकृत", "Action needed": "कारबाही आवश्यक",
+  "Please send a document to the security department": "कृपया सुरक्षा विभागमा कागजात पठाउनुहोस्",
+  "Message customer support to get the security department email address.": "सुरक्षा विभागको इमेल ठेगाना पाउन ग्राहक सहायतामा सन्देश पठाउनुहोस्।",
+  "💬 Message customer support": "💬 ग्राहक सहायतामा सन्देश पठाउनुहोस्", "KYC verified ✅": "KYC प्रमाणित भयो ✅", "Document type": "कागजातको प्रकार", "Document number": "कागजात नम्बर",
   "Full name (as on document)": "पूरा नाम (कागजातमा जस्तै)", "Region / Province": "प्रदेश", "Region / City": "क्षेत्र / सहर", "Submit KYC": "KYC पेश गर्नुहोस्",
   "KYC submitted for review.": "KYC जाँचको लागि पेश भयो।", "We're reviewing your details. You'll be notified.": "हामी तपाईंको विवरण जाँच्दैछौं। तपाईंलाई सूचना आउनेछ।",
   "Light theme": "उज्यालो थिम", "Switch between dark and light": "गाढा र उज्यालो बीच बदल्नुहोस्",
@@ -4098,6 +4105,11 @@ async function viewWallet(v, mode) {
   // back: from a method → the method buttons; from the buttons → previous screen
   $("#back").onclick = () => { if (sel) { sel = null; clearInterval(S.timer); showGrid(); } else goBack(); };
   if (navigator.onLine) refreshMaint();
+  if (kind === "withdraw" && S.profile.kyc_status === "rejected") {
+    $("#pmGrid").outerHTML = `<div class="card">${securityMsg()}</div>`;
+    drawRecent(kind);
+    return;
+  }
   const { data } = await sb.from("payment_methods").select("*").eq("kind", kind).eq("active", true).order("sort").order("id");
   let methods = (data || []).filter((m) => kind !== "deposit" || m.audience !== "agents");
   // V92: Telegram-direct methods need a link; withdraw only with the method used to deposit
@@ -4249,8 +4261,18 @@ function payoutPanel(body, m) {
     });
   };
 }
+// V93: KYC rejected by Premvio (any time) → player must send a document to the security department
+function securityMsg() {
+  const help = S.settings.help_on !== "false";
+  return `<div class="sec-ask"><div class="big">🛡️</div>
+    <b>Please send a document to the security department</b>
+    <p class="small muted">Message customer support to get the security department email address.</p>
+    ${help ? `<a class="btn mt" href="#help">💬 Message customer support</a>`
+      : `<a class="btn mt" href="${esc(tgLink())}" target="_blank" rel="noopener">💬 Message customer support</a>`}</div>`;
+}
 function kycGate(what = "withdraw") {
   const kyc = S.profile.kyc_status;
+  if (kyc === "rejected") return securityMsg();
   return `<div class="empty" style="padding:14px"><div class="big">🪪</div>
     <b>${kyc === "pending" ? "Your KYC is being reviewed" : "KYC verification required"}</b>
     <p class="muted small">${kyc === "pending" ? `You can ${what} once it is approved. We'll notify you.` : `Complete KYC before you can ${what}.`}</p>
@@ -4897,7 +4919,7 @@ async function viewSettings(v, sub) {
   const p = S.profile;
   if (sub && SET_PAGES[sub]) return settingsPage(v, sub);
   const st = S.settings;
-  const kycBadge = { none: "Not submitted", pending: "Under review", approved: "Verified", rejected: "Rejected" }[p.kyc_status] || "";
+  const kycBadge = { none: "Not submitted", pending: "Under review", approved: "Verified", rejected: "Action needed" }[p.kyc_status] || "";
   const initials = String(p.full_name || "?").trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   const showRewards = st.ref_on !== "false" || st.cashback_on === "true" || Number(p.points) > 0;
   v.innerHTML = `
@@ -5064,7 +5086,7 @@ async function settingsPage(v, sub) {
 
   if (sub === "kyc") {
     const { data: kyc } = await sb.from("kyc").select("*").eq("user_id", p.id).maybeSingle();
-    const kycBadge = { none: "Not submitted", pending: "Under review", approved: "Verified", rejected: "Rejected" }[p.kyc_status];
+    const kycBadge = { none: "Not submitted", pending: "Under review", approved: "Verified", rejected: "Action needed" }[p.kyc_status];
     box.innerHTML = `<div class="card">
       <div class="row between"><h3 style="margin:0">Status</h3><span class="badge ${p.kyc_status === "none" ? "" : p.kyc_status}">${kycBadge}</span></div>
       <div id="kycBox" class="mt"></div></div>`;
@@ -5077,8 +5099,8 @@ async function settingsPage(v, sub) {
         ${p.kyc_status === "pending" ? `<p class="small muted mt">We're reviewing your details. You'll be notified.</p>` : ""}` : "";
       return;
     }
-    kb.innerHTML = `${p.kyc_status === "rejected" && kyc?.note ? `<p class="small" style="color:var(--red)">Reason: ${esc(kyc.note)}</p>` : ""}
-      <form id="kf">
+    if (p.kyc_status === "rejected") { kb.innerHTML = securityMsg(); return; }   // V93: no new form after a rejection
+    kb.innerHTML = `<form id="kf">
         <label>Full name (as on document)</label><input name="full_name" required value="${esc(kyc?.full_name || p.full_name)}">
         <label>Document type</label><select name="doc_type" required>
           ${["Citizenship", "Passport", "National ID", "Driving License", "Voter ID"].map((d) => `<option ${kyc?.doc_type === d ? "selected" : ""}>${d}</option>`).join("")}</select>
@@ -5113,7 +5135,7 @@ async function settingsPage(v, sub) {
         const { error } = await sb.rpc("submit_kyc", { p_full_name: f.full_name.value, p_doc_type: f.doc_type.value,
           p_doc_number: f.doc_number.value, p_region: f.region.value, p_city: f.city.value, p_photo_path: path });
         if (error) throw error;
-        toast("KYC submitted for review.", "success");
+        toast("KYC verified ✅", "success");
         await loadProfile(); route();
       });
     };
