@@ -1359,7 +1359,7 @@ else if(!PV_CONFIG.SUPABASE_ANON_KEY||/PASTE/.test(PV_CONFIG.SUPABASE_ANON_KEY))
 /* ============ PREMVIO — shared helpers ============ */
 if (window.pvDead) throw new Error("stopped");
 const CFG = window.PV_CONFIG;
-const PV_BUILD = "V93";   // shown in every staff menu so the owner can see which version is loaded
+const PV_BUILD = "V94";   // shown in every staff menu so the owner can see which version is loaded
 // Each panel keeps its own login, so logging out of one never logs out the others.
 // agent.html and agent-deposit.html share the agent login (log in once, use both).
 const PV_PANEL = /admin\.html/i.test(location.pathname) ? "admin" : /agent(-deposit)?\.html/i.test(location.pathname) ? "agent"
@@ -1412,7 +1412,7 @@ function errMsg(e) {
   const m = e?.message || String(e);
   if (/Invalid login credentials/i.test(m)) return "Wrong email or password.";
   if (/Email not confirmed/i.test(m)) return "Please confirm your email first — check your inbox.";
-  if (/already registered/i.test(m)) return "This email is already registered. Please log in.";
+  if (/^User already registered/i.test(m)) return "This email is already registered. Please log in.";   // V94: Supabase's own message only — our phone message must show as it is
   if (/not authorized|sending confirmation|Error sending/i.test(m)) return "Sign-up email could not be sent. (Owner: in Supabase → Authentication → Sign In / Providers → Email, turn OFF \"Confirm email\".)";
   if (/email.*invalid|invalid.*email|validate email/i.test(m)) return "This email address was rejected. Use a real address like name@gmail.com. (Owner: in Supabase turn OFF \"Confirm email\" if this keeps happening.)";
   if (/rate limit|too many/i.test(m) && !/try again in \d+ minute/i.test(m)) return "Too many attempts. Please wait a few minutes and try again.";
@@ -2705,7 +2705,18 @@ function renderAuth(mode) {
         const email = f.email.value.trim(), password = f.password.value;
         const { error } = await sb.rpc("register_customer", { p_email: email, p_password: password,
           p_full_name: f.full_name.value.trim(), p_phone: f.phone.value.trim(), p_country: f.country.value, p_captcha: ts.token() });
-        if (error) { ts.reset(); throw error; }
+        if (error) {
+          ts.reset();
+          // V94: email really has an account (maybe their first try went through on slow internet) → Log in page, email filled in
+          if (/email is already registered/i.test(error.message || "")) {
+            toast("This email already has an account. Please log in, or use “Forgot password?”.", "error");
+            renderAuth("login");
+            const le = $("#f")?.email; if (le) le.value = email;
+            return;
+          }
+          if (/phone number is already registered/i.test(error.message || "")) throw new Error("This phone number already has a Premvio account. Please log in, or use another phone number.");
+          throw error;
+        }
         markUnlocked();
         const { error: e2 } = await sb.auth.signInWithPassword({ email, password });
         if (e2) { toast("Account created. Please log in.", "success"); renderAuth("login"); return; }
